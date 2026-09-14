@@ -62,6 +62,56 @@ class TelegramService
     }
 
     /**
+     * @param  array<int, array<int, array<string, string>>>  $rows
+     * @return array{inline_keyboard: array<int, array<int, array<string, string>>>}
+     */
+    public function inlineKeyboard(array $rows): array
+    {
+        return ['inline_keyboard' => $rows];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function editMessageText(int|string $chatId, int $messageId, string $text, array $payload = []): ?array
+    {
+        return $this->call('editMessageText', array_merge([
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ], $payload));
+    }
+
+    /**
+     * Send a new message or edit an existing one when messageId is present.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function replyOrEdit(int|string $chatId, string $text, array $payload = [], ?int $messageId = null): ?array
+    {
+        if ($messageId !== null) {
+            return $this->editMessageText($chatId, $messageId, $text, $payload);
+        }
+
+        return $this->sendMessage($chatId, $text, $payload);
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): ?array
+    {
+        $params = ['callback_query_id' => $callbackQueryId];
+
+        if ($text !== null) {
+            $params['text'] = $text;
+            $params['show_alert'] = $showAlert;
+        }
+
+        return $this->call('answerCallbackQuery', $params);
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function getWebhookInfo(): ?array

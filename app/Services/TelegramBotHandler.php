@@ -13,6 +13,7 @@ use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
 use App\Models\Withdrawal;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -85,7 +86,7 @@ class TelegramBotHandler
         }
 
         if ($user->onboarding_step !== OnboardingStep::Complete && $user->onboarding_step !== null) {
-            $this->handleOnboarding($user, $chatId, $text);
+            $this->repromptOnboarding($user, $chatId);
 
             return;
         }
@@ -108,9 +109,11 @@ class TelegramBotHandler
      */
     protected function handleCallback(array $callback): void
     {
-        $data = $callback['data'] ?? '';
+        $data = (string) ($callback['data'] ?? '');
         $chatId = $callback['message']['chat']['id'] ?? null;
+        $messageId = isset($callback['message']['message_id']) ? (int) $callback['message']['message_id'] : null;
         $from = $callback['from'] ?? [];
+        $callbackId = (string) ($callback['id'] ?? '');
 
         if ($chatId === null) {
             return;
@@ -122,56 +125,59 @@ class TelegramBotHandler
             $from['username'] ?? null,
         );
 
-        if (str_starts_with($data, 'course_resources:')) {
-            $courseId = (int) Str::after($data, 'course_resources:');
-            $this->listResources($user, $chatId, $courseId);
-        }
+        $alert = null;
 
-        if (str_starts_with($data, 'open_resource:')) {
+        if (str_starts_with($data, 'ob:')) {
+            $alert = $this->handleOnboardingCallback($user, $chatId, $data, $messageId);
+        } elseif ($data === 'back:courses') {
+            $this->showCoursesForResources($user, $chatId, $messageId);
+        } elseif (str_starts_with($data, 'course_resources:')) {
+            $courseId = (int) Str::after($data, 'course_resources:');
+            $this->listResources($user, $chatId, $courseId, $messageId);
+        } elseif (str_starts_with($data, 'open_resource:')) {
             $resourceId = (int) Str::after($data, 'open_resource:');
             $this->openResource($user, $chatId, $resourceId);
-        }
-
-        if ($data === 'premium_pay') {
+        } elseif ($data === 'premium_pay') {
             $payment = $this->payments->createPendingPremiumPayment($user);
             $this->telegram->sendMessage($chatId, $this->payments->instructionsFor($payment)."\n\nTap ⭐ Premium again after paying and wait for admin verification.");
-        }
-
-        if ($data === 'withdraw_request') {
-            $balance = ReferralReward::query()
-                ->where('user_id', $user->id)
-                ->where('status', RewardStatus::Approved)
-                ->sum('amount');
-
-            if ($balance <= 0) {
-                $this->telegram->sendMessage($chatId, 'No approved rewards available to withdraw.');
-
-                return;
-            }
-
-            Withdrawal::query()->create([
-                'user_id' => $user->id,
-                'amount' => $balance,
-                'method' => 'pending_details',
-                'details' => 'Requested via Telegram',
-                'status' => WithdrawalStatus::Pending,
-            ]);
-
-            ReferralReward::query()
-                ->where('user_id', $user->id)
-                ->where('status', RewardStatus::Approved)
-                ->update(['status' => RewardStatus::Paid]);
-
-            $this->telegram->sendMessage($chatId, "Withdrawal request submitted for {$balance} ETB.");
-        }
-
-        if ($this->isMenuOrSlashCommand($data)) {
+        } elseif ($data === 'withdraw_request') {
+            $this->handleWithdrawRequest($user, $chatId);
+        } elseif ($this->isMenuOrSlashCommand($data)) {
             $this->dispatchMenuCommand($user, $chatId, $data);
+        } else {
+            $alert = 'That button is no longer valid. Use the menu.';
         }
 
-        $this->telegram->call('answerCallbackQuery', [
-            'callback_query_id' => $callback['id'],
+        $this->telegram->answerCallbackQuery($callbackId, $alert, $alert !== null);
+    }
+
+    protected function handleWithdrawRequest(User $user, int|string $chatId): void
+    {
+        $balance = ReferralReward::query()
+            ->where('user_id', $user->id)
+            ->where('status', RewardStatus::Approved)
+            ->sum('amount');
+
+        if ($balance <= 0) {
+            $this->telegram->sendMessage($chatId, 'No approved rewards available to withdraw.');
+
+            return;
+        }
+
+        Withdrawal::query()->create([
+            'user_id' => $user->id,
+            'amount' => $balance,
+            'method' => 'pending_details',
+            'details' => 'Requested via Telegram',
+            'status' => WithdrawalStatus::Pending,
         ]);
+
+        ReferralReward::query()
+            ->where('user_id', $user->id)
+            ->where('status', RewardStatus::Approved)
+            ->update(['status' => RewardStatus::Paid]);
+
+        $this->telegram->sendMessage($chatId, "Withdrawal request submitted for {$balance} ETB.");
     }
 
     protected function isMenuOrSlashCommand(string $data): bool
@@ -212,32 +218,183 @@ class TelegramBotHandler
         };
     }
 
-    protected function askStream(int|string $chatId): void
-    {
-        $streams = Stream::query()->active()->orderBy('name')->get();
-        $lines = $streams->map(fn (Stream $s) => "• {$s->name}")->implode("\n");
-        $this->telegram->sendMessage($chatId, "Choose your stream by typing the name:\n{$lines}");
-    }
-
-    protected function handleOnboarding(User $user, int|string $chatId, string $text): void
+    protected function repromptOnboarding(User $user, int|string $chatId): void
     {
         match ($user->onboarding_step) {
-            OnboardingStep::Stream => $this->pickStream($user, $chatId, $text),
-            OnboardingStep::University => $this->pickUniversity($user, $chatId, $text),
-            OnboardingStep::Semester => $this->pickSemester($user, $chatId, $text),
-            OnboardingStep::Courses => $this->pickCourses($user, $chatId, $text),
+            OnboardingStep::Stream => $this->askStream($chatId),
+            OnboardingStep::University => $this->askUniversity($chatId),
+            OnboardingStep::Semester => $this->askSemester($chatId),
+            OnboardingStep::Courses => $this->askCourses($user, $chatId),
             default => $this->askStream($chatId),
         };
     }
 
-    protected function pickStream(User $user, int|string $chatId, string $text): void
+    protected function askStream(int|string $chatId, ?int $messageId = null): void
     {
-        $stream = Stream::query()->active()->whereRaw('lower(name) = ?', [strtolower($text)])->first();
+        $streams = Stream::query()->active()->orderBy('name')->get();
 
-        if ($stream === null) {
-            $this->askStream($chatId);
+        if ($streams->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, 'No streams are available yet. Please try again later.', messageId: $messageId);
 
             return;
+        }
+
+        $rows = $streams->map(fn (Stream $stream) => [[
+            'text' => $stream->name,
+            'callback_data' => "ob:stream:{$stream->id}",
+        ]])->values()->all();
+
+        $this->telegram->replyOrEdit($chatId, 'Tap your stream:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function askUniversity(int|string $chatId, ?int $messageId = null): void
+    {
+        $unis = University::query()->active()->orderBy('sort_order')->orderBy('name')->get();
+
+        $rows = $unis->map(fn (University $uni) => [[
+            'text' => $uni->name,
+            'callback_data' => "ob:uni:{$uni->id}",
+        ]])->values()->all();
+
+        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:uni:skip']];
+
+        $this->telegram->replyOrEdit($chatId, 'Optional: tap your university, or Skip:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function askSemester(int|string $chatId, ?int $messageId = null): void
+    {
+        $semesters = Semester::query()->orderBy('sort_order')->orderBy('name')->get();
+
+        $rows = $semesters->map(fn (Semester $semester) => [[
+            'text' => $semester->name,
+            'callback_data' => "ob:sem:{$semester->id}",
+        ]])->values()->all();
+
+        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:sem:skip']];
+
+        $this->telegram->replyOrEdit($chatId, 'Optional: tap your semester, or Skip:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function askCourses(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $user->loadMissing('stream');
+
+        if ($user->stream === null) {
+            $user->update(['onboarding_step' => OnboardingStep::Stream]);
+            $this->askStream($chatId, $messageId);
+
+            return;
+        }
+
+        $selectedIds = collect(cache()->get("onboarding.courses.{$user->id}", []))->map(fn ($id) => (int) $id)->all();
+
+        if ($selectedIds === []) {
+            $recommended = $this->onboarding->recommendCourses($user->stream, $user->university_id);
+            $selectedIds = $recommended->pluck('id')->map(fn ($id) => (int) $id)->all();
+            cache()->put("onboarding.courses.{$user->id}", $selectedIds, now()->addHour());
+        }
+
+        $courses = $this->coursesForOnboarding($user, $selectedIds);
+
+        if ($courses->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, 'No courses are available for your stream yet. Tap Confirm to finish.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm']],
+                ]),
+            ], $messageId);
+
+            return;
+        }
+
+        $rows = $courses->map(function (Course $course) use ($selectedIds) {
+            $prefix = in_array($course->id, $selectedIds, true) ? '✅ ' : '';
+
+            return [[
+                'text' => $prefix.$course->name,
+                'callback_data' => "ob:course:toggle:{$course->id}",
+            ]];
+        })->values()->all();
+
+        $rows[] = [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm']];
+
+        $this->telegram->replyOrEdit($chatId, 'Tap courses to select or deselect, then Confirm:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    /**
+     * @param  array<int>  $selectedIds
+     * @return Collection<int, Course>
+     */
+    protected function coursesForOnboarding(User $user, array $selectedIds): Collection
+    {
+        $recommended = $this->onboarding->recommendCourses($user->stream, $user->university_id);
+        $extra = Course::query()
+            ->active()
+            ->where('stream_id', $user->stream_id)
+            ->whereIn('id', $selectedIds)
+            ->get();
+
+        return $recommended->concat($extra)->unique('id')->values();
+    }
+
+    protected function handleOnboardingCallback(User $user, int|string $chatId, string $data, ?int $messageId): ?string
+    {
+        if ($user->onboarding_step === OnboardingStep::Complete) {
+            return 'Onboarding is already complete. Use the menu.';
+        }
+
+        if (str_starts_with($data, 'ob:stream:')) {
+            return $this->selectStream($user, $chatId, (int) Str::after($data, 'ob:stream:'), $messageId);
+        }
+
+        if ($data === 'ob:uni:skip') {
+            return $this->selectUniversity($user, $chatId, null, $messageId);
+        }
+
+        if (str_starts_with($data, 'ob:uni:')) {
+            return $this->selectUniversity($user, $chatId, (int) Str::after($data, 'ob:uni:'), $messageId);
+        }
+
+        if ($data === 'ob:sem:skip') {
+            return $this->selectSemester($user, $chatId, null, $messageId);
+        }
+
+        if (str_starts_with($data, 'ob:sem:')) {
+            return $this->selectSemester($user, $chatId, (int) Str::after($data, 'ob:sem:'), $messageId);
+        }
+
+        if (str_starts_with($data, 'ob:course:toggle:')) {
+            return $this->toggleCourse($user, $chatId, (int) Str::after($data, 'ob:course:toggle:'), $messageId);
+        }
+
+        if ($data === 'ob:course:confirm') {
+            return $this->confirmCourses($user, $chatId, $messageId);
+        }
+
+        return 'That onboarding button is no longer valid.';
+    }
+
+    protected function selectStream(User $user, int|string $chatId, int $streamId, ?int $messageId): ?string
+    {
+        if ($user->onboarding_step !== OnboardingStep::Stream && $user->onboarding_step !== OnboardingStep::Start) {
+            $this->repromptOnboarding($user, $chatId);
+
+            return 'Please finish the current step.';
+        }
+
+        $stream = Stream::query()->active()->find($streamId);
+
+        if ($stream === null) {
+            $this->askStream($chatId, $messageId);
+
+            return 'That stream is unavailable.';
         }
 
         $user->update([
@@ -245,99 +402,184 @@ class TelegramBotHandler
             'onboarding_step' => OnboardingStep::University,
         ]);
 
-        $unis = University::query()->active()->orderBy('sort_order')->get();
-        $lines = $unis->map(fn (University $u) => "• {$u->name}")->implode("\n");
-        $this->telegram->sendMessage($chatId, "Optional: choose your university (or type Skip):\n{$lines}");
+        $this->askUniversity($chatId, $messageId);
+
+        return null;
     }
 
-    protected function pickUniversity(User $user, int|string $chatId, string $text): void
+    protected function selectUniversity(User $user, int|string $chatId, ?int $universityId, ?int $messageId): ?string
     {
-        if (strtolower($text) !== 'skip') {
-            $uni = University::query()->active()->whereRaw('lower(name) = ?', [strtolower($text)])->first();
-            if ($uni !== null) {
-                $user->update(['university_id' => $uni->id]);
+        if ($user->onboarding_step !== OnboardingStep::University) {
+            $this->repromptOnboarding($user, $chatId);
+
+            return 'Please finish the current step.';
+        }
+
+        if ($universityId !== null) {
+            $uni = University::query()->active()->find($universityId);
+
+            if ($uni === null) {
+                $this->askUniversity($chatId, $messageId);
+
+                return 'That university is unavailable.';
             }
+
+            $user->update(['university_id' => $uni->id]);
         }
 
         $user->update(['onboarding_step' => OnboardingStep::Semester]);
-        $semesters = Semester::query()->orderBy('sort_order')->get();
-        $lines = $semesters->map(fn (Semester $s) => "• {$s->name}")->implode("\n");
-        $this->telegram->sendMessage($chatId, "Optional: choose semester (or type Skip):\n{$lines}");
+        $this->askSemester($chatId, $messageId);
+
+        return null;
     }
 
-    protected function pickSemester(User $user, int|string $chatId, string $text): void
+    protected function selectSemester(User $user, int|string $chatId, ?int $semesterId, ?int $messageId): ?string
     {
-        if (strtolower($text) !== 'skip') {
-            $semester = Semester::query()->whereRaw('lower(name) = ?', [strtolower($text)])->first();
-            if ($semester !== null) {
-                $user->update(['semester_id' => $semester->id]);
+        if ($user->onboarding_step !== OnboardingStep::Semester) {
+            $this->repromptOnboarding($user, $chatId);
+
+            return 'Please finish the current step.';
+        }
+
+        if ($semesterId !== null) {
+            $semester = Semester::query()->find($semesterId);
+
+            if ($semester === null) {
+                $this->askSemester($chatId, $messageId);
+
+                return 'That semester is unavailable.';
             }
+
+            $user->update(['semester_id' => $semester->id]);
         }
 
+        $user->loadMissing('stream');
         $user->update(['onboarding_step' => OnboardingStep::Courses]);
-        $recommended = $this->onboarding->recommendCourses($user->stream, $user->university_id);
-        $lines = $recommended->map(fn (Course $c) => "• {$c->name}")->implode("\n");
-        $this->telegram->sendMessage($chatId, "Recommended courses (type Accept or list course names separated by commas):\n{$lines}");
-        cache()->put("onboarding.courses.{$user->id}", $recommended->pluck('id')->all(), now()->addHour());
+
+        $recommended = $user->stream !== null
+            ? $this->onboarding->recommendCourses($user->stream, $user->university_id)
+            : collect();
+
+        cache()->put(
+            "onboarding.courses.{$user->id}",
+            $recommended->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            now()->addHour(),
+        );
+
+        $this->askCourses($user->fresh(), $chatId, $messageId);
+
+        return null;
     }
 
-    protected function pickCourses(User $user, int|string $chatId, string $text): void
+    protected function toggleCourse(User $user, int|string $chatId, int $courseId, ?int $messageId): ?string
     {
-        if (strtolower($text) === 'accept') {
-            $ids = cache()->get("onboarding.courses.{$user->id}", []);
-            $this->onboarding->syncCourses($user, $ids);
-        } else {
-            $names = collect(explode(',', $text))->map(fn ($n) => strtolower(trim($n)))->filter();
-            $ids = Course::query()
-                ->where('stream_id', $user->stream_id)
-                ->get()
-                ->filter(fn (Course $c) => $names->contains(strtolower($c->name)))
-                ->pluck('id')
-                ->all();
-            $this->onboarding->syncCourses($user, $ids);
+        if ($user->onboarding_step !== OnboardingStep::Courses) {
+            $this->repromptOnboarding($user, $chatId);
+
+            return 'Please finish the current step.';
         }
 
+        $course = Course::query()
+            ->active()
+            ->where('stream_id', $user->stream_id)
+            ->find($courseId);
+
+        if ($course === null) {
+            $this->askCourses($user, $chatId, $messageId);
+
+            return 'That course is unavailable.';
+        }
+
+        $selectedIds = collect(cache()->get("onboarding.courses.{$user->id}", []))
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (in_array($courseId, $selectedIds, true)) {
+            $selectedIds = array_values(array_filter($selectedIds, fn (int $id) => $id !== $courseId));
+        } else {
+            $selectedIds[] = $courseId;
+        }
+
+        cache()->put("onboarding.courses.{$user->id}", $selectedIds, now()->addHour());
+        $this->askCourses($user, $chatId, $messageId);
+
+        return null;
+    }
+
+    protected function confirmCourses(User $user, int|string $chatId, ?int $messageId): ?string
+    {
+        if ($user->onboarding_step !== OnboardingStep::Courses) {
+            $this->repromptOnboarding($user, $chatId);
+
+            return 'Please finish the current step.';
+        }
+
+        $ids = collect(cache()->get("onboarding.courses.{$user->id}", []))
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $this->onboarding->syncCourses($user, $ids);
         $this->onboarding->complete($user);
+        cache()->forget("onboarding.courses.{$user->id}");
+
+        if ($messageId !== null) {
+            $this->telegram->editMessageText($chatId, $messageId, 'Setup finished.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([]),
+            ]);
+        }
+
         $this->telegram->sendMessage($chatId, 'Onboarding complete! Explore your courses.', [
             'reply_markup' => $this->telegram->mainKeyboard(),
         ]);
+
+        return null;
     }
 
-    protected function showCourses(User $user, int|string $chatId): void
+    protected function showCourses(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $courses = $user->courses()->withCount('learningResources')->get();
 
         if ($courses->isEmpty()) {
-            $this->telegram->sendMessage($chatId, 'No courses selected yet.');
+            $this->telegram->replyOrEdit($chatId, 'No courses selected yet.', messageId: $messageId);
 
             return;
         }
 
-        $lines = $courses->map(fn (Course $c) => "• {$c->name} ({$c->learning_resources_count} resources)")->implode("\n");
-        $this->telegram->sendMessage($chatId, "Your courses:\n{$lines}");
+        $rows = $courses->map(fn (Course $course) => [[
+            'text' => "{$course->name} ({$course->learning_resources_count})",
+            'callback_data' => "course_resources:{$course->id}",
+        ]])->values()->all();
+
+        $this->telegram->replyOrEdit($chatId, 'Your courses — tap one to open resources:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
     }
 
-    protected function showCoursesForResources(User $user, int|string $chatId): void
+    protected function showCoursesForResources(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $courses = $user->courses()->get();
 
         if ($courses->isEmpty()) {
-            $this->telegram->sendMessage($chatId, 'Select courses first from My Courses / re-onboard with /start.');
+            $this->telegram->replyOrEdit(
+                $chatId,
+                'Select courses first. Tap /start if you still need to finish onboarding.',
+                messageId: $messageId,
+            );
 
             return;
         }
 
-        $buttons = $courses->map(fn (Course $c) => [[
-            'text' => $c->name,
-            'callback_data' => "course_resources:{$c->id}",
+        $rows = $courses->map(fn (Course $course) => [[
+            'text' => $course->name,
+            'callback_data' => "course_resources:{$course->id}",
         ]])->values()->all();
 
-        $this->telegram->sendMessage($chatId, 'Pick a course:', [
-            'reply_markup' => ['inline_keyboard' => $buttons],
-        ]);
+        $this->telegram->replyOrEdit($chatId, 'Pick a course:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
     }
 
-    protected function listResources(User $user, int|string $chatId, int $courseId): void
+    protected function listResources(User $user, int|string $chatId, int $courseId, ?int $messageId = null): void
     {
         $resources = LearningResource::query()
             ->published()
@@ -346,19 +588,24 @@ class TelegramBotHandler
             ->get();
 
         if ($resources->isEmpty()) {
-            $this->telegram->sendMessage($chatId, 'No published resources for this course yet.');
+            $rows = [[['text' => '« Back', 'callback_data' => 'back:courses']]];
+            $this->telegram->replyOrEdit($chatId, 'No published resources for this course yet.', [
+                'reply_markup' => $this->telegram->inlineKeyboard($rows),
+            ], $messageId);
 
             return;
         }
 
-        $buttons = $resources->map(fn (LearningResource $r) => [[
-            'text' => ($r->is_premium ? '🔒 ' : '').$r->title,
-            'callback_data' => "open_resource:{$r->id}",
+        $rows = $resources->map(fn (LearningResource $resource) => [[
+            'text' => ($resource->is_premium ? '🔒 ' : '').$resource->title,
+            'callback_data' => "open_resource:{$resource->id}",
         ]])->values()->all();
 
-        $this->telegram->sendMessage($chatId, 'Resources:', [
-            'reply_markup' => ['inline_keyboard' => $buttons],
-        ]);
+        $rows[] = [['text' => '« Back', 'callback_data' => 'back:courses']];
+
+        $this->telegram->replyOrEdit($chatId, 'Resources:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
     }
 
     protected function openResource(User $user, int|string $chatId, int $resourceId): void
@@ -403,11 +650,9 @@ class TelegramBotHandler
         $progress = $this->referrals->qualifiedCount($user);
 
         $this->telegram->sendMessage($chatId, "⭐ Premium\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}", [
-            'reply_markup' => [
-                'inline_keyboard' => [[
-                    ['text' => 'Pay now', 'callback_data' => 'premium_pay'],
-                ]],
-            ],
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                ['text' => 'Pay now', 'callback_data' => 'premium_pay'],
+            ]]),
         ]);
     }
 
@@ -419,11 +664,9 @@ class TelegramBotHandler
         $approved = ReferralReward::query()->where('user_id', $user->id)->where('status', RewardStatus::Approved)->sum('amount');
 
         $this->telegram->sendMessage($chatId, "👥 Refer & Earn\nProgress: {$count}/{$required}\nApproved balance: {$approved} ETB\nYour link:\n{$link}", [
-            'reply_markup' => [
-                'inline_keyboard' => [[
-                    ['text' => 'Request withdrawal', 'callback_data' => 'withdraw_request'],
-                ]],
-            ],
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                ['text' => 'Request withdrawal', 'callback_data' => 'withdraw_request'],
+            ]]),
         ]);
     }
 
