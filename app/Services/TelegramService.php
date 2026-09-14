@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Log;
 
 class TelegramService
 {
+    public const string InlineMessageCacheKey = 'telegram.onboarding_message.';
+
+    public const string OnboardingPromptRateLimitKey = 'telegram.onboarding_prompt.';
+
     public function token(): ?string
     {
         return config('services.telegram.bot_token');
@@ -97,6 +101,24 @@ class TelegramService
         }
 
         return $this->sendMessage($chatId, $text, $payload);
+    }
+
+    public function rememberInlineMessage(int $userId, ?array $result, ?int $messageId = null): void
+    {
+        $resolvedMessageId = $messageId ?? (isset($result['message_id']) ? (int) $result['message_id'] : null);
+
+        if ($resolvedMessageId === null) {
+            return;
+        }
+
+        cache()->put(self::InlineMessageCacheKey.$userId, $resolvedMessageId, now()->addHour());
+    }
+
+    public function cachedInlineMessageId(int $userId): ?int
+    {
+        $messageId = cache()->get(self::InlineMessageCacheKey.$userId);
+
+        return is_int($messageId) ? $messageId : null;
     }
 
     public function answerCallbackQuery(string $callbackQueryId, ?string $text = null, bool $showAlert = false): ?array

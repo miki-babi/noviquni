@@ -20,6 +20,7 @@ beforeEach(function () {
         'queue.default' => 'database',
     ]);
     Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 99]], 200),
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 });
@@ -190,13 +191,154 @@ it('reprompts with buttons when free text is sent during onboarding', function (
     expect($user->onboarding_step)->toBe(OnboardingStep::Stream)
         ->and($user->stream_id)->toBeNull();
 
-    Http::assertSent(function ($request) use ($stream) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-
-        return data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/editMessageText')
+            && data_get($request->data(), 'message_id') === 99;
     });
+});
+
+it('does not send duplicate university prompts for stale stream callbacks', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555006',
+        'onboarding_step' => OnboardingStep::University,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+
+    $sendCountBefore = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/sendMessage'))
+        ->count();
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555006, "ob:stream:{$stream->id}", 20, 100))
+        ->assertOk();
+
+    $user->refresh();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::University);
+
+    $newUniversitySends = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/sendMessage')
+            && str_contains((string) data_get($record[0]->data(), 'text'), 'university'))
+        ->count();
+
+    expect($newUniversitySends)->toBe($sendCountBefore);
+});
+
+it('does not send duplicate semester prompts for stale university callbacks', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555007',
+        'onboarding_step' => OnboardingStep::Courses,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555007, 'ob:uni:skip', 20, 101))
+        ->assertOk();
+
+    $user->refresh();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::Courses);
+
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) data_get($request->data(), 'text'), 'semester');
+    });
+});
+
+it('does not resend onboarding complete message for stale confirm callbacks', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Math']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555008',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555008, 'ob:course:confirm', 20, 102))
+        ->assertOk();
+
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) data_get($request->data(), 'text'), 'Onboarding complete');
+    });
+});
+
+it('ignores duplicate update ids', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    University::factory()->create(['name' => 'AAU']);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555009, '/start', 200))->assertOk();
+
+    $user = User::query()->where('telegram_id', '555009')->firstOrFail();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Stream);
+
+    $editCountBefore = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
+        ->count();
+
+    $payload = telegramCallbackPayload(555009, "ob:stream:{$stream->id}", 20, 201);
+
+    $this->postJson('/telegram/webhook', $payload)->assertOk();
+    $this->postJson('/telegram/webhook', $payload)->assertOk();
+
+    $user->refresh();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::University);
+
+    $newEdits = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
+        ->count() - $editCountBefore;
+
+    expect($newEdits)->toBe(1);
+});
+
+it('uses editMessageText for back to courses navigation', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Biology']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555010',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555010, 'back:courses', 30, 103))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/editMessageText')
+            && str_contains((string) data_get($request->data(), 'text'), 'Pick a course');
+    });
+
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) data_get($request->data(), 'text'), 'Pick a course');
+    });
+});
+
+it('rate limits free text reprompts during onboarding', function () {
+    $stream = Stream::factory()->create(['name' => 'Social']);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, '/start', 300))->assertOk();
+
+    $editCountAfterStart = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
+        ->count();
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, 'hello', 301))->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, 'hello again', 302))->assertOk();
+
+    $editCountAfterReprompts = collect(Http::recorded())
+        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
+        ->count();
+
+    expect($editCountAfterReprompts - $editCountAfterStart)->toBe(1);
 });
