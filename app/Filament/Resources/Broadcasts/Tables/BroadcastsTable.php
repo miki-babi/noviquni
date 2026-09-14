@@ -33,9 +33,19 @@ class BroadcastsTable
             ->recordActions([
                 EditAction::make(),
                 Action::make('sendNow')
-                    ->label('Send now')
-                    ->visible(fn ($record) => in_array($record->status, [BroadcastStatus::Draft, BroadcastStatus::Scheduled], true))
+                    ->label(fn ($record): string => $record->status === BroadcastStatus::Sent ? 'Send again' : 'Send now')
+                    ->visible(fn ($record) => in_array($record->status, [
+                        BroadcastStatus::Draft,
+                        BroadcastStatus::Scheduled,
+                        BroadcastStatus::Sent,
+                    ], true))
                     ->requiresConfirmation()
+                    ->modalHeading(fn ($record): string => $record->status === BroadcastStatus::Sent
+                        ? 'Send this broadcast again?'
+                        : 'Send this broadcast now?')
+                    ->modalDescription(fn ($record): ?string => $record->status === BroadcastStatus::Sent
+                        ? 'This will deliver the message to the audience again.'
+                        : null)
                     ->action(function ($record, BroadcastService $broadcasts): void {
                         $broadcasts->send($record);
 

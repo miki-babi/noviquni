@@ -67,3 +67,32 @@ it('sends broadcasts synchronously without queueing jobs', function () {
             && str_contains((string) data_get($request->data(), 'text'), 'Hi Abebe');
     });
 });
+
+it('can resend an already sent broadcast', function () {
+    Queue::fake();
+
+    User::factory()->student()->create([
+        'telegram_id' => '900002',
+        'notifications_enabled' => true,
+        'is_active' => true,
+    ]);
+
+    $broadcast = Broadcast::factory()->create([
+        'body' => 'Reminder for everyone.',
+        'status' => BroadcastStatus::Sent,
+        'sent_at' => now()->subHour(),
+        'targeting' => ['audience' => 'everyone'],
+    ]);
+
+    app(BroadcastService::class)->send($broadcast);
+
+    $broadcast->refresh();
+
+    expect($broadcast->status)->toBe(BroadcastStatus::Sent)
+        ->and(NotificationDelivery::query()->where('broadcast_id', $broadcast->id)->count())->toBe(1);
+
+    Queue::assertNothingPushed();
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/sendMessage')
+        && data_get($request->data(), 'chat_id') === '900002');
+});
