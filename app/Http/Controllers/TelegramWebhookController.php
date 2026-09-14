@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
-use App\Jobs\ProcessTelegramUpdateJob;
 use App\Services\TelegramBotHandler;
 use App\Services\TelegramService;
 use Illuminate\Contracts\View\View;
@@ -16,13 +15,7 @@ class TelegramWebhookController extends Controller
 {
     public function __invoke(Request $request, TelegramBotHandler $handler): Response
     {
-        $update = $request->all();
-
-        if (config('queue.default') === 'sync') {
-            $handler->handle($update);
-        } else {
-            ProcessTelegramUpdateJob::dispatch($update);
-        }
+        $handler->handle($request->all());
 
         return response('ok');
     }
