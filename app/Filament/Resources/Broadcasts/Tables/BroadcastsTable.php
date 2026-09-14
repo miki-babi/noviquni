@@ -3,9 +3,10 @@
 namespace App\Filament\Resources\Broadcasts\Tables;
 
 use App\Enums\BroadcastStatus;
-use App\Jobs\SendBroadcastJob;
+use App\Services\BroadcastService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -35,9 +36,13 @@ class BroadcastsTable
                     ->label('Send now')
                     ->visible(fn ($record) => in_array($record->status, [BroadcastStatus::Draft, BroadcastStatus::Scheduled], true))
                     ->requiresConfirmation()
-                    ->action(function ($record): void {
-                        $record->update(['status' => BroadcastStatus::Sending, 'scheduled_at' => null]);
-                        SendBroadcastJob::dispatch($record);
+                    ->action(function ($record, BroadcastService $broadcasts): void {
+                        $broadcasts->send($record);
+
+                        Notification::make()
+                            ->title('Broadcast sent')
+                            ->success()
+                            ->send();
                     }),
             ]);
     }

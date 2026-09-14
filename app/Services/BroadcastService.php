@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\BroadcastStatus;
-use App\Jobs\SendTelegramMessageJob;
 use App\Models\Broadcast;
 use App\Models\NotificationDelivery;
 use App\Models\User;
@@ -13,6 +12,8 @@ use Illuminate\Support\Collection;
 
 class BroadcastService
 {
+    public function __construct(public TelegramService $telegram) {}
+
     /**
      * @return Builder<User>
      */
@@ -131,7 +132,7 @@ class BroadcastService
 
     public function send(Broadcast $broadcast): void
     {
-        $broadcast->update(['status' => BroadcastStatus::Sending]);
+        $broadcast->update(['status' => BroadcastStatus::Sending, 'scheduled_at' => null]);
 
         $replyMarkup = $this->inlineKeyboard($broadcast->buttons);
 
@@ -141,31 +142,25 @@ class BroadcastService
                 foreach ($users as $user) {
                     $body = $this->personalize($broadcast->body, $user);
 
-                    NotificationDelivery::query()->create([
-                        'broadcast_id' => $broadcast->id,
-                        'user_id' => $user->id,
-                        'channel' => 'telegram',
-                        'status' => 'queued',
-                        'body' => $body,
-                    ]);
-
                     $payload = [];
 
                     if ($replyMarkup !== null) {
                         $payload['reply_markup'] = $replyMarkup;
                     }
 
-                    SendTelegramMessageJob::dispatch($user->telegram_id, $body, $payload);
+                    $result = $this->telegram->sendMessage($user->telegram_id, $body, $payload);
+                    $delivered = $result !== null;
+
+                    NotificationDelivery::query()->create([
+                        'broadcast_id' => $broadcast->id,
+                        'user_id' => $user->id,
+                        'channel' => 'telegram',
+                        'status' => $delivered ? 'sent' : 'failed',
+                        'body' => $body,
+                        'sent_at' => $delivered ? now() : null,
+                    ]);
                 }
             });
-
-        NotificationDelivery::query()
-            ->where('broadcast_id', $broadcast->id)
-            ->where('status', 'queued')
-            ->update([
-                'status' => 'sent',
-                'sent_at' => now(),
-            ]);
 
         $broadcast->update([
             'status' => BroadcastStatus::Sent,
