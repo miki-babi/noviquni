@@ -62,6 +62,61 @@ class TelegramService
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function getWebhookInfo(): ?array
+    {
+        return $this->call('getWebhookInfo');
+    }
+
+    /**
+     * @return array{ok: bool, description?: string, result?: array<string, mixed>|null, error?: array<string, mixed>|null}
+     */
+    public function setWebhook(string $url): array
+    {
+        if (! $this->isConfigured()) {
+            return [
+                'ok' => false,
+                'description' => 'TELEGRAM_BOT_TOKEN is not set.',
+                'result' => null,
+                'error' => null,
+            ];
+        }
+
+        $response = Http::timeout(15)->post(
+            "https://api.telegram.org/bot{$this->token()}/setWebhook",
+            [
+                'url' => $url,
+                'allowed_updates' => [
+                    'message',
+                    'callback_query',
+                ],
+                'drop_pending_updates' => false,
+            ],
+        );
+
+        $body = $response->json() ?? [];
+
+        if (! $response->successful() || ! ($body['ok'] ?? false)) {
+            Log::error('Telegram setWebhook error', ['body' => $body]);
+
+            return [
+                'ok' => false,
+                'description' => (string) ($body['description'] ?? 'Failed to set webhook.'),
+                'result' => null,
+                'error' => is_array($body) ? $body : null,
+            ];
+        }
+
+        return [
+            'ok' => true,
+            'description' => (string) ($body['description'] ?? 'Webhook was set.'),
+            'result' => $body['result'] ?? true,
+            'error' => null,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>|null
      */
@@ -73,8 +128,11 @@ class TelegramService
             return null;
         }
 
-        $response = Http::timeout(15)
-            ->post("https://api.telegram.org/bot{$this->token()}/{$method}", $params);
+        $url = "https://api.telegram.org/bot{$this->token()}/{$method}";
+
+        $response = $params === []
+            ? Http::timeout(15)->get($url)
+            : Http::timeout(15)->post($url, $params);
 
         if (! $response->successful() || ! ($response->json('ok') ?? false)) {
             Log::error('Telegram API error', [

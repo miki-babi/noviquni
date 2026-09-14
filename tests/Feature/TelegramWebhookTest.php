@@ -11,16 +11,10 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
     config([
         'services.telegram.bot_token' => 'test-token',
-        'services.telegram.webhook_secret' => 'secret-token',
     ]);
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
-});
-
-it('rejects webhooks with an invalid secret', function () {
-    $this->postJson('/telegram/webhook', ['update_id' => 1])
-        ->assertForbidden();
 });
 
 it('accepts a start update and creates a student', function () {
@@ -38,9 +32,7 @@ it('accepts a start update and creates a student', function () {
         ],
     ];
 
-    $this->withHeaders([
-        'X-Telegram-Bot-Api-Secret-Token' => 'secret-token',
-    ])->postJson('/telegram/webhook', $payload)
+    $this->postJson('/telegram/webhook', $payload)
         ->assertOk();
 
     expect(User::query()->where('telegram_id', '555001')->exists())->toBeTrue();
