@@ -83,7 +83,8 @@ it('accepts a start update and creates a student immediately without queueing', 
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}"
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'primary';
     });
 });
 
@@ -113,7 +114,8 @@ it('advances onboarding when a stream inline button is tapped', function () {
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'university')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:skip');
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:skip'
+                && ($button['style'] ?? null) === 'danger');
     });
 });
 
@@ -146,7 +148,10 @@ it('completes button-only onboarding through skip and confirm', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 My Courses';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 My Courses'
+            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.1.0.style') === 'success'
+            && ! array_key_exists('style', data_get($data, 'reply_markup.keyboard.2.0', []));
     });
 });
 
@@ -176,7 +181,8 @@ it('shows inline course buttons for My Courses after onboarding', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Your courses')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course_resources:{$course->id}";
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course_resources:{$course->id}"
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'primary';
     });
 });
 

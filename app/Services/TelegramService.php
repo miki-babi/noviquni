@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\OnboardingStep;
+use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
@@ -51,15 +52,24 @@ class TelegramService
     }
 
     /**
-     * @return array<string, array<int, array<string, string>>>
+     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
      */
     public function mainKeyboard(): array
     {
         return [
             'keyboard' => [
-                [['text' => '📚 My Courses'], ['text' => '📖 Resources']],
-                [['text' => '⭐ Premium'], ['text' => '👥 Refer & Earn']],
-                [['text' => '🔔 Notifications'], ['text' => '👤 My Profile']],
+                [
+                    ['text' => '📚 My Courses', 'style' => TelegramButtonStyle::Primary->value],
+                    ['text' => '📖 Resources', 'style' => TelegramButtonStyle::Primary->value],
+                ],
+                [
+                    ['text' => '⭐ Premium', 'style' => TelegramButtonStyle::Success->value],
+                    ['text' => '👥 Refer & Earn', 'style' => TelegramButtonStyle::Success->value],
+                ],
+                [
+                    ['text' => '🔔 Notifications'],
+                    ['text' => '👤 My Profile'],
+                ],
             ],
             'resize_keyboard' => true,
         ];

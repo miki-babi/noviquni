@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\BroadcastStatus;
+use App\Enums\TelegramButtonStyle;
 use App\Models\Broadcast;
 use App\Models\NotificationDelivery;
 use App\Models\User;
@@ -76,7 +77,7 @@ class BroadcastService
     /**
      * Build Telegram InlineKeyboardMarkup from broadcast button rows.
      *
-     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string}>|null  $buttons
+     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, style?: string|null}>|null  $buttons
      * @return array{inline_keyboard: array<int, array<int, array<string, mixed>>>}|null
      */
     public function inlineKeyboard(?array $buttons): ?array
@@ -118,6 +119,12 @@ class BroadcastService
                 || ($type === BroadcastButtonType::MiniApp && blank($telegramButton['web_app']['url']))
             ) {
                 continue;
+            }
+
+            $style = TelegramButtonStyle::tryFrom((string) ($button['style'] ?? ''));
+
+            if ($style !== null) {
+                $telegramButton['style'] = $style->value;
             }
 
             $rows[] = [$telegramButton];

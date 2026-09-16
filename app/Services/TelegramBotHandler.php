@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\OnboardingStep;
 use App\Enums\RewardStatus;
+use App\Enums\TelegramButtonStyle;
 use App\Enums\WithdrawalStatus;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -352,6 +353,7 @@ class TelegramBotHandler
         $rows = $streams->map(fn (Stream $stream) => [[
             'text' => $stream->name,
             'callback_data' => "ob:stream:{$stream->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
         $this->sendOnboardingPrompt($user, $chatId, 'Tap your stream:', $rows, $messageId);
@@ -364,9 +366,10 @@ class TelegramBotHandler
         $rows = $unis->map(fn (University $uni) => [[
             'text' => $uni->name,
             'callback_data' => "ob:uni:{$uni->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
-        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:uni:skip']];
+        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:uni:skip', 'style' => TelegramButtonStyle::Danger->value]];
 
         $this->sendOnboardingPrompt($user, $chatId, 'Optional: tap your university, or Skip:', $rows, $messageId);
     }
@@ -378,9 +381,10 @@ class TelegramBotHandler
         $rows = $semesters->map(fn (Semester $semester) => [[
             'text' => $semester->name,
             'callback_data' => "ob:sem:{$semester->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
-        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:sem:skip']];
+        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:sem:skip', 'style' => TelegramButtonStyle::Danger->value]];
 
         $this->sendOnboardingPrompt($user, $chatId, 'Optional: tap your semester, or Skip:', $rows, $messageId);
     }
@@ -408,7 +412,7 @@ class TelegramBotHandler
 
         if ($courses->isEmpty()) {
             $this->sendOnboardingPrompt($user, $chatId, 'No courses are available for your stream yet. Tap Confirm to finish.', [
-                [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm']],
+                [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]],
             ], $messageId);
 
             return;
@@ -420,10 +424,11 @@ class TelegramBotHandler
             return [[
                 'text' => $prefix.$course->name,
                 'callback_data' => "ob:course:toggle:{$course->id}",
+                'style' => TelegramButtonStyle::Primary->value,
             ]];
         })->values()->all();
 
-        $rows[] = [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm']];
+        $rows[] = [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]];
 
         $this->sendOnboardingPrompt($user, $chatId, 'Tap courses to select or deselect, then Confirm:', $rows, $messageId);
     }
@@ -643,6 +648,7 @@ class TelegramBotHandler
         $rows = $courses->map(fn (Course $course) => [[
             'text' => "{$course->name} ({$course->learning_resources_count})",
             'callback_data' => "course_resources:{$course->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
         $this->telegram->replyOrEdit($chatId, 'Your courses — tap one to open resources:', [
@@ -667,6 +673,7 @@ class TelegramBotHandler
         $rows = $courses->map(fn (Course $course) => [[
             'text' => $course->name,
             'callback_data' => "course_resources:{$course->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
         $this->telegram->replyOrEdit($chatId, 'Pick a course:', [
@@ -694,6 +701,7 @@ class TelegramBotHandler
         $rows = $resources->map(fn (LearningResource $resource) => [[
             'text' => ($resource->is_premium ? '🔒 ' : '').$resource->title,
             'callback_data' => "open_resource:{$resource->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
         $rows[] = [['text' => '« Back', 'callback_data' => 'back:courses']];
@@ -745,7 +753,7 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage($chatId, "⭐ Premium\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}", [
             'reply_markup' => $this->telegram->inlineKeyboard([[
-                ['text' => 'Pay now', 'callback_data' => 'premium_pay'],
+                ['text' => 'Pay now', 'callback_data' => 'premium_pay', 'style' => TelegramButtonStyle::Primary->value],
             ]]),
         ]);
     }
@@ -759,7 +767,7 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage($chatId, "👥 Refer & Earn\nProgress: {$count}/{$required}\nApproved balance: {$approved} ETB\nYour link:\n{$link}", [
             'reply_markup' => $this->telegram->inlineKeyboard([[
-                ['text' => 'Request withdrawal', 'callback_data' => 'withdraw_request'],
+                ['text' => 'Request withdrawal', 'callback_data' => 'withdraw_request', 'style' => TelegramButtonStyle::Danger->value],
             ]]),
         ]);
     }

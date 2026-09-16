@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Broadcasts\Schemas;
 
 use App\Enums\BroadcastButtonType;
+use App\Enums\TelegramButtonStyle;
 use App\Models\Course;
 use App\Models\Stream;
 use App\Models\University;
@@ -66,6 +67,16 @@ class BroadcastForm
                                     )->all())
                                     ->required()
                                     ->live()
+                                    ->native(false),
+                                Select::make('style')
+                                    ->label('Color')
+                                    ->options(
+                                        collect(TelegramButtonStyle::cases())
+                                            ->mapWithKeys(fn (TelegramButtonStyle $style) => [$style->value => $style->label()])
+                                            ->prepend('Default', '')
+                                            ->all()
+                                    )
+                                    ->placeholder('Default')
                                     ->native(false),
                                 TextInput::make('command')
                                     ->label('Command / callback')
