@@ -467,6 +467,7 @@ class TelegramBotHandler
                     ]],
                 ],
             ]);
+            $this->sendReplyKeyboard($user, $chatId);
 
             return;
         }
@@ -482,6 +483,7 @@ class TelegramBotHandler
                 ]],
             ],
         ]);
+        $this->sendReplyKeyboard($user, $chatId);
     }
 
     protected function sendCustomStartMessage(User $user, int|string $chatId): void
@@ -497,10 +499,12 @@ class TelegramBotHandler
             $caption,
         );
 
-        $replyMarkup = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
-        $payload = [
-            'reply_markup' => $replyMarkup ?? $this->telegram->mainKeyboard($user),
-        ];
+        $inlineKeyboard = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
+        $payload = [];
+
+        if ($inlineKeyboard !== null) {
+            $payload['reply_markup'] = $inlineKeyboard;
+        }
 
         $imagePath = $this->settings->telegramStartImage();
 
@@ -511,17 +515,26 @@ class TelegramBotHandler
                 Log::warning('Telegram start image missing on disk.', ['path' => $imagePath]);
                 if ($caption !== '') {
                     $this->telegram->sendMessage($chatId, $caption, $payload);
-                } elseif ($replyMarkup === null) {
-                    $this->telegram->sendMessage($chatId, '‎', $payload);
                 }
             } else {
                 $this->telegram->sendPhoto($chatId, $absolutePath, $caption, $payload);
             }
         } elseif ($caption !== '') {
             $this->telegram->sendMessage($chatId, $caption, $payload);
-        } else {
+        } elseif ($inlineKeyboard !== null) {
             $this->telegram->sendMessage($chatId, '‎', $payload);
         }
+
+        $this->sendReplyKeyboard($user, $chatId);
+    }
+
+    protected function sendReplyKeyboard(User $user, int|string $chatId): void
+    {
+        $this->telegram->sendMessage(
+            $chatId,
+            TelegramCopy::for($user)->get('start.keyboard_hint'),
+            ['reply_markup' => $this->telegram->mainKeyboard($user)],
+        );
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void

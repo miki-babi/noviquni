@@ -96,9 +96,12 @@ it('sends the admin start photo caption and inline buttons on /start', function 
                 && ($part['filename'] ?? null) === 'welcome.jpg');
     });
 
-    Http::assertNotSent(function ($request) {
+    Http::assertSent(function ($request) {
+        $data = $request->data();
+
         return str_contains($request->url(), '/sendMessage')
-            && data_get($request->data(), 'text') === "\u2060";
+            && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+            && filled(data_get($data, 'reply_markup.keyboard.0.0.web_app.url'));
     });
 });
 

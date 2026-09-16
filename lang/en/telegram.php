@@ -12,6 +12,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses once, then we keep study one tap away.",
         'new_button' => '🎯 Set up my courses',
+        'keyboard_hint' => "Your study menu is ready:\n📚 Continue · 📖 Browse · 👤 Profile · ⭐ Premium",
     ],
     'continue' => [
         'title' => "Pick up where you left off\n<b>:course</b> · :resource",

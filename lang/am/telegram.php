@@ -12,6 +12,7 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን አንዴ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 ኮርሶቼን አዋቅር',
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 ቀጥል · 📖 ያስሱ · 👤 መገለጫ · ⭐ ፕሪሚየም",
     ],
     'continue' => [
         'title' => "ከቆሙበት ይጀምሩ\n<b>:course</b> · :resource",
