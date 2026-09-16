@@ -6,6 +6,7 @@ use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\User;
+use App\Support\TelegramCopy;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -54,21 +55,19 @@ class TelegramService
     /**
      * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
      */
-    public function mainKeyboard(): array
+    public function mainKeyboard(?User $user = null): array
     {
+        $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
+
         return [
             'keyboard' => [
                 [
-                    ['text' => '📚 My Courses', 'style' => TelegramButtonStyle::Primary->value],
-                    ['text' => '📖 Resources', 'style' => TelegramButtonStyle::Primary->value],
+                    ['text' => $copy->get('keyboard.continue'), 'style' => TelegramButtonStyle::Primary->value],
+                    ['text' => $copy->get('keyboard.browse'), 'style' => TelegramButtonStyle::Primary->value],
                 ],
                 [
-                    ['text' => '⭐ Premium', 'style' => TelegramButtonStyle::Success->value],
-                    ['text' => '👥 Refer & Earn', 'style' => TelegramButtonStyle::Success->value],
-                ],
-                [
-                    ['text' => '🔔 Notifications'],
-                    ['text' => '👤 My Profile'],
+                    ['text' => $copy->get('keyboard.profile')],
+                    ['text' => $copy->get('keyboard.premium'), 'style' => TelegramButtonStyle::Success->value],
                 ],
             ],
             'resize_keyboard' => true,

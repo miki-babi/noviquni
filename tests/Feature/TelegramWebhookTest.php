@@ -1,8 +1,10 @@
 <?php
 
 use App\Enums\OnboardingStep;
+use App\Enums\ResourceType;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Course;
+use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
@@ -18,6 +20,7 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => 'test-token',
         'queue.default' => 'database',
+        'app.url' => 'https://noviquni.test',
     ]);
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 99]], 200),
@@ -148,14 +151,66 @@ it('completes button-only onboarding through skip and confirm', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 My Courses'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Continue'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 Browse'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '👤 Profile'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === '⭐ Premium'
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.1.0.style') === 'success'
-            && ! array_key_exists('style', data_get($data, 'reply_markup.keyboard.2.0', []));
+            && data_get($data, 'reply_markup.keyboard.1.1.style') === 'success';
     });
 });
 
-it('shows inline course buttons for My Courses after onboarding', function () {
+it('shows setup CTA on start when enrolled user has no courses', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555020',
+        'name' => 'Mikiyas Kebede',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555020, '/start', 400))->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'welcome to Noviq Uni')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'setup:courses'
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🎯 Set up my courses';
+    });
+});
+
+it('shows continue studying CTA on start when user has courses', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555021',
+        'name' => 'Mikiyas',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555021, '/start', 401))->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Welcome back, Abebe')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'start:continue';
+    });
+});
+
+it('shows browse courses without zero counts when content exists', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -170,7 +225,220 @@ it('shows inline course buttons for My Courses after onboarding', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555004, '📚 My Courses'))
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Intro notes',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555004, '📖 Browse'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttonText = (string) data_get($data, 'reply_markup.inline_keyboard.0.0.text');
+
+        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course:{$course->id}"
+            && $buttonText === 'Physics'
+            && ! str_contains($buttonText, '(0)');
+    });
+});
+
+it('shows coming soon browse state without counts when enrolled but empty', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555022',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555022, '📖 Browse', 402))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'coming soon')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Mathematics'
+                && ($button['callback_data'] ?? '') === "course:{$course->id}")
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'notify:on')
+            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), '(0)'));
+    });
+});
+
+it('shows hub fork after course tap', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555023',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+    LearningResource::factory()->published()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'type' => ResourceType::Module,
+        'title' => 'Module 1',
+    ]);
+    LearningResource::factory()->published()->quiz()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555023, "course:{$course->id}", 30, 403))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Physics')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}")
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:modules:{$course->id}")
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:practice:{$course->id}");
+    });
+});
+
+it('shows continue resume card when a prior download exists', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555024',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $resource = LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Chapter notes',
+    ]);
+    $user->downloads()->create(['learning_resource_id' => $resource->id]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555024, '📚 Continue', 404))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Pick up where you left off')
+            && str_contains((string) ($data['text'] ?? ''), 'Mathematics')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'continue:resume')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'continue:switch');
+    });
+});
+
+it('shows profile submenu with notifications refer and settings', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555025',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555025, '👤 Profile', 405))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:notify')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:refer')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:settings');
+    });
+});
+
+it('switches language and refreshes keyboard labels', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555026',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'telegram_locale' => 'en',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555026, 'settings:lang:am', 30, 406))
+        ->assertOk();
+
+    $user = User::query()->where('telegram_id', '555026')->firstOrFail();
+    expect($user->telegram_locale)->toBe('am');
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 ቀጥል'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 ያስሱ';
+    });
+});
+
+it('still routes legacy my courses label to browse', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Chemistry']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555027',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555027, '📚 My Courses', 407))
         ->assertOk();
 
     Http::assertSent(function ($request) use ($course) {
@@ -180,9 +448,7 @@ it('shows inline course buttons for My Courses after onboarding', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Your courses')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course_resources:{$course->id}"
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'primary';
+        return data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course:{$course->id}";
     });
 });
 
@@ -316,17 +582,22 @@ it('uses editMessageText for back to courses navigation', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555010, 'back:courses', 30, 103))
         ->assertOk();
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), '/editMessageText')
-            && str_contains((string) data_get($request->data(), 'text'), 'Pick a course');
+            && str_contains((string) data_get($request->data(), 'text'), 'Your courses — tap one to study');
     });
 
     Http::assertNotSent(function ($request) {
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) data_get($request->data(), 'text'), 'Pick a course');
+            && str_contains((string) data_get($request->data(), 'text'), 'Your courses — tap one to study');
     });
 });
 

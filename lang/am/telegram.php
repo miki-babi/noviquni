@@ -1,0 +1,75 @@
+<?php
+
+return [
+    'keyboard' => [
+        'continue' => '📚 ቀጥል',
+        'browse' => '📖 ያስሱ',
+        'profile' => '👤 መገለጫ',
+        'premium' => '⭐ ፕሪሚየም',
+    ],
+    'start' => [
+        'returning' => "እንኳን ደህና መጡ፣ :name 👋\nሲዘጋጁ እንቀጥላለን።",
+        'returning_button' => '📚 መማርዎን ይቀጥሉ',
+        'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን አንዴ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
+        'new_button' => '🎯 ኮርሶቼን አዋቅር',
+    ],
+    'continue' => [
+        'title' => "ከቆሙበት ይጀምሩ\n<b>:course</b> · :resource",
+        'resume' => '▶️ ቀጥል',
+        'switch' => '🔄 ኮርስ ቀይር',
+    ],
+    'browse' => [
+        'empty' => "እስካሁን ኮርስ የለዎትም።\nክፍልዎንና ዓመትዎን ይንገሩን — ትክክለኛውን ትምህርቶች እናከፍታለን።",
+        'empty_button' => '➕ ኮርሶቼን ጨምር',
+        'coming_soon' => "ኮርሶችዎ ተዘጋጅተዋል።\nለእነዚህ ትምህርቶች መርጃዎች በቅርቡ ይመጣሉ — ሲወጡ ማሳወቂያ ይፈልጋሉ?",
+        'notify' => '🔔 አሳውቀኝ',
+        'has_content' => 'ኮርሶችዎ — ለመማር አንዱን ይጫኑ፦',
+        'course_coming_soon' => 'ለ<b>:course</b> መርጃዎች በቅርቡ ይመጣሉ — ሲወጡ ማሳወቂያ ይፈልጋሉ?',
+    ],
+    'hub' => [
+        'prompt' => '<b>:course</b> — ምን ይፈልጋሉ?',
+        'notes' => '📄 ማስታወሻዎች',
+        'modules' => '📚 ሞጁሎች',
+        'quiz' => '🎮 ፈተና',
+        'back' => '« Back',
+        'resources' => 'Resources:',
+        'no_resources' => 'No published resources for this course yet.',
+    ],
+    'quiz_nudge' => [
+        'text' => "በ:course ፈጣን ምርመራ?\n5 ጥያቄዎች · ~3 ደቂቃ",
+        'button' => '🧪 ፈተና ውሰድ',
+    ],
+    'profile' => [
+        'body' => "👤 :name\nStream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
+        'notifications' => 'ማሳወቂያዎች',
+        'refer' => 'ይጋብዙና ያግኙ',
+        'settings' => 'ቅንብሮች',
+        'premium_yes' => 'Yes until :until',
+        'premium_no' => 'No',
+        'none' => 'None',
+    ],
+    'settings' => [
+        'prompt' => 'Choose your language:',
+        'saved' => 'Language updated.',
+    ],
+    'notify' => [
+        'enabled' => 'Got it — we will ping you when resources drop.',
+        'already' => 'Notifications are already on.',
+        'toggled' => 'Notifications are now :state.',
+        'on' => 'ON',
+        'off' => 'OFF',
+    ],
+    'menu' => [
+        'choose' => 'Choose an option from the menu.',
+        'finish_onboarding' => 'Finish onboarding first. Tap /start.',
+        'onboarding_complete_menu' => 'Onboarding is already complete. Use the menu.',
+        'invalid_button' => 'That button is no longer valid. Use the menu.',
+        'account_disabled' => 'Your account is disabled. Contact support.',
+        'stale_callback' => 'This button has expired. Tap /start to begin again.',
+        'onboarding_done' => 'Onboarding complete! Explore your courses.',
+        'setup_finished' => 'Setup finished.',
+    ],
+    'resource' => [
+        'not_found' => 'Resource not found.',
+    ],
+];
