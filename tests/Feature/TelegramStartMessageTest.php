@@ -100,6 +100,8 @@ it('sends the admin start photo caption and inline buttons on /start', function 
         return str_contains($request->url(), '/sendMessage')
             && filled(data_get($request->data(), 'reply_markup.keyboard.0.0.web_app.url'));
     });
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/deleteMessage'));
 });
 
 it('falls back to default welcome when no custom start message is configured', function () {

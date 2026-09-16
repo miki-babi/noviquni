@@ -139,6 +139,31 @@ class TelegramService
     }
 
     /**
+     * Attach the persistent reply keyboard without leaving an empty chat bubble.
+     */
+    public function ensureMainKeyboard(int|string $chatId, ?User $user = null): void
+    {
+        $result = $this->sendMessage($chatId, "\u2060", [
+            'reply_markup' => $this->mainKeyboard($user),
+            'disable_notification' => true,
+        ]);
+
+        $messageId = $result['message_id'] ?? null;
+
+        if ($messageId !== null) {
+            $this->deleteMessage($chatId, (int) $messageId);
+        }
+    }
+
+    public function deleteMessage(int|string $chatId, int $messageId): ?array
+    {
+        return $this->call('deleteMessage', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+        ]);
+    }
+
+    /**
      * @param  array<int, array<int, array<string, string>>>  $rows
      * @return array{inline_keyboard: array<int, array<int, array<string, string>>>}
      */
