@@ -115,6 +115,36 @@ class LearningResource extends Model
     }
 
     /**
+     * Payload for Telegram Mini App players. Not gated by free-web rules.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function playerPayload(): ?array
+    {
+        if ($this->studyKind() === null) {
+            return null;
+        }
+
+        return $this->rawStudyPayload();
+    }
+
+    public function miniAppRouteName(): string
+    {
+        $kind = $this->studyKind();
+
+        if ($kind !== null && $this->playerPayload() !== null) {
+            return $kind->miniAppRouteName();
+        }
+
+        return 'tg.resources.show';
+    }
+
+    public function miniAppUrl(): string
+    {
+        return route($this->miniAppRouteName(), $this);
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function flashcards(): array

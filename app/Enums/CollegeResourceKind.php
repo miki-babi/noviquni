@@ -33,4 +33,14 @@ enum CollegeResourceKind: string
     {
         return 'generate/'.$this->value;
     }
+
+    public function miniAppRouteName(): string
+    {
+        return match ($this) {
+            self::Notes => 'tg.play.notes',
+            self::Quiz => 'tg.play.quiz',
+            self::Exam => 'tg.play.exam',
+            self::Flashcards => 'tg.play.flashcards',
+        };
+    }
 }

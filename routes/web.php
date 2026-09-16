@@ -9,6 +9,10 @@ use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\ContinueController;
+use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\FlashcardsPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\NotesPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
@@ -46,6 +50,10 @@ Route::prefix('tg')->name('tg.')->group(function () {
             ->whereIn('hub', ['notes', 'modules', 'practice'])
             ->name('courses.hub');
         Route::get('resources/{resource:slug}', [App\Http\Controllers\Telegram\MiniApp\ResourceController::class, 'show'])->name('resources.show');
+        Route::get('play/notes/{resource:slug}', NotesPlayerController::class)->name('play.notes');
+        Route::get('play/quiz/{resource:slug}', QuizPlayerController::class)->name('play.quiz');
+        Route::get('play/exam/{resource:slug}', ExamPlayerController::class)->name('play.exam');
+        Route::get('play/flashcards/{resource:slug}', FlashcardsPlayerController::class)->name('play.flashcards');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile');
         Route::post('profile/notifications', [ProfileController::class, 'toggleNotifications'])->name('profile.notifications');
         Route::post('profile/notifications/enable', [ProfileController::class, 'enableNotifications'])->name('profile.notifications.enable');

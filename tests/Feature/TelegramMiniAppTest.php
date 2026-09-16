@@ -91,7 +91,8 @@ it('shows continue resume card when a download exists', function () {
         ->get(route('tg.continue'))
         ->assertOk()
         ->assertSee('Mathematics')
-        ->assertSee('Chapter notes');
+        ->assertSee('Chapter notes')
+        ->assertSee(route('tg.play.notes', $resource), false);
 });
 
 it('shows profile and premium screens', function () {

@@ -9,7 +9,7 @@
 
         <div class="grid gap-3">
             <a
-                href="{{ route('tg.resources.show', $resource) }}"
+                href="{{ $resource->miniAppUrl() }}"
                 class="inline-flex items-center justify-center rounded-2xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white"
             >
                 {{ $copy->get('continue.resume') }}

@@ -8,7 +8,7 @@
             <div class="grid gap-3">
                 @foreach ($resources as $resource)
                     <a
-                        href="{{ route('tg.resources.show', $resource) }}"
+                        href="{{ $resource->miniAppUrl() }}"
                         class="rounded-2xl border border-border-light px-4 py-3 text-left text-sm font-semibold text-text-primary"
                     >
                         @if ($resource->is_premium)

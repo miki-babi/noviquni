@@ -1,31 +1,31 @@
 <?php
 
-namespace App\Http\Controllers\Telegram\MiniApp;
+namespace App\Http\Controllers\Telegram\MiniApp\Players;
 
+use App\Enums\CollegeResourceKind;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Telegram\MiniApp\Concerns\OpensMiniAppResource;
 use App\Models\LearningResource;
-use App\Services\College\TelegramResourceFormatter;
 use App\Services\PremiumService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
-class ResourceController extends Controller
+class FlashcardsPlayerController extends Controller
 {
     use OpensMiniAppResource;
 
-    public function show(
+    public function __invoke(
         LearningResource $resource,
-        TelegramResourceFormatter $formatter,
         PremiumService $premium,
         SettingsService $settings,
         ReferralService $referrals,
     ): View|RedirectResponse {
-        if ($resource->studyKind() !== null && $resource->playerPayload() !== null) {
-            return redirect()->route($resource->miniAppRouteName(), $resource);
-        }
+        abort_unless($resource->studyKind() === CollegeResourceKind::Flashcards, 404);
+
+        $payload = $resource->playerPayload();
+        abort_unless($payload !== null, 404);
 
         $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
 
@@ -33,14 +33,15 @@ class ResourceController extends Controller
             return $access;
         }
 
-        return view('telegram.mini-app.resource', [
+        return view('telegram.mini-app.players.flashcards', [
             'copy' => $access['copy'],
             'user' => $access['user'],
             'resource' => $resource,
             'course' => $resource->course,
-            'chunks' => $formatter->format($resource),
-            'showQuizNudge' => $this->shouldShowQuizNudge($resource),
-            'activeNav' => 'browse',
+            'payload' => $payload,
+            'backUrl' => $resource->course
+                ? route('tg.courses.show', $resource->course)
+                : route('tg.browse'),
         ]);
     }
 }
