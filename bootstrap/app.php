@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureTelegramMiniAppAuthenticated;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,7 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
             'telegram/webhook',
         ]);
 
-        $middleware->redirectGuestsTo('/admin/login');
+        $middleware->alias([
+            'telegram.miniapp' => EnsureTelegramMiniAppAuthenticated::class,
+        ]);
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('tg') || $request->is('tg/*')) {
+                return route('tg.session.create', ['redirect' => $request->fullUrl()]);
+            }
+
+            return '/admin/login';
+        });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

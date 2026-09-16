@@ -53,7 +53,35 @@ class TelegramService
     }
 
     /**
-     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
+     * Absolute Mini App URL (HTTPS host from APP_URL or TELEGRAM_MINI_APP_URL).
+     *
+     * @param  array<string, mixed>  $parameters
+     */
+    public function miniAppUrl(string $routeName, array $parameters = []): string
+    {
+        $url = route($routeName, $parameters, absolute: true);
+        $override = config('services.telegram.mini_app_url');
+
+        if (blank($override)) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+        $overrideParts = parse_url((string) $override);
+
+        if (! is_array($parts) || ! is_array($overrideParts)) {
+            return $url;
+        }
+
+        return ($overrideParts['scheme'] ?? 'https').'://'
+            .($overrideParts['host'] ?? '')
+            .(isset($overrideParts['port']) ? ':'.$overrideParts['port'] : '')
+            .($parts['path'] ?? '')
+            .(isset($parts['query']) ? '?'.$parts['query'] : '');
+    }
+
+    /**
+     * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
      */
     public function mainKeyboard(?User $user = null): array
     {
@@ -62,12 +90,27 @@ class TelegramService
         return [
             'keyboard' => [
                 [
-                    ['text' => $copy->get('keyboard.continue'), 'style' => TelegramButtonStyle::Primary->value],
-                    ['text' => $copy->get('keyboard.browse'), 'style' => TelegramButtonStyle::Primary->value],
+                    [
+                        'text' => $copy->get('keyboard.continue'),
+                        'web_app' => ['url' => $this->miniAppUrl('tg.continue')],
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                    [
+                        'text' => $copy->get('keyboard.browse'),
+                        'web_app' => ['url' => $this->miniAppUrl('tg.browse')],
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
                 ],
                 [
-                    ['text' => $copy->get('keyboard.profile')],
-                    ['text' => $copy->get('keyboard.premium'), 'style' => TelegramButtonStyle::Success->value],
+                    [
+                        'text' => $copy->get('keyboard.profile'),
+                        'web_app' => ['url' => $this->miniAppUrl('tg.profile')],
+                    ],
+                    [
+                        'text' => $copy->get('keyboard.premium'),
+                        'web_app' => ['url' => $this->miniAppUrl('tg.premium')],
+                        'style' => TelegramButtonStyle::Success->value,
+                    ],
                 ],
             ],
             'resize_keyboard' => true,

@@ -470,7 +470,7 @@ class TelegramBotHandler
                 'inline_keyboard' => [[
                     [
                         'text' => $copy->get('start.returning_button'),
-                        'callback_data' => 'start:continue',
+                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.continue')],
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ]],
@@ -783,7 +783,10 @@ class TelegramBotHandler
                     [
                         'text' => $copy->get('quiz_nudge.button'),
                         'web_app' => [
-                            'url' => route('hubs.course', ['hub' => ResourceHub::Practice->value, 'course' => $course]),
+                            'url' => $this->telegram->miniAppUrl('tg.courses.hub', [
+                                'course' => $course,
+                                'hub' => ResourceHub::Practice->value,
+                            ]),
                         ],
                         'style' => TelegramButtonStyle::Success->value,
                     ],

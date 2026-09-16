@@ -44,7 +44,23 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function makeTelegramInitData(array $user, string $botToken, ?int $authDate = null): string
 {
-    // ..
+    $authDate ??= now()->timestamp;
+
+    $params = [
+        'auth_date' => (string) $authDate,
+        'user' => json_encode($user, JSON_UNESCAPED_UNICODE),
+    ];
+
+    ksort($params);
+
+    $dataCheckString = collect($params)
+        ->map(fn (string $value, string $key): string => $key.'='.$value)
+        ->implode("\n");
+
+    $secretKey = hash_hmac('sha256', $botToken, 'WebAppData', true);
+    $params['hash'] = bin2hex(hash_hmac('sha256', $dataCheckString, $secretKey, true));
+
+    return http_build_query($params);
 }
