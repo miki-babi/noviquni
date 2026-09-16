@@ -19,3 +19,11 @@ it('treats empty rich editor paragraphs as blank', function () {
     expect(TelegramHtml::isBlank('<p></p>'))->toBeTrue()
         ->and(TelegramHtml::isBlank('<p>Hi</p>'))->toBeFalse();
 });
+
+it('preserves blank lines between paragraphs', function () {
+    expect(TelegramHtml::fromRichHtml('<p>Line one</p><p></p><p>Line two</p>'))
+        ->toBe("Line one\n\nLine two");
+
+    expect(TelegramHtml::fromRichHtml('<p>Line one</p><p><br></p><p>Line two</p>'))
+        ->toBe("Line one\n\nLine two");
+});

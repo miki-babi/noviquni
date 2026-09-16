@@ -161,13 +161,14 @@ final class TelegramHtml
 
     private static function renderBlock(DOMElement $node): string
     {
-        $inner = trim(self::renderChildren($node));
+        $inner = self::renderChildren($node);
 
-        if ($inner === '') {
-            return '';
+        // Empty / <br>-only paragraphs are intentional blank lines from the editor.
+        if (trim(str_replace(["\n", "\r"], '', $inner)) === '') {
+            return "\n";
         }
 
-        return $inner."\n";
+        return trim($inner)."\n";
     }
 
     private static function renderListItem(DOMElement $node): string
@@ -183,9 +184,6 @@ final class TelegramHtml
 
     private static function normalizeWhitespace(string $value): string
     {
-        $value = str_replace(["\r\n", "\r"], "\n", $value);
-        $value = preg_replace("/\n{3,}/", "\n\n", $value) ?? $value;
-
-        return trim($value);
+        return trim(str_replace(["\r\n", "\r"], "\n", $value));
     }
 }
