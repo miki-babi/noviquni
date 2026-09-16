@@ -40,4 +40,12 @@ return [
         'bot_username' => env('TELEGRAM_BOT_USERNAME', 'noviquni_bot'),
     ],
 
+    'noviq_college' => [
+        'base_url' => env('NOVIQ_COLLEGE_BASE_URL', 'https://api.noviq.et/api/public/college'),
+        'api_key' => env('NOVIQ_COLLEGE_API_KEY') ?: env('COLLEGE_PUBLIC_API_KEY'),
+        'connect_timeout' => (int) env('NOVIQ_COLLEGE_CONNECT_TIMEOUT', 5),
+        'timeout' => (int) env('NOVIQ_COLLEGE_TIMEOUT', 60),
+        'cache_ttl' => (int) env('NOVIQ_COLLEGE_CACHE_TTL', 300),
+    ],
+
 ];

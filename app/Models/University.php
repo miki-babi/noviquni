@@ -2,18 +2,36 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeo;
 use Database\Factories\UniversityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['name', 'slug', 'is_active', 'sort_order'])]
+#[Fillable([
+    'name',
+    'slug',
+    'description',
+    'location',
+    'website',
+    'logo_path',
+    'is_active',
+    'sort_order',
+    'seo_title',
+    'seo_description',
+    'seo_content',
+    'og_image',
+    'is_indexable',
+])]
 class University extends Model
 {
     /** @use HasFactory<UniversityFactory> */
     use HasFactory;
+
+    use HasSeo;
 
     /**
      * @var array<string, mixed>
@@ -21,7 +39,13 @@ class University extends Model
     protected $attributes = [
         'is_active' => true,
         'sort_order' => 0,
+        'is_indexable' => true,
     ];
+
+    public function learningResources(): HasMany
+    {
+        return $this->hasMany(LearningResource::class);
+    }
 
     /**
      * @param  Builder<University>  $query
@@ -41,6 +65,7 @@ class University extends Model
         return [
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'is_indexable' => 'boolean',
         ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Streams\Schemas;
 
+use App\Filament\Forms\Components\SeoFields;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -22,6 +23,7 @@ class StreamForm
                     ->unique(ignoreRecord: true),
                 Toggle::make('is_active')
                     ->default(true),
+                ...SeoFields::make(),
             ]);
     }
 }

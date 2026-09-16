@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Courses\Schemas;
 
+use App\Filament\Forms\Components\SeoFields;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -24,9 +25,11 @@ class CourseForm
                     ->live(onBlur: true)
                     ->afterStateUpdated(fn ($set, ?string $state) => $set('slug', Str::slug($state ?? ''))),
                 TextInput::make('slug')
-                    ->required(),
+                    ->required()
+                    ->unique(ignoreRecord: true),
                 Toggle::make('is_active')
                     ->default(true),
+                ...SeoFields::make(),
             ]);
     }
 }

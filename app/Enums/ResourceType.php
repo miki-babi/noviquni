@@ -10,6 +10,7 @@ enum ResourceType: string
     case PastExam = 'past_exam';
     case Assignment = 'assignment';
     case PracticeQuestion = 'practice_question';
+    case Flashcards = 'flashcards';
     case Other = 'other';
 
     public function label(): string
@@ -21,6 +22,7 @@ enum ResourceType: string
             self::PastExam => 'Past exam',
             self::Assignment => 'Assignment',
             self::PracticeQuestion => 'Practice questions',
+            self::Flashcards => 'Flashcards',
             self::Other => 'Other',
         };
     }

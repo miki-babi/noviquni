@@ -21,8 +21,12 @@ class UniversityFactory extends Factory
         return [
             'name' => $name,
             'slug' => Str::slug($name),
+            'description' => fake()->paragraph(),
+            'location' => fake()->city().', Ethiopia',
+            'website' => fake()->optional()->url(),
             'is_active' => true,
             'sort_order' => fake()->numberBetween(0, 100),
+            'is_indexable' => true,
         ];
     }
 }

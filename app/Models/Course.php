@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasSeo;
 use Database\Factories\CourseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -12,17 +13,30 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['stream_id', 'name', 'slug', 'is_active'])]
+#[Fillable([
+    'stream_id',
+    'name',
+    'slug',
+    'is_active',
+    'seo_title',
+    'seo_description',
+    'seo_content',
+    'og_image',
+    'is_indexable',
+])]
 class Course extends Model
 {
     /** @use HasFactory<CourseFactory> */
     use HasFactory;
+
+    use HasSeo;
 
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'is_active' => true,
+        'is_indexable' => true,
     ];
 
     public function stream(): BelongsTo
@@ -57,6 +71,7 @@ class Course extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_indexable' => 'boolean',
         ];
     }
 }

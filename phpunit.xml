@@ -32,5 +32,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="NOVIQ_COLLEGE_BASE_URL" value="https://api.noviq.et/api/public/college"/>
+        <env name="NOVIQ_COLLEGE_API_KEY" value="test-college-api-key"/>
     </php>
 </phpunit>

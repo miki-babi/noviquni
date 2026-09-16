@@ -2,10 +2,12 @@
 
 namespace Database\Factories;
 
+use App\Enums\CollegeResourceKind;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends Factory<LearningResource>
@@ -18,16 +20,21 @@ class LearningResourceFactory extends Factory
     public function definition(): array
     {
         $course = Course::factory()->create();
+        $title = fake()->unique()->sentence(3);
 
         return [
-            'title' => fake()->sentence(3),
+            'title' => $title,
+            'slug' => Str::slug($title).'-'.Str::random(5),
             'description' => fake()->paragraph(),
+            'topics' => fake()->words(4),
             'type' => fake()->randomElement(ResourceType::cases()),
             'course_id' => $course->id,
             'stream_id' => $course->stream_id,
             'is_premium' => false,
             'is_published' => false,
-            'file_path' => null,
+            'is_indexable' => true,
+            'content' => null,
+            'generation_kind' => null,
         ];
     }
 
@@ -42,6 +49,133 @@ class LearningResourceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_premium' => true,
+        ]);
+    }
+
+    public function notes(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::LectureNotes,
+            'generation_kind' => CollegeResourceKind::Notes,
+            'content' => [
+                'kind' => CollegeResourceKind::Notes->value,
+                'scope_type' => 'section',
+                'scope_id' => 'section-1',
+                'from_cache' => false,
+                'generated_at' => now()->toIso8601String(),
+                'payload' => [
+                    'title' => 'Anthropology Notes',
+                    'summary' => 'Anthropology studies humankind across time and space.',
+                    'keyDefinitions' => [
+                        [
+                            'term' => 'Anthropology',
+                            'definition' => 'The study of human beings.',
+                        ],
+                    ],
+                    'corePrinciples' => [
+                        'Culture and biology are inseparable.',
+                    ],
+                    'commonMistakes' => [
+                        'Confusing anthropology with sociology alone.',
+                    ],
+                    'keyFormulas' => [],
+                ],
+            ],
+        ]);
+    }
+
+    public function quiz(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::PracticeQuestion,
+            'generation_kind' => CollegeResourceKind::Quiz,
+            'content' => [
+                'kind' => CollegeResourceKind::Quiz->value,
+                'scope_type' => 'section',
+                'scope_id' => 'section-1',
+                'from_cache' => false,
+                'generated_at' => now()->toIso8601String(),
+                'payload' => [
+                    'questions' => [
+                        [
+                            'question' => 'What are the Greek roots of anthropology?',
+                            'options' => [
+                                'Wrong A',
+                                'Anthropos and logos',
+                                'Wrong C',
+                                'Wrong D',
+                            ],
+                            'answerIndex' => 1,
+                            'explanation' => 'Anthropos means human being.',
+                            'difficulty' => 'easy',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    public function exam(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::PastExam,
+            'generation_kind' => CollegeResourceKind::Exam,
+            'content' => [
+                'kind' => CollegeResourceKind::Exam->value,
+                'scope_type' => 'section',
+                'scope_id' => 'section-1',
+                'from_cache' => false,
+                'generated_at' => now()->toIso8601String(),
+                'payload' => [
+                    'partA' => [
+                        [
+                            'question' => 'Which statement best describes anthropology?',
+                            'options' => [
+                                'It studies only fossils',
+                                'It studies humankind across time and space',
+                                'It is limited to genetics',
+                                'It ignores culture',
+                            ],
+                            'answerIndex' => 1,
+                            'explanation' => 'Anthropology aims for an integrated picture of humankind.',
+                            'difficulty' => 'medium',
+                        ],
+                    ],
+                    'partB' => [
+                        [
+                            'question' => 'Explain the scope of anthropology in your own words.',
+                            'points' => 10,
+                            'modelAnswer' => 'Anthropology studies all humans across time and space.',
+                            'gradingRubric' => 'Award points for breadth across biological and cultural dimensions.',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
+    }
+
+    public function flashcards(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::Flashcards,
+            'generation_kind' => CollegeResourceKind::Flashcards,
+            'content' => [
+                'kind' => CollegeResourceKind::Flashcards->value,
+                'scope_type' => 'section',
+                'scope_id' => 'section-1',
+                'from_cache' => false,
+                'generated_at' => now()->toIso8601String(),
+                'payload' => [
+                    'cards' => [
+                        [
+                            'front' => 'What does anthropos mean?',
+                            'back' => 'Human being or mankind',
+                            'hint' => 'Think of the Greek root.',
+                            'category' => 'Etymology',
+                        ],
+                    ],
+                ],
+            ],
         ]);
     }
 }

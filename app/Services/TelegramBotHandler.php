@@ -13,9 +13,9 @@ use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Services\College\TelegramResourceFormatter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TelegramBotHandler
@@ -724,11 +724,10 @@ class TelegramBotHandler
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
 
-        if (filled($resource->file_path)) {
-            $url = Storage::disk(config('filesystems.default'))->url($resource->file_path);
-            $this->telegram->sendDocument($chatId, $url, $resource->title);
-        } else {
-            $this->telegram->sendMessage($chatId, "<b>{$resource->title}</b>\n\n".($resource->description ?? 'No file attached.'));
+        $chunks = app(TelegramResourceFormatter::class)->format($resource);
+
+        foreach ($chunks as $chunk) {
+            $this->telegram->sendMessage($chatId, $chunk);
         }
     }
 
