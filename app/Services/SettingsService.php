@@ -19,6 +19,12 @@ class SettingsService
 
     public const PAYMENT_INSTRUCTIONS = 'payment_instructions';
 
+    public const TELEGRAM_START_IMAGE = 'telegram_start_image';
+
+    public const TELEGRAM_START_CAPTION = 'telegram_start_caption';
+
+    public const TELEGRAM_START_BUTTONS = 'telegram_start_buttons';
+
     /**
      * @return array<string, string>
      */
@@ -31,6 +37,9 @@ class SettingsService
             self::PREMIUM_REFERRAL_REWARD => '10',
             self::PREMIUM_DURATION_DAYS => '30',
             self::PAYMENT_INSTRUCTIONS => "Send {amount} ETB to the account provided by support.\nUse payment reference: {reference}",
+            self::TELEGRAM_START_IMAGE => '',
+            self::TELEGRAM_START_CAPTION => '',
+            self::TELEGRAM_START_BUTTONS => '[]',
         ];
     }
 
@@ -81,6 +90,35 @@ class SettingsService
     public function paymentInstructions(): string
     {
         return $this->get(self::PAYMENT_INSTRUCTIONS);
+    }
+
+    public function telegramStartImage(): ?string
+    {
+        $path = trim($this->get(self::TELEGRAM_START_IMAGE, ''));
+
+        return $path !== '' ? $path : null;
+    }
+
+    public function telegramStartCaption(): string
+    {
+        return $this->get(self::TELEGRAM_START_CAPTION, '');
+    }
+
+    /**
+     * @return array<int, array{label?: string, type?: string, command?: string, url?: string, style?: string|null}>
+     */
+    public function telegramStartButtons(): array
+    {
+        $decoded = json_decode($this->get(self::TELEGRAM_START_BUTTONS, '[]'), true);
+
+        return is_array($decoded) ? array_values($decoded) : [];
+    }
+
+    public function hasCustomTelegramStartMessage(): bool
+    {
+        return $this->telegramStartImage() !== null
+            || filled(trim($this->telegramStartCaption()))
+            || $this->telegramStartButtons() !== [];
     }
 
     public function seedDefaults(): void

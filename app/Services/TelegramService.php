@@ -53,6 +53,20 @@ class TelegramService
     }
 
     /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function sendPhoto(int|string $chatId, string $photoUrlOrId, string $caption = '', array $payload = []): ?array
+    {
+        return $this->call('sendPhoto', array_merge([
+            'chat_id' => $chatId,
+            'photo' => $photoUrlOrId,
+            'caption' => $caption,
+            'parse_mode' => 'HTML',
+        ], $payload));
+    }
+
+    /**
      * Absolute Mini App URL (HTTPS host from APP_URL or TELEGRAM_MINI_APP_URL).
      *
      * @param  array<string, mixed>  $parameters

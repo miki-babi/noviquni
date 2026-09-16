@@ -22,6 +22,7 @@ use App\Services\College\TelegramResourceFormatter;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TelegramBotHandler
@@ -442,6 +443,12 @@ class TelegramBotHandler
 
     protected function sendHome(User $user, int|string $chatId): void
     {
+        if ($this->settings->hasCustomTelegramStartMessage()) {
+            $this->sendCustomStartMessage($user, $chatId);
+
+            return;
+        }
+
         $copy = TelegramCopy::for($user);
         $name = $copy->firstName($user);
         $hasCourses = $user->courses()->exists();
@@ -479,6 +486,54 @@ class TelegramBotHandler
         $this->telegram->sendMessage($chatId, "\u2060", [
             'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
+    }
+
+    protected function sendCustomStartMessage(User $user, int|string $chatId): void
+    {
+        $copy = TelegramCopy::for($user);
+        $caption = $this->settings->telegramStartCaption();
+        $caption = str_replace(
+            ['{{first_name}}', '{{name}}'],
+            [$copy->firstName($user), $user->name],
+            $caption,
+        );
+
+        $replyMarkup = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
+        $payload = [];
+
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $imagePath = $this->settings->telegramStartImage();
+
+        if ($imagePath !== null) {
+            $photo = $this->absolutePublicUrl($imagePath);
+            $this->telegram->sendPhoto($chatId, $photo, $caption, $payload);
+        } elseif (filled(trim($caption))) {
+            $this->telegram->sendMessage($chatId, $caption, $payload);
+        } elseif ($replyMarkup !== null) {
+            $this->telegram->sendMessage($chatId, '‎', $payload);
+        }
+
+        $this->telegram->sendMessage($chatId, "\u2060", [
+            'reply_markup' => $this->telegram->mainKeyboard($user),
+        ]);
+    }
+
+    protected function absolutePublicUrl(string $path): string
+    {
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $relative = Storage::disk('public')->url($path);
+
+        if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
+            return $relative;
+        }
+
+        return url($relative);
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void
