@@ -467,7 +467,6 @@ class TelegramBotHandler
                     ]],
                 ],
             ]);
-            $this->telegram->ensureMainKeyboard($chatId, $user);
 
             return;
         }
@@ -483,7 +482,6 @@ class TelegramBotHandler
                 ]],
             ],
         ]);
-        $this->telegram->ensureMainKeyboard($chatId, $user);
     }
 
     protected function sendCustomStartMessage(User $user, int|string $chatId): void
@@ -500,18 +498,11 @@ class TelegramBotHandler
         );
 
         $replyMarkup = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
-        $payload = [];
-        $needsSeparateKeyboard = true;
-
-        if ($replyMarkup !== null) {
-            $payload['reply_markup'] = $replyMarkup;
-        } else {
-            $payload['reply_markup'] = $this->telegram->mainKeyboard($user);
-            $needsSeparateKeyboard = false;
-        }
+        $payload = [
+            'reply_markup' => $replyMarkup ?? $this->telegram->mainKeyboard($user),
+        ];
 
         $imagePath = $this->settings->telegramStartImage();
-        $sent = false;
 
         if ($imagePath !== null) {
             $absolutePath = Storage::disk('public')->path($imagePath);
@@ -520,22 +511,16 @@ class TelegramBotHandler
                 Log::warning('Telegram start image missing on disk.', ['path' => $imagePath]);
                 if ($caption !== '') {
                     $this->telegram->sendMessage($chatId, $caption, $payload);
-                    $sent = true;
+                } elseif ($replyMarkup === null) {
+                    $this->telegram->sendMessage($chatId, '‎', $payload);
                 }
             } else {
                 $this->telegram->sendPhoto($chatId, $absolutePath, $caption, $payload);
-                $sent = true;
             }
         } elseif ($caption !== '') {
             $this->telegram->sendMessage($chatId, $caption, $payload);
-            $sent = true;
-        } elseif ($replyMarkup !== null) {
+        } else {
             $this->telegram->sendMessage($chatId, '‎', $payload);
-            $sent = true;
-        }
-
-        if ($needsSeparateKeyboard || ! $sent) {
-            $this->telegram->ensureMainKeyboard($chatId, $user);
         }
     }
 
