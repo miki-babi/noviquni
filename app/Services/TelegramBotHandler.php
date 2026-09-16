@@ -20,8 +20,10 @@ use App\Models\User;
 use App\Models\Withdrawal;
 use App\Services\College\TelegramResourceFormatter;
 use App\Support\TelegramCopy;
+use App\Support\TelegramHtml;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -491,10 +493,13 @@ class TelegramBotHandler
     protected function sendCustomStartMessage(User $user, int|string $chatId): void
     {
         $copy = TelegramCopy::for($user);
-        $caption = $this->settings->telegramStartCaption();
+        $caption = TelegramHtml::fromRichHtml($this->settings->telegramStartCaption());
         $caption = str_replace(
             ['{{first_name}}', '{{name}}'],
-            [$copy->firstName($user), $user->name],
+            [
+                TelegramHtml::escape($copy->firstName($user)),
+                TelegramHtml::escape($user->name),
+            ],
             $caption,
         );
 
@@ -508,9 +513,17 @@ class TelegramBotHandler
         $imagePath = $this->settings->telegramStartImage();
 
         if ($imagePath !== null) {
-            $photo = $this->absolutePublicUrl($imagePath);
-            $this->telegram->sendPhoto($chatId, $photo, $caption, $payload);
-        } elseif (filled(trim($caption))) {
+            $absolutePath = Storage::disk('public')->path($imagePath);
+
+            if (! is_file($absolutePath)) {
+                Log::warning('Telegram start image missing on disk.', ['path' => $imagePath]);
+                if ($caption !== '') {
+                    $this->telegram->sendMessage($chatId, $caption, $payload);
+                }
+            } else {
+                $this->telegram->sendPhoto($chatId, $absolutePath, $caption, $payload);
+            }
+        } elseif ($caption !== '') {
             $this->telegram->sendMessage($chatId, $caption, $payload);
         } elseif ($replyMarkup !== null) {
             $this->telegram->sendMessage($chatId, '‎', $payload);
@@ -519,21 +532,6 @@ class TelegramBotHandler
         $this->telegram->sendMessage($chatId, "\u2060", [
             'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
-    }
-
-    protected function absolutePublicUrl(string $path): string
-    {
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        $relative = Storage::disk('public')->url($path);
-
-        if (str_starts_with($relative, 'http://') || str_starts_with($relative, 'https://')) {
-            return $relative;
-        }
-
-        return url($relative);
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void

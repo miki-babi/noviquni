@@ -9,6 +9,7 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -112,10 +113,14 @@ class ManageSettings extends Page
                             ->visibility('public')
                             ->helperText('Optional. Sent as a Telegram photo with the caption below.')
                             ->columnSpanFull(),
-                        Textarea::make('telegram_start_caption')
+                        RichEditor::make('telegram_start_caption')
                             ->label('Caption')
-                            ->rows(5)
-                            ->helperText('Supports Telegram HTML. Variables: {{first_name}}, {{name}}')
+                            ->toolbarButtons([
+                                ['bold', 'italic', 'underline', 'strike', 'link', 'code'],
+                                ['blockquote', 'bulletList', 'orderedList'],
+                                ['undo', 'redo'],
+                            ])
+                            ->helperText('Formatted for Telegram. Variables: {{first_name}}, {{name}}')
                             ->columnSpanFull(),
                         Repeater::make('telegram_start_buttons')
                             ->label('Inline buttons')

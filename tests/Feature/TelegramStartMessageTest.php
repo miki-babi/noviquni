@@ -84,12 +84,16 @@ it('sends the admin start photo caption and inline buttons on /start', function 
             return false;
         }
 
-        $data = $request->data();
+        $fields = collect($request->data())
+            ->mapWithKeys(fn (array $part) => [$part['name'] => $part['contents']]);
 
-        return str_contains((string) ($data['caption'] ?? ''), 'Welcome back, Abebe!')
-            && str_contains((string) ($data['photo'] ?? ''), 'telegram/start/welcome.jpg')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === 'https://noviquni.test/tg/continue'
-            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'premium_pay';
+        $markup = json_decode((string) $fields->get('reply_markup'), true);
+
+        return str_contains((string) $fields->get('caption'), 'Welcome back, Abebe!')
+            && data_get($markup, 'inline_keyboard.0.0.web_app.url') === 'https://noviquni.test/tg/continue'
+            && data_get($markup, 'inline_keyboard.1.0.callback_data') === 'premium_pay'
+            && collect($request->data())->contains(fn (array $part) => ($part['name'] ?? null) === 'photo'
+                && ($part['filename'] ?? null) === 'welcome.jpg');
     });
 
     Http::assertSent(function ($request) {

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use App\Support\TelegramHtml;
 use Illuminate\Support\Facades\Cache;
 
 class SettingsService
@@ -117,7 +118,7 @@ class SettingsService
     public function hasCustomTelegramStartMessage(): bool
     {
         return $this->telegramStartImage() !== null
-            || filled(trim($this->telegramStartCaption()))
+            || ! TelegramHtml::isBlank($this->telegramStartCaption())
             || $this->telegramStartButtons() !== [];
     }
 

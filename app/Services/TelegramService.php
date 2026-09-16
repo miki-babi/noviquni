@@ -56,14 +56,21 @@ class TelegramService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */
-    public function sendPhoto(int|string $chatId, string $photoUrlOrId, string $caption = '', array $payload = []): ?array
+    public function sendPhoto(int|string $chatId, string $photoUrlPathOrId, string $caption = '', array $payload = []): ?array
     {
-        return $this->call('sendPhoto', array_merge([
+        $params = array_merge([
             'chat_id' => $chatId,
-            'photo' => $photoUrlOrId,
             'caption' => $caption,
             'parse_mode' => 'HTML',
-        ], $payload));
+        ], $payload);
+
+        if ($this->isLocalFilesystemPath($photoUrlPathOrId)) {
+            return $this->callMultipart('sendPhoto', $params, 'photo', $photoUrlPathOrId);
+        }
+
+        $params['photo'] = $photoUrlPathOrId;
+
+        return $this->call('sendPhoto', $params);
     }
 
     /**
@@ -282,6 +289,58 @@ class TelegramService
         }
 
         return $response->json('result');
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>|null
+     */
+    protected function callMultipart(string $method, array $params, string $fileField, string $filePath): ?array
+    {
+        if (! $this->isConfigured()) {
+            Log::warning('Telegram bot token not configured.', ['method' => $method]);
+
+            return null;
+        }
+
+        if (isset($params['reply_markup']) && is_array($params['reply_markup'])) {
+            $params['reply_markup'] = json_encode($params['reply_markup'], JSON_THROW_ON_ERROR);
+        }
+
+        $contents = file_get_contents($filePath);
+
+        if ($contents === false) {
+            Log::error('Telegram multipart upload failed to read file.', [
+                'method' => $method,
+                'path' => $filePath,
+            ]);
+
+            return null;
+        }
+
+        $response = Http::timeout(30)
+            ->attach($fileField, $contents, basename($filePath))
+            ->post("https://api.telegram.org/bot{$this->token()}/{$method}", $params);
+
+        if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+            Log::error('Telegram API error', [
+                'method' => $method,
+                'body' => $response->json(),
+            ]);
+
+            return null;
+        }
+
+        return $response->json('result');
+    }
+
+    protected function isLocalFilesystemPath(string $value): bool
+    {
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return false;
+        }
+
+        return is_file($value);
     }
 
     public function findOrCreateStudent(int|string $telegramId, string $name, ?string $username = null): User
