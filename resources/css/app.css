@@ -47,9 +47,9 @@
     --tg-accent: #7c6cff;
     --tg-card: #ffffff;
     --tg-card-border: #d8dee9;
-    --tg-chunk-border: 2px;
-    --tg-chunk-radius: 16px;
-    --tg-chunk-shadow: 0 4px 0 var(--tg-card-border);
+    --tg-chunk-border: 1px;
+    --tg-chunk-radius: 14px;
+    --tg-chunk-shadow: none;
 }
 
 .dark {
@@ -67,9 +67,9 @@
     --tg-accent: #7c6cff;
     --tg-card: #1a1f2e;
     --tg-card-border: #2a3142;
-    --tg-chunk-border: 2px;
-    --tg-chunk-radius: 16px;
-    --tg-chunk-shadow: 0 4px 0 var(--tg-card-border);
+    --tg-chunk-border: 1px;
+    --tg-chunk-radius: 14px;
+    --tg-chunk-shadow: none;
 }
 
 @layer base {
@@ -219,32 +219,29 @@
         border-radius: var(--tg-chunk-radius);
         background-color: var(--tg-button);
         padding: 0.875rem 1rem;
-        min-height: 3.5rem;
+        min-height: 3.25rem;
         font-size: 0.9375rem;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--tg-button-text);
         text-decoration: none;
-        border: var(--tg-chunk-border) solid color-mix(in srgb, var(--tg-button) 70%, #000);
-        box-shadow: 0 4px 0 color-mix(in srgb, var(--tg-button) 55%, #000);
+        border: 0;
+        box-shadow: none;
         cursor: pointer;
-        transition: transform 80ms ease, box-shadow 80ms ease;
     }
 
     .tg-btn:active {
-        transform: translateY(2px);
-        box-shadow: 0 2px 0 color-mix(in srgb, var(--tg-button) 55%, #000);
-        opacity: 1;
+        opacity: 0.88;
     }
 
     .tg-btn-secondary {
         background-color: var(--tg-card);
         color: var(--tg-text);
-        border: var(--tg-chunk-border) solid var(--tg-card-border);
-        box-shadow: var(--tg-chunk-shadow);
+        border: 1px solid var(--tg-card-border);
+        box-shadow: none;
     }
 
     .tg-btn-secondary:active {
-        box-shadow: 0 2px 0 var(--tg-card-border);
+        opacity: 0.88;
     }
 
     .tg-chunk {
@@ -417,26 +414,23 @@
     .study-card {
         display: block;
         width: 100%;
-        min-height: 3.75rem;
+        min-height: 3.5rem;
         border-radius: var(--tg-chunk-radius);
         background: var(--tg-card);
-        border: var(--tg-chunk-border) solid var(--tg-card-border);
-        box-shadow: var(--tg-chunk-shadow);
+        border: 1px solid var(--tg-card-border);
+        box-shadow: none;
         text-decoration: none;
         color: inherit;
         -webkit-tap-highlight-color: transparent;
-        transition: transform 80ms ease, box-shadow 80ms ease;
     }
 
     .study-card:active {
-        transform: translateY(2px);
-        box-shadow: 0 2px 0 var(--tg-card-border);
-        opacity: 1;
+        opacity: 0.92;
     }
 
     .study-card-inner {
         display: flex;
-        min-height: 3.75rem;
+        min-height: 3.5rem;
         align-items: center;
         gap: 0.75rem;
         padding: 0.875rem 1rem;
@@ -450,8 +444,7 @@
     }
 
     .study-card-ghost:active {
-        transform: none;
-        box-shadow: none;
+        opacity: 0.92;
     }
 
     .study-card-ghost .study-card-title {
@@ -507,7 +500,7 @@
     .study-resume {
         display: inline-flex;
         margin-top: 0.875rem;
-        min-height: 3.5rem;
+        min-height: 3rem;
         width: 100%;
         align-items: center;
         justify-content: center;
@@ -515,16 +508,14 @@
         background: var(--tg-accent);
         color: #fff;
         font-size: 0.9375rem;
-        font-weight: 700;
+        font-weight: 600;
         text-decoration: none;
-        border: var(--tg-chunk-border) solid color-mix(in srgb, var(--tg-accent) 70%, #000);
-        box-shadow: 0 4px 0 color-mix(in srgb, var(--tg-accent) 55%, #000);
-        transition: transform 80ms ease, box-shadow 80ms ease;
+        border: 0;
+        box-shadow: none;
     }
 
     .study-resume:active {
-        transform: translateY(2px);
-        box-shadow: 0 2px 0 color-mix(in srgb, var(--tg-accent) 55%, #000);
+        opacity: 0.88;
     }
 
     .study-initial {
