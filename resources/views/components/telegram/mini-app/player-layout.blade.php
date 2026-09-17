@@ -12,10 +12,13 @@
 
 @php
     /** @var \App\Support\TelegramCopy $copy */
+    /** @var \App\Models\User|null $resolvedUser */
+    $resolvedUser = $user ?? auth()->user();
+    $themeClass = ($resolvedUser?->theme ?? 'dark') === 'light' ? 'light' : 'dark';
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ $copy->locale }}" class="dark">
+<html lang="{{ $copy->locale }}" class="{{ $themeClass }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -56,7 +59,7 @@
                         </button>
                     </form>
                 @endif
-                <x-telegram.mini-app.menu :copy="$copy" :active-nav="$activeNav" :user="$user" />
+                <x-telegram.mini-app.menu :copy="$copy" :active-nav="$activeNav" :user="$resolvedUser" />
             </div>
         </header>
 

@@ -27,6 +27,7 @@ use Illuminate\Support\Str;
     'telegram_id',
     'telegram_username',
     'telegram_locale',
+    'theme',
     'referral_code',
     'referred_by_user_id',
     'is_active',
@@ -51,6 +52,7 @@ class User extends Authenticatable implements FilamentUser
         'is_active' => true,
         'notifications_enabled' => true,
         'telegram_locale' => 'en',
+        'theme' => 'dark',
     ];
 
     protected static function booted(): void

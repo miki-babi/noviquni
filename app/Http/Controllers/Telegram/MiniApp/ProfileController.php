@@ -81,4 +81,19 @@ class ProfileController extends Controller
 
         return back()->with('status', $copy->get('settings.saved'));
     }
+
+    public function updateTheme(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'theme' => ['required', 'in:light,dark'],
+        ]);
+
+        /** @var User $user */
+        $user = Auth::user();
+        $user->update(['theme' => $validated['theme']]);
+
+        $copy = TelegramCopy::for($user->fresh());
+
+        return back()->with('status', $copy->get('settings.theme_saved'));
+    }
 }

@@ -71,6 +71,10 @@ return [
     'settings' => [
         'prompt' => 'Choose your language:',
         'saved' => 'Language updated.',
+        'theme' => 'Theme',
+        'theme_light' => 'Light',
+        'theme_dark' => 'Dark',
+        'theme_saved' => 'Theme updated.',
     ],
     'notify' => [
         'enabled' => 'Got it — we will ping you when resources drop.',
@@ -86,6 +90,7 @@ return [
         'nav' => 'Navigate',
         'courses' => 'Courses',
         'browse' => 'Browse',
+        'resources' => 'Resources',
         'continue' => 'Continue',
         'profile' => 'Profile',
         'premium' => 'Premium',
@@ -117,6 +122,7 @@ return [
         'empty' => 'No published resources in your courses yet.',
         'hub_empty' => 'No :hub in your courses yet.',
         'back' => '« Back to hubs',
+        'saved_link' => 'Quick saved',
     ],
     'saved' => [
         'title' => 'Quick saved',

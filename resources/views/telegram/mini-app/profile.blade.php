@@ -1,53 +1,100 @@
 @php
     use App\Enums\TelegramLocale;
+
+    $theme = $user->theme ?? 'dark';
 @endphp
 
-<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('keyboard.profile')">
-    <div class="space-y-6">
-        <div class="whitespace-pre-line rounded-2xl border border-border-light px-4 py-4 text-sm leading-relaxed">
-            {{ $copy->get('profile.body', [
-                'name' => $user->name,
-                'stream' => $user->stream?->name ?? '-',
-                'university' => $user->university?->name ?? '-',
-                'semester' => $user->semester?->name ?? '-',
-                'courses' => $courses,
-                'premium' => $premium,
-            ]) }}
+<x-telegram.mini-app.layout
+    :copy="$copy"
+    :user="$user"
+    :active-nav="$activeNav"
+    :title="$copy->get('keyboard.profile')"
+>
+    <div class="study-page">
+        <div class="study-card study-continue">
+            <p class="whitespace-pre-line text-sm leading-relaxed">
+                {{ $copy->get('profile.body', [
+                    'name' => $user->name,
+                    'stream' => $user->stream?->name ?? '-',
+                    'university' => $user->university?->name ?? '-',
+                    'semester' => $user->semester?->name ?? '-',
+                    'courses' => $courses,
+                    'premium' => $premium,
+                ]) }}
+            </p>
         </div>
 
-        <div class="grid gap-3">
-            <form method="POST" action="{{ route('tg.profile.notifications') }}">
-                @csrf
-                <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl border border-border-light px-4 py-3 text-sm font-semibold">
-                    {{ $copy->get('profile.notifications') }}
-                    · {{ $user->notifications_enabled ? $copy->get('notify.on') : $copy->get('notify.off') }}
-                </button>
-            </form>
+        <a href="{{ route('tg.premium') }}" class="study-card">
+            <div class="study-card-inner">
+                <span class="min-w-0 flex-1">
+                    <span class="study-card-title block">{{ $copy->get('menu.premium') }}</span>
+                </span>
+                <span class="tg-cell-chevron" aria-hidden="true">›</span>
+            </div>
+        </a>
 
-            <div class="rounded-2xl border border-border-light px-4 py-4 space-y-2">
-                <p class="text-sm font-semibold">{{ $copy->get('profile.refer') }}</p>
-                <p class="break-all text-xs text-text-secondary">{{ $referralLink }}</p>
+        <form method="POST" action="{{ route('tg.profile.notifications') }}">
+            @csrf
+            <button type="submit" class="tg-btn tg-btn-secondary tg-chunk">
+                {{ $copy->get('profile.notifications') }}
+                · {{ $user->notifications_enabled ? $copy->get('notify.on') : $copy->get('notify.off') }}
+            </button>
+        </form>
+
+        <div class="study-card study-continue">
+            <p class="study-card-title">{{ $copy->get('profile.refer') }}</p>
+            <p class="mt-2 break-all text-xs tg-hint">{{ $referralLink }}</p>
+        </div>
+
+        <div class="study-card study-continue">
+            <p class="study-card-title">{{ $copy->get('profile.settings') }}</p>
+
+            <p class="mt-3 text-xs tg-hint">{{ $copy->get('settings.theme') }}</p>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+                <form method="POST" action="{{ route('tg.profile.theme') }}">
+                    @csrf
+                    <input type="hidden" name="theme" value="light">
+                    <button
+                        type="submit"
+                        class="tg-btn {{ $theme === 'light' ? '' : 'tg-btn-secondary' }} tg-chunk"
+                    >
+                        {{ $copy->get('settings.theme_light') }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('tg.profile.theme') }}">
+                    @csrf
+                    <input type="hidden" name="theme" value="dark">
+                    <button
+                        type="submit"
+                        class="tg-btn {{ $theme === 'dark' ? '' : 'tg-btn-secondary' }} tg-chunk"
+                    >
+                        {{ $copy->get('settings.theme_dark') }}
+                    </button>
+                </form>
             </div>
 
-            <div class="rounded-2xl border border-border-light px-4 py-4 space-y-3">
-                <p class="text-sm font-semibold">{{ $copy->get('profile.settings') }}</p>
-                <p class="text-xs text-text-secondary">{{ $copy->get('settings.prompt') }}</p>
-                <div class="grid grid-cols-2 gap-3">
-                    <form method="POST" action="{{ route('tg.profile.locale') }}">
-                        @csrf
-                        <input type="hidden" name="locale" value="{{ TelegramLocale::English->value }}">
-                        <button type="submit" class="w-full rounded-2xl px-3 py-2 text-sm font-semibold {{ $user->telegram_locale === 'en' ? 'bg-primary-600 text-white' : 'border border-border-light' }}">
-                            {{ TelegramLocale::English->label() }}
-                        </button>
-                    </form>
-                    <form method="POST" action="{{ route('tg.profile.locale') }}">
-                        @csrf
-                        <input type="hidden" name="locale" value="{{ TelegramLocale::Amharic->value }}">
-                        <button type="submit" class="w-full rounded-2xl px-3 py-2 text-sm font-semibold {{ $user->telegram_locale === 'am' ? 'bg-primary-600 text-white' : 'border border-border-light' }}">
-                            {{ TelegramLocale::Amharic->label() }}
-                        </button>
-                    </form>
-                </div>
+            <p class="mt-4 text-xs tg-hint">{{ $copy->get('settings.prompt') }}</p>
+            <div class="mt-2 grid grid-cols-2 gap-3">
+                <form method="POST" action="{{ route('tg.profile.locale') }}">
+                    @csrf
+                    <input type="hidden" name="locale" value="{{ TelegramLocale::English->value }}">
+                    <button
+                        type="submit"
+                        class="tg-btn {{ $user->telegram_locale === 'en' ? '' : 'tg-btn-secondary' }} tg-chunk"
+                    >
+                        {{ TelegramLocale::English->label() }}
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('tg.profile.locale') }}">
+                    @csrf
+                    <input type="hidden" name="locale" value="{{ TelegramLocale::Amharic->value }}">
+                    <button
+                        type="submit"
+                        class="tg-btn {{ $user->telegram_locale === 'am' ? '' : 'tg-btn-secondary' }} tg-chunk"
+                    >
+                        {{ TelegramLocale::Amharic->label() }}
+                    </button>
+                </form>
             </div>
         </div>
     </div>

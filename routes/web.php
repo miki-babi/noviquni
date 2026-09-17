@@ -79,6 +79,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('profile/notifications', [ProfileController::class, 'toggleNotifications'])->name('profile.notifications');
         Route::post('profile/notifications/enable', [ProfileController::class, 'enableNotifications'])->name('profile.notifications.enable');
         Route::post('profile/locale', [ProfileController::class, 'updateLocale'])->name('profile.locale');
+        Route::post('profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
         Route::get('premium', [PremiumController::class, 'show'])->name('premium');
         Route::post('premium/pay', [PremiumController::class, 'pay'])->name('premium.pay');
     });

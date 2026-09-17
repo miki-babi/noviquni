@@ -86,10 +86,12 @@ it('shows browse courses for an authenticated student', function () {
         ->assertSee('+ Add another course')
         ->assertSee($resource->miniAppUrl(), false)
         ->assertSee('data-tg-menu-button', false)
-        ->assertSee('Study')
-        ->assertSee('Account')
-        ->assertSee('Other')
+        ->assertSee('Resources')
+        ->assertSee('Profile')
         ->assertSee('Abebe Kebede')
+        ->assertDontSee('>Study<', false)
+        ->assertDontSee('>Account<', false)
+        ->assertDontSee('>Other<', false)
         ->assertDontSee('0/1')
         ->assertDontSee('1/2')
         ->assertDontSee('Next: Week-1 notes')
@@ -97,7 +99,42 @@ it('shows browse courses for an authenticated student', function () {
         ->assertDontSee('(0)');
 
     $html = $this->actingAs($user)->get(route('tg.browse'))->getContent();
-    expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/');
+    expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/')
+        ->and($html)->toContain('class="dark"');
+});
+
+it('persists theme preference and renders light class', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'theme' => 'dark',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('tg.profile.theme'), ['theme' => 'light'])
+        ->assertRedirect();
+
+    expect($user->fresh()->theme)->toBe('light');
+
+    $this->actingAs($user)
+        ->get(route('tg.profile'))
+        ->assertOk()
+        ->assertSee('class="light"', false)
+        ->assertSee('Premium')
+        ->assertSee('Theme');
+});
+
+it('shows saved link on resources page', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.library'))
+        ->assertOk()
+        ->assertSee('Quick saved')
+        ->assertSee(route('tg.saved'), false);
 });
 
 it('shows continue next path step for bait resources', function () {
@@ -138,7 +175,9 @@ it('shows profile and premium screens', function () {
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('Abebe Kebede');
+        ->assertSee('Abebe Kebede')
+        ->assertSee('Premium')
+        ->assertSee(route('tg.premium'), false);
 
     $this->actingAs($user)
         ->get(route('tg.premium'))

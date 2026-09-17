@@ -68,8 +68,12 @@ return [
         'none' => 'None',
     ],
     'settings' => [
-        'prompt' => 'Choose your language:',
-        'saved' => 'Language updated.',
+        'prompt' => 'ቋንቋ ይምረጡ፦',
+        'saved' => 'ቋንቋ ተዘምኗል።',
+        'theme' => 'ገጽታ',
+        'theme_light' => 'ብርሃን',
+        'theme_dark' => 'ጨለማ',
+        'theme_saved' => 'ገጽታ ተዘምኗል።',
     ],
     'notify' => [
         'enabled' => 'Got it — we will ping you when resources drop.',
@@ -85,6 +89,7 @@ return [
         'nav' => 'አሰሳ',
         'courses' => 'ኮርሶች',
         'browse' => 'ያስሱ',
+        'resources' => 'መርጃዎች',
         'continue' => 'ቀጥል',
         'profile' => 'መገለጫ',
         'premium' => 'ፕሪሚየም',
@@ -116,6 +121,7 @@ return [
         'empty' => 'በኮርሶችዎ እስካሁን የታተመ መርጃ የለም።',
         'hub_empty' => 'በኮርሶችዎ እስካሁን :hub የለም።',
         'back' => '« ወደ ማዕከሎች ተመለስ',
+        'saved_link' => 'በፍጥነት የተቀመጡ',
     ],
     'saved' => [
         'title' => 'በፍጥነት የተቀመጡ',

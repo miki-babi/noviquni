@@ -10,22 +10,11 @@
 
     $displayName = $user?->name ?: 'Student';
     $initial = mb_strtoupper(mb_substr($displayName, 0, 1));
-    $botUsername = config('services.telegram.bot_username');
 
-    $groups = [
-        'study' => [
-            ['key' => 'courses', 'route' => 'tg.browse', 'label' => $copy->get('menu.courses')],
-            ['key' => 'resources', 'route' => 'tg.library', 'label' => $copy->get('menu.browse')],
-            ['key' => 'continue', 'route' => 'tg.continue', 'label' => $copy->get('menu.continue')],
-        ],
-        'account' => [
-            ['key' => 'profile', 'route' => 'tg.profile', 'label' => $copy->get('menu.profile')],
-            ['key' => 'premium', 'route' => 'tg.premium', 'label' => $copy->get('menu.premium')],
-        ],
-        'other' => [
-            ['key' => 'notifications', 'route' => 'tg.profile', 'label' => $copy->get('menu.notifications')],
-            ['key' => 'saved', 'route' => 'tg.saved', 'label' => $copy->get('menu.saved')],
-        ],
+    $items = [
+        ['key' => 'courses', 'route' => 'tg.browse', 'label' => $copy->get('menu.courses')],
+        ['key' => 'resources', 'route' => 'tg.library', 'label' => $copy->get('menu.resources')],
+        ['key' => 'profile', 'route' => 'tg.profile', 'label' => $copy->get('menu.profile')],
     ];
 @endphp
 
@@ -78,36 +67,19 @@
             </button>
         </div>
 
-        @foreach ($groups as $groupKey => $items)
-            <p class="tg-section-title">{{ $copy->get('menu.group_'.$groupKey) }}</p>
-            <div class="tg-section" style="margin-inline: 0.75rem;">
-                @foreach ($items as $item)
-                    <a
-                        href="{{ route($item['route']) }}"
-                        class="tg-cell {{ $activeNav === $item['key'] ? 'tg-cell-active' : '' }}"
-                        @click="open = false"
-                    >
-                        <span class="tg-cell-body">
-                            <span class="tg-cell-title">{{ $item['label'] }}</span>
-                        </span>
-                        <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                    </a>
-                @endforeach
-            </div>
-        @endforeach
-
-        <div class="tg-section" style="margin-inline: 0.75rem;">
-            <a
-                href="https://t.me/{{ $botUsername }}?start=refer"
-                class="tg-cell"
-                onclick="window.Telegram?.WebApp?.openTelegramLink(this.href); return false;"
-                @click="open = false"
-            >
-                <span class="tg-cell-body">
-                    <span class="tg-cell-title">{{ $copy->get('menu.refer') }}</span>
-                </span>
-                <span class="tg-cell-chevron" aria-hidden="true">›</span>
-            </a>
+        <div class="tg-section tg-chunk" style="margin: 0.75rem;">
+            @foreach ($items as $item)
+                <a
+                    href="{{ route($item['route']) }}"
+                    class="tg-cell {{ $activeNav === $item['key'] ? 'tg-cell-active' : '' }}"
+                    @click="open = false"
+                >
+                    <span class="tg-cell-body">
+                        <span class="tg-cell-title">{{ $item['label'] }}</span>
+                    </span>
+                    <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                </a>
+            @endforeach
         </div>
     </aside>
 </div>

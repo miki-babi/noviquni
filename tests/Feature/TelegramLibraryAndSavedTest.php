@@ -65,6 +65,8 @@ it('lists resource hubs across enrolled courses only', function () {
         ->get(route('tg.library'))
         ->assertOk()
         ->assertSee('Notes')
+        ->assertSee('Quick saved')
+        ->assertSee(route('tg.saved'), false)
         ->assertSee('data-tg-menu-button', false)
         ->assertDontSee('Other course notes');
 
