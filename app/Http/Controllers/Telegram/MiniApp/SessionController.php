@@ -35,10 +35,17 @@ class SessionController extends Controller
 
         $redirect = $validated['redirect'] ?? route('tg.home');
 
-        if (! str_starts_with($redirect, url('/tg'))) {
+        if (! $this->isSafeMiniAppRedirect($redirect)) {
             $redirect = route('tg.home');
         }
 
         return redirect()->to($redirect);
+    }
+
+    protected function isSafeMiniAppRedirect(string $redirect): bool
+    {
+        $path = parse_url($redirect, PHP_URL_PATH);
+
+        return is_string($path) && ($path === '/tg' || str_starts_with($path, '/tg/'));
     }
 }

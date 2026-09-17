@@ -12,9 +12,9 @@
     <main class="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
         <p class="text-base font-semibold">{{ config('app.name') }}</p>
         @if (session('error'))
-            <p class="text-sm text-red-600">{{ session('error') }}</p>
+            <p id="tg-bootstrap-status" class="text-sm text-red-600">{{ session('error') }}</p>
         @else
-            <p class="text-sm text-text-secondary">Opening your study space…</p>
+            <p id="tg-bootstrap-status" class="text-sm text-text-secondary">Opening your study space…</p>
         @endif
         <form id="tg-session-form" method="POST" action="{{ route('tg.session.store') }}" class="hidden">
             @csrf
@@ -24,28 +24,59 @@
     </main>
     <script>
         (function () {
-            const tg = window.Telegram?.WebApp;
-            if (tg) {
-                tg.ready();
-                tg.expand();
-            }
-
-            const initData = tg?.initData || '';
             const form = document.getElementById('tg-session-form');
             const input = document.getElementById('init_data');
+            const status = document.getElementById('tg-bootstrap-status');
+            const maxWaitMs = 1500;
+            const pollMs = 50;
+            const startedAt = Date.now();
 
-            if (!initData) {
-                document.querySelector('main p:last-of-type')?.replaceWith(
-                    Object.assign(document.createElement('p'), {
-                        className: 'text-sm text-text-secondary',
-                        textContent: 'Open this page from the Noviq Uni Telegram bot.',
-                    })
-                );
-                return;
+            function showFallback() {
+                if (!status || status.dataset.error === '1') {
+                    return;
+                }
+
+                status.className = 'text-sm text-text-secondary';
+                status.textContent = 'Open this page from the Noviq Uni Telegram bot.';
             }
 
-            input.value = initData;
-            form.submit();
+            function submitInitData(initData) {
+                input.value = initData;
+                form.submit();
+            }
+
+            function tryAuthenticate() {
+                const tg = window.Telegram?.WebApp;
+
+                if (tg) {
+                    tg.ready();
+                    tg.expand();
+                }
+
+                const initData = tg?.initData || '';
+
+                if (initData) {
+                    submitInitData(initData);
+
+                    return;
+                }
+
+                if (Date.now() - startedAt >= maxWaitMs) {
+                    showFallback();
+
+                    return;
+                }
+
+                window.setTimeout(tryAuthenticate, pollMs);
+            }
+
+            @if (session('error'))
+                if (status) {
+                    status.dataset.error = '1';
+                }
+            @endif
+
+            tryAuthenticate();
         })();
     </script>
 </body>

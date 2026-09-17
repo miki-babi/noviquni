@@ -176,3 +176,58 @@ it('authenticates a telegram user from initData and redirects', function () {
 
     $this->assertAuthenticatedAs($user);
 });
+
+it('rewrites keyboard mini app hosts when TELEGRAM_MINI_APP_URL is set', function () {
+    config(['services.telegram.mini_app_url' => 'https://mini.example.test']);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+
+    $keyboard = app(TelegramService::class)->mainKeyboard($user);
+
+    expect(data_get($keyboard, 'keyboard.0.0.web_app.url'))->toBe('https://mini.example.test/tg/browse')
+        ->and(data_get($keyboard, 'keyboard.0.1.web_app.url'))->toBe('https://mini.example.test/tg/library')
+        ->and(data_get($keyboard, 'keyboard.1.0.web_app.url'))->toBe('https://mini.example.test/tg/saved')
+        ->and(data_get($keyboard, 'keyboard.2.0.web_app.url'))->toBe('https://mini.example.test/tg/profile');
+});
+
+it('accepts mini app redirects whose path is under /tg even on another host', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555889',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $initData = makeTelegramInitData([
+        'id' => 555889,
+        'first_name' => 'Abebe',
+    ], '123456:TEST_TOKEN');
+
+    $this->post(route('tg.session.store'), [
+        'init_data' => $initData,
+        'redirect' => 'https://mini.example.test/tg/library',
+    ])->assertRedirect('https://mini.example.test/tg/library');
+
+    $this->assertAuthenticatedAs($user);
+});
+
+it('rejects redirects that are not under the /tg path', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555890',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $initData = makeTelegramInitData([
+        'id' => 555890,
+        'first_name' => 'Abebe',
+    ], '123456:TEST_TOKEN');
+
+    $this->post(route('tg.session.store'), [
+        'init_data' => $initData,
+        'redirect' => 'https://evil.example/phish',
+    ])->assertRedirect(route('tg.home'));
+
+    $this->assertAuthenticatedAs($user);
+});
