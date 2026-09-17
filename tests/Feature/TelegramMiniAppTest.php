@@ -30,16 +30,16 @@ it('builds main keyboard buttons with courses resources saved profile and refer'
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
     expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('📚 Courses')
-        ->and(data_get($keyboard, 'keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
+        ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('📖 Resources')
-        ->and(data_get($keyboard, 'keyboard.0.1.web_app.url'))->toBe(route('tg.library'))
+        ->and(data_get($keyboard, 'keyboard.0.1.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.1.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.1.0.web_app.url'))->toBe(route('tg.saved'))
+        ->and(data_get($keyboard, 'keyboard.1.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('primary')
         ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('👤 Profile')
-        ->and(data_get($keyboard, 'keyboard.2.0.web_app.url'))->toBe(route('tg.profile'))
+        ->and(data_get($keyboard, 'keyboard.2.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
         ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('👥 Refer and earn')
         ->and(data_get($keyboard, 'keyboard.2.1.web_app'))->toBeNull()
@@ -261,12 +261,12 @@ it('rewrites keyboard mini app hosts when TELEGRAM_MINI_APP_URL is set', functio
         'onboarding_step' => OnboardingStep::Complete,
     ]);
 
-    $keyboard = app(TelegramService::class)->mainKeyboard($user);
+    $url = app(TelegramService::class)->miniAppUrl('tg.browse');
 
-    expect(data_get($keyboard, 'keyboard.0.0.web_app.url'))->toBe('https://mini.example.test/tg/browse')
-        ->and(data_get($keyboard, 'keyboard.0.1.web_app.url'))->toBe('https://mini.example.test/tg/library')
-        ->and(data_get($keyboard, 'keyboard.1.0.web_app.url'))->toBe('https://mini.example.test/tg/saved')
-        ->and(data_get($keyboard, 'keyboard.2.0.web_app.url'))->toBe('https://mini.example.test/tg/profile');
+    expect($url)->toBe('https://mini.example.test/tg/browse')
+        ->and(app(TelegramService::class)->miniAppUrl('tg.library'))->toBe('https://mini.example.test/tg/library')
+        ->and(app(TelegramService::class)->miniAppUrl('tg.saved'))->toBe('https://mini.example.test/tg/saved')
+        ->and(app(TelegramService::class)->miniAppUrl('tg.profile'))->toBe('https://mini.example.test/tg/profile');
 });
 
 it('accepts mini app redirects whose path is under /tg even on another host', function () {

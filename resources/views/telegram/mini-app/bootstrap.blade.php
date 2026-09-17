@@ -72,7 +72,7 @@
                 }
 
                 status.className = 'text-sm text-text-secondary';
-                status.textContent = 'Open this page from the Noviq Uni Telegram bot.';
+                status.textContent = 'Open the study app from the bot menu button, or tap Open Courses after choosing Courses in the bot chat.';
             }
 
             function submitInitData(initData) {

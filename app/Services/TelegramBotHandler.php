@@ -450,16 +450,42 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
-            'courses', 'browse' => $this->showBrowse($user, $chatId),
+            'courses', 'browse' => $this->sendMiniAppOpen($user, $chatId, 'courses', 'tg.browse'),
+            'resources' => $this->sendMiniAppOpen($user, $chatId, 'resources', 'tg.library'),
+            'saved' => $this->sendMiniAppOpen($user, $chatId, 'saved', 'tg.saved'),
+            'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
             'continue' => $this->showContinue($user, $chatId),
-            'resources' => $this->showResourceLibrary($user, $chatId),
-            'saved' => $this->showSaved($user, $chatId),
-            'profile' => $this->showProfile($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),
             'refer' => $this->showReferrals($user, $chatId),
             'notify' => $this->toggleNotifications($user, $chatId),
             default => null,
         };
+    }
+
+    protected function sendMiniAppOpen(User $user, int|string $chatId, string $destination, string $routeName): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $this->telegram->sendMessage($chatId, $copy->get('mini_app.open_prompt.'.$destination), [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('mini_app.open_button.'.$destination),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl($routeName)],
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ]]),
+        ]);
+    }
+
+    protected function sendReplyKeyboard(User $user, int|string $chatId): void
+    {
+        $this->telegram->syncDefaultMiniAppMenuButton($user);
+
+        $this->telegram->sendMessage(
+            $chatId,
+            TelegramCopy::for($user)->get('start.keyboard_hint'),
+            ['reply_markup' => $this->telegram->mainKeyboard($user)],
+        );
     }
 
     protected function sendHome(User $user, int|string $chatId): void
@@ -545,15 +571,6 @@ class TelegramBotHandler
         }
 
         $this->sendReplyKeyboard($user, $chatId);
-    }
-
-    protected function sendReplyKeyboard(User $user, int|string $chatId): void
-    {
-        $this->telegram->sendMessage(
-            $chatId,
-            TelegramCopy::for($user)->get('start.keyboard_hint'),
-            ['reply_markup' => $this->telegram->mainKeyboard($user)],
-        );
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void

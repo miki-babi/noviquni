@@ -101,7 +101,8 @@ it('sends the admin start photo caption and inline buttons on /start', function 
 
         return str_contains($request->url(), '/sendMessage')
             && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-            && filled(data_get($data, 'reply_markup.keyboard.0.0.web_app.url'));
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses'
+            && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null;
     });
 });
 

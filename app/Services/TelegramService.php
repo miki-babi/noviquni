@@ -113,26 +113,22 @@ class TelegramService
                 [
                     [
                         'text' => $copy->get('keyboard.courses'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.browse')],
                         'style' => TelegramButtonStyle::Success->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.resources'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.library')],
                         'style' => TelegramButtonStyle::Success->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.saved'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.saved')],
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.profile'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.profile')],
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
                     [
@@ -143,6 +139,30 @@ class TelegramService
             ],
             'resize_keyboard' => true,
         ];
+    }
+
+    /**
+     * Default bot menu button that opens the Courses Mini App (supplies initData).
+     */
+    public function setChatMenuButtonWebApp(string $text, string $url): ?array
+    {
+        return $this->call('setChatMenuButton', [
+            'menu_button' => [
+                'type' => 'web_app',
+                'text' => $text,
+                'web_app' => ['url' => $url],
+            ],
+        ]);
+    }
+
+    public function syncDefaultMiniAppMenuButton(?User $user = null): void
+    {
+        $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
+
+        $this->setChatMenuButtonWebApp(
+            $copy->get('menu.courses'),
+            $this->miniAppUrl('tg.browse'),
+        );
     }
 
     /**

@@ -12,6 +12,20 @@ return [
         'browse' => '📖 Browse',
         'premium' => '⭐ Premium',
     ],
+    'mini_app' => [
+        'open_prompt' => [
+            'courses' => 'Open Courses in the study app:',
+            'resources' => 'Open Resources in the study app:',
+            'saved' => 'Open Quick saved in the study app:',
+            'profile' => 'Open Profile in the study app:',
+        ],
+        'open_button' => [
+            'courses' => '📚 Open Courses',
+            'resources' => '📖 Open Resources',
+            'saved' => '🔖 Open Quick saved',
+            'profile' => '👤 Open Profile',
+        ],
+    ],
     'start' => [
         'returning' => "Welcome back, :name 👋\nReady when you are.",
         'returning_button' => '📚 Continue studying',
