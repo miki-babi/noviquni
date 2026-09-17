@@ -155,7 +155,11 @@ it('completes button-only onboarding through skip and confirm', function () {
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
             && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile'
             && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 Refer and earn'
-            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.0.1.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.1.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.2.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.2.1.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.2.1.web_app') === null
             && filled(data_get($data, 'reply_markup.keyboard.0.0.web_app.url'))
             && filled(data_get($data, 'reply_markup.keyboard.0.1.web_app.url'))

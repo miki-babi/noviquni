@@ -114,27 +114,30 @@ class TelegramService
                     [
                         'text' => $copy->get('keyboard.courses'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.browse')],
-                        'style' => TelegramButtonStyle::Primary->value,
+                        'style' => TelegramButtonStyle::Success->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.resources'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.library')],
-                        'style' => TelegramButtonStyle::Primary->value,
+                        'style' => TelegramButtonStyle::Success->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.saved'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.saved')],
+                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.profile'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.profile')],
+                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.refer'),
+                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ],
             ],
