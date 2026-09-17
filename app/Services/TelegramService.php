@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\OnboardingStep;
-use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Support\TelegramCopy;
@@ -114,28 +113,23 @@ class TelegramService
                     [
                         'text' => $copy->get('keyboard.courses'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.browse')],
-                        'style' => TelegramButtonStyle::Success->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.resources'),
                         'web_app' => ['url' => $this->miniAppUrl('tg.library')],
-                        'style' => TelegramButtonStyle::Success->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.saved'),
-                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ],
                 [
                     [
                         'text' => $copy->get('keyboard.profile'),
-                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.refer'),
-                        'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ],
             ],
