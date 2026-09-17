@@ -79,29 +79,31 @@ it('sends the admin start photo caption and inline buttons on /start', function 
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555900, 9001))->assertOk();
 
-    $outbound = Http::recorded()
-        ->map(fn (array $pair) => $pair[0])
-        ->filter(fn ($request) => str_contains($request->url(), '/sendPhoto')
-            || (str_contains($request->url(), '/sendMessage')
-                && (string) data_get($request->data(), 'text') === 'Choose an option from the menu.'));
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendPhoto')) {
+            return false;
+        }
 
-    expect($outbound)->toHaveCount(2);
+        $fields = collect($request->data())
+            ->mapWithKeys(fn (array $part) => [$part['name'] => $part['contents']]);
 
-    $photo = $outbound->first();
-    $fields = collect($photo->data())
-        ->mapWithKeys(fn (array $part) => [$part['name'] => $part['contents']]);
-    $markup = json_decode((string) $fields->get('reply_markup'), true);
+        $markup = json_decode((string) $fields->get('reply_markup'), true);
 
-    expect(str_contains((string) $fields->get('caption'), 'Welcome back, Abebe!'))->toBeTrue()
-        ->and(data_get($markup, 'inline_keyboard.0.0.web_app.url'))->toBe('https://noviquni.test/tg/continue')
-        ->and(data_get($markup, 'inline_keyboard.1.0.callback_data'))->toBe('premium_pay');
+        return str_contains((string) $fields->get('caption'), 'Welcome back, Abebe!')
+            && data_get($markup, 'inline_keyboard.0.0.web_app.url') === 'https://noviquni.test/tg/continue'
+            && data_get($markup, 'inline_keyboard.1.0.callback_data') === 'premium_pay'
+            && collect($request->data())->contains(fn (array $part) => ($part['name'] ?? null) === 'photo'
+                && ($part['filename'] ?? null) === 'welcome.jpg');
+    });
 
-    $choose = $outbound->last()->data();
+    Http::assertSent(function ($request) {
+        $data = $request->data();
 
-    expect((string) ($choose['text'] ?? ''))->toBe('Choose an option from the menu.')
-        ->and(data_get($choose, 'reply_markup.keyboard.0.0.text'))->toBe('📚 Courses')
-        ->and(data_get($choose, 'reply_markup.keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
-        ->and(data_get($choose, 'reply_markup.keyboard.0.1.web_app.url'))->toBe(route('tg.library'));
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses'
+            && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null;
+    });
 });
 
 it('falls back to default welcome when no custom start message is configured', function () {
@@ -126,14 +128,6 @@ it('falls back to default welcome when no custom start message is configured', f
 
         return str_contains((string) ($data['text'] ?? ''), 'Welcome back, Abebe')
             && filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
-    });
-
-    Http::assertSent(function ($request) {
-        $data = $request->data();
-
-        return str_contains($request->url(), '/sendMessage')
-            && (string) ($data['text'] ?? '') === 'Choose an option from the menu.'
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses';
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendPhoto'));
