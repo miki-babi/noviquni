@@ -2,9 +2,13 @@
 
 return [
     'keyboard' => [
+        'courses' => '📚 ኮርሶች',
+        'resources' => '📖 መርጃዎች',
+        'saved' => '🔖 በፍጥነት የተቀመጡ',
+        'profile' => '👤 መገለጫ',
+        'refer' => '👥 ይጋብዙና ያግኙ',
         'continue' => '📚 ቀጥል',
         'browse' => '📖 ያስሱ',
-        'profile' => '👤 መገለጫ',
         'premium' => '⭐ ፕሪሚየም',
     ],
     'start' => [
@@ -12,7 +16,7 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን አንዴ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 ኮርሶቼን አዋቅር',
-        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 ቀጥል · 📖 ያስሱ · 👤 መገለጫ · ⭐ ፕሪሚየም",
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 ኮርሶች · 📖 መርጃዎች · 🔖 በፍጥነት የተቀመጡ · 👤 መገለጫ · 👥 ይጋብዙና ያግኙ",
     ],
     'continue' => [
         'title' => "ከቆሙበት ይጀምሩ\n<b>:course</b> · :resource",
@@ -72,5 +76,19 @@ return [
     ],
     'resource' => [
         'not_found' => 'Resource not found.',
+    ],
+    'library' => [
+        'title' => 'በኮርሶችዎ ያሉ መርጃዎች',
+        'empty' => 'በኮርሶችዎ እስካሁን የታተመ መርጃ የለም።',
+        'hub_empty' => 'በኮርሶችዎ እስካሁን :hub የለም።',
+        'back' => '« ወደ ማዕከሎች ተመለስ',
+    ],
+    'saved' => [
+        'title' => 'በፍጥነት የተቀመጡ',
+        'empty' => 'እስካሁን ምንም አልተቀመጠም — በመርጃ ላይ Save ይጫኑ።',
+        'save' => 'አስቀምጥ',
+        'unsave' => 'ተቀምጧል',
+        'saved_status' => 'ወደ በፍጥነት የተቀመጡ ታክሏል።',
+        'removed_status' => 'ከበፍጥነት የተቀመጡ ተወግዷል።',
     ],
 ];

@@ -19,7 +19,7 @@ use Illuminate\View\View;
 trait OpensMiniAppResource
 {
     /**
-     * @return array{user: User, copy: TelegramCopy}|RedirectResponse|View
+     * @return array{user: User, copy: TelegramCopy, isBookmarked: bool}|RedirectResponse|View
      */
     protected function authorizeMiniAppResource(
         LearningResource $resource,
@@ -47,7 +47,7 @@ trait OpensMiniAppResource
                 'price' => $settings->premiumPrice(),
                 'required' => $settings->requiredReferrals(),
                 'progress' => $referrals->qualifiedCount($user),
-                'activeNav' => 'browse',
+                'activeNav' => 'courses',
             ]);
         }
 
@@ -56,6 +56,9 @@ trait OpensMiniAppResource
         return [
             'user' => $user,
             'copy' => $copy,
+            'isBookmarked' => $user->bookmarks()
+                ->where('learning_resource_id', $resource->id)
+                ->exists(),
         ];
     }
 
@@ -94,6 +97,7 @@ trait OpensMiniAppResource
             'chunks' => $payload === null ? $formatter->format($resource) : [],
             'showQuizNudge' => $this->shouldShowQuizNudge($resource),
             'pathNudgeUrl' => $this->pathNudgeUrl($resource),
+            'isBookmarked' => $access['isBookmarked'],
             'backUrl' => $resource->course
                 ? route('tg.courses.show', $resource->course)
                 : route('tg.browse'),

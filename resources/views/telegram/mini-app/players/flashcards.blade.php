@@ -1,4 +1,4 @@
-<x-telegram.mini-app.player-layout :copy="$copy" :title="$resource->title" :back-url="$backUrl">
+<x-telegram.mini-app.player-layout :copy="$copy" :title="$resource->title" :back-url="$backUrl" :resource="$resource" :is-bookmarked="$isBookmarked ?? false">
     <div class="space-y-5">
         @if ($course)
             <p class="text-sm text-text-secondary">{{ $course->name }}</p>

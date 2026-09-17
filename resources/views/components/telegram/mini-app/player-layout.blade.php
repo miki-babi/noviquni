@@ -2,6 +2,8 @@
     'copy',
     'title' => null,
     'backUrl' => null,
+    'resource' => null,
+    'isBookmarked' => false,
 ])
 
 @php
@@ -38,6 +40,17 @@
                         <h1 class="mt-1 text-xl font-extrabold tracking-tight">{{ $title }}</h1>
                     @endif
                 </div>
+                @if ($resource)
+                    <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="mt-0.5 shrink-0">
+                        @csrf
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center rounded-xl border border-border-light px-2.5 py-1.5 text-xs font-semibold {{ $isBookmarked ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}"
+                        >
+                            {{ $isBookmarked ? $copy->get('saved.unsave') : $copy->get('saved.save') }}
+                        </button>
+                    </form>
+                @endif
             </div>
         </header>
 

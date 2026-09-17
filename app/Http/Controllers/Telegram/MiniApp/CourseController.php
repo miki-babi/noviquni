@@ -64,7 +64,7 @@ class CourseController extends Controller
             'next' => $next,
             'archiveHubs' => $archiveHubs,
             'isPremium' => $user->hasActivePremium(),
-            'activeNav' => 'browse',
+            'activeNav' => 'courses',
         ]);
     }
 
@@ -108,7 +108,7 @@ class CourseController extends Controller
             'hub' => $resourceHub,
             'title' => $resourceHub->label(),
             'resources' => $resources,
-            'activeNav' => 'browse',
+            'activeNav' => 'courses',
         ]);
     }
 }

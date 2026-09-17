@@ -1,6 +1,6 @@
 @props([
     'copy',
-    'activeNav' => 'browse',
+    'activeNav' => 'courses',
     'title' => null,
 ])
 
@@ -39,17 +39,17 @@
 
         <nav class="fixed inset-x-0 bottom-0 z-30 border-t border-border-light/60 bg-surface-white/95 backdrop-blur">
             <div class="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 py-2 text-center text-[11px] font-medium">
-                <a href="{{ route('tg.continue') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'continue' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
-                    {{ $copy->get('keyboard.continue') }}
+                <a href="{{ route('tg.browse') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'courses' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
+                    {{ $copy->get('keyboard.courses') }}
                 </a>
-                <a href="{{ route('tg.browse') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'browse' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
-                    {{ $copy->get('keyboard.browse') }}
+                <a href="{{ route('tg.library') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'resources' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
+                    {{ $copy->get('keyboard.resources') }}
+                </a>
+                <a href="{{ route('tg.saved') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'saved' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
+                    {{ $copy->get('keyboard.saved') }}
                 </a>
                 <a href="{{ route('tg.profile') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'profile' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
                     {{ $copy->get('keyboard.profile') }}
-                </a>
-                <a href="{{ route('tg.premium') }}" class="rounded-xl px-2 py-2 {{ $activeNav === 'premium' ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}">
-                    {{ $copy->get('keyboard.premium') }}
                 </a>
             </div>
         </nav>

@@ -2,9 +2,14 @@
 
 return [
     'keyboard' => [
+        'courses' => '📚 Courses',
+        'resources' => '📖 Resources',
+        'saved' => '🔖 Quick saved',
+        'profile' => '👤 Profile',
+        'refer' => '👥 Refer and earn',
+        // Legacy labels kept for old reply keyboards until /start refresh.
         'continue' => '📚 Continue',
         'browse' => '📖 Browse',
-        'profile' => '👤 Profile',
         'premium' => '⭐ Premium',
     ],
     'start' => [
@@ -12,7 +17,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses once, then we keep study one tap away.",
         'new_button' => '🎯 Set up my courses',
-        'keyboard_hint' => "Your study menu is ready:\n📚 Continue · 📖 Browse · 👤 Profile · ⭐ Premium",
+        'keyboard_hint' => "Your study menu is ready:\n📚 Courses · 📖 Resources · 🔖 Quick saved · 👤 Profile · 👥 Refer and earn",
     ],
     'continue' => [
         'title' => "Pick up where you left off\n<b>:course</b> · :resource",
@@ -72,5 +77,19 @@ return [
     ],
     'resource' => [
         'not_found' => 'Resource not found.',
+    ],
+    'library' => [
+        'title' => 'Resources across your courses',
+        'empty' => 'No published resources in your courses yet.',
+        'hub_empty' => 'No :hub in your courses yet.',
+        'back' => '« Back to hubs',
+    ],
+    'saved' => [
+        'title' => 'Quick saved',
+        'empty' => 'Nothing saved yet — tap Save on a resource.',
+        'save' => 'Save',
+        'unsave' => 'Saved',
+        'saved_status' => 'Saved to Quick saved.',
+        'removed_status' => 'Removed from Quick saved.',
     ],
 ];

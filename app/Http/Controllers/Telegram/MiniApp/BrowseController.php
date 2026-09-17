@@ -34,7 +34,7 @@ class BrowseController extends Controller
             'user' => $user,
             'courses' => $state === 'has_content' ? $withContent : $courses,
             'state' => $state,
-            'activeNav' => 'browse',
+            'activeNav' => 'courses',
         ]);
     }
 

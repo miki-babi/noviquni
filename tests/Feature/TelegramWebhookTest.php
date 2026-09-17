@@ -150,14 +150,16 @@ it('completes button-only onboarding through skip and confirm', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Continue'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 Browse'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '👤 Profile'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === '⭐ Premium'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 Resources'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 Refer and earn'
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.1.1.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.2.1.web_app') === null
             && filled(data_get($data, 'reply_markup.keyboard.0.0.web_app.url'))
-            && filled(data_get($data, 'reply_markup.keyboard.0.1.web_app.url'));
+            && filled(data_get($data, 'reply_markup.keyboard.0.1.web_app.url'))
+            && filled(data_get($data, 'reply_markup.keyboard.1.0.web_app.url'));
     });
 });
 
@@ -413,8 +415,10 @@ it('switches language and refreshes keyboard labels', function () {
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 ቀጥል'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 ያስሱ';
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 ኮርሶች'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 መርጃዎች'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 ይጋብዙና ያግኙ';
     });
 });
 
@@ -717,5 +721,60 @@ it('opens a course from /start course deep link', function () {
         }
 
         return str_contains((string) data_get($request->data(), 'text'), 'Study path for English');
+    });
+});
+
+it('opens referrals from the refer and earn reply keyboard label', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555033',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555033, '👥 Refer and earn', 503))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($user) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'Refer & Earn')
+            && str_contains($text, $user->referral_code);
+    });
+});
+
+it('still opens continue from the legacy continue label', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Biology']);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555034',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $resource = LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Legacy continue notes',
+    ]);
+    $user->downloads()->create([
+        'learning_resource_id' => $resource->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555034, '📚 Continue', 504))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'Pick up where you left off');
     });
 });

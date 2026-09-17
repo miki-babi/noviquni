@@ -176,9 +176,11 @@ class TelegramBotHandler
             $data === 'start:continue', $data === 'continue:resume', $data === 'continue:switch' => $this->handleContinueCallback($user, $chatId, $data, $messageId),
             $data === 'browse' => $this->guardComplete($user, fn () => $this->showBrowse($user, $chatId, $messageId)),
             $data === 'back:courses' => $this->guardComplete($user, fn () => $this->showBrowse($user, $chatId, $messageId)),
+            $data === 'back:library' => $this->guardComplete($user, fn () => $this->showResourceLibrary($user, $chatId, $messageId)),
             str_starts_with($data, 'course:') => $this->handleCourseTap($user, $chatId, (int) Str::after($data, 'course:'), $messageId),
             str_starts_with($data, 'course_resources:') => $this->handleCourseTap($user, $chatId, (int) Str::after($data, 'course_resources:'), $messageId),
             str_starts_with($data, 'hub:') => $this->handleHubCallback($user, $chatId, $data, $messageId),
+            str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
             $data === 'notify:on' => $this->handleNotifyOn($user, $chatId),
             $data === 'profile:notify' => $this->guardComplete($user, function () use ($user, $chatId): void {
@@ -423,16 +425,22 @@ class TelegramBotHandler
 
         foreach ([TelegramLocale::English, TelegramLocale::Amharic] as $locale) {
             $copy = new TelegramCopy($locale->value);
-            $map[$copy->get('keyboard.continue')] = 'continue';
-            $map[$copy->get('keyboard.browse')] = 'browse';
+            $map[$copy->get('keyboard.courses')] = 'courses';
+            $map[$copy->get('keyboard.resources')] = 'resources';
+            $map[$copy->get('keyboard.saved')] = 'saved';
             $map[$copy->get('keyboard.profile')] = 'profile';
+            $map[$copy->get('keyboard.refer')] = 'refer';
+            // Legacy reply-keyboard labels until users refresh via /start.
+            $map[$copy->get('keyboard.continue')] = 'continue';
+            $map[$copy->get('keyboard.browse')] = 'courses';
             $map[$copy->get('keyboard.premium')] = 'premium';
         }
 
-        $map['📚 My Courses'] = 'browse';
-        $map['📖 Resources'] = 'browse';
+        $map['📚 My Courses'] = 'courses';
+        $map['📖 Resources'] = 'resources';
         $map['👤 My Profile'] = 'profile';
         $map['👥 Refer & Earn'] = 'refer';
+        $map['👥 Refer and earn'] = 'refer';
         $map['🔔 Notifications'] = 'notify';
         $map['⭐ Premium'] = 'premium';
 
@@ -442,8 +450,10 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
+            'courses', 'browse' => $this->showBrowse($user, $chatId),
             'continue' => $this->showContinue($user, $chatId),
-            'browse' => $this->showBrowse($user, $chatId),
+            'resources' => $this->showResourceLibrary($user, $chatId),
+            'saved' => $this->showSaved($user, $chatId),
             'profile' => $this->showProfile($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),
             'refer' => $this->showReferrals($user, $chatId),
@@ -956,6 +966,166 @@ class TelegramBotHandler
                 ['text' => 'Pay now', 'callback_data' => 'premium_pay', 'style' => TelegramButtonStyle::Primary->value],
             ]]),
         ]);
+    }
+
+    protected function showResourceLibrary(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+        $courseIds = $user->courses()->pluck('courses.id');
+
+        if ($courseIds->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('browse.empty'), [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
+                        'text' => $copy->get('browse.empty_button'),
+                        'callback_data' => 'setup:courses',
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]]),
+            ], $messageId);
+
+            return;
+        }
+
+        $rows = [];
+
+        foreach (ResourceHub::cases() as $hub) {
+            $count = LearningResource::query()
+                ->published()
+                ->whereIn('course_id', $courseIds)
+                ->whereIn('type', $hub->typeValues())
+                ->count();
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $rows[] = [[
+                'text' => $hub->label().' ('.$count.')',
+                'callback_data' => 'hub_lib:'.$hub->value,
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        }
+
+        if ($rows === []) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('library.empty'), [
+                'reply_markup' => $this->telegram->inlineKeyboard([]),
+            ], $messageId);
+
+            return;
+        }
+
+        $this->telegram->replyOrEdit($chatId, $copy->get('library.title'), [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function handleLibraryHubCallback(User $user, int|string $chatId, string $data, ?int $messageId = null): ?string
+    {
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            return TelegramCopy::for($user)->get('menu.finish_onboarding');
+        }
+
+        $hub = ResourceHub::tryFrom(Str::after($data, 'hub_lib:'));
+
+        if ($hub === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listLibraryResources($user, $chatId, $hub, $messageId);
+
+        return null;
+    }
+
+    protected function listLibraryResources(
+        User $user,
+        int|string $chatId,
+        ResourceHub $hub,
+        ?int $messageId = null,
+    ): void {
+        $copy = TelegramCopy::for($user);
+        $courseIds = $user->courses()->pluck('courses.id');
+
+        $resources = LearningResource::query()
+            ->published()
+            ->with('course')
+            ->whereIn('course_id', $courseIds)
+            ->whereIn('type', $hub->typeValues())
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->limit(40)
+            ->get();
+
+        if ($resources->isEmpty()) {
+            $this->telegram->replyOrEdit(
+                $chatId,
+                $copy->get('library.hub_empty', ['hub' => strtolower($hub->label())]),
+                [
+                    'reply_markup' => $this->telegram->inlineKeyboard([[
+                        ['text' => $copy->get('library.back'), 'callback_data' => 'back:library'],
+                    ]]),
+                ],
+                $messageId,
+            );
+
+            return;
+        }
+
+        $rows = $resources->map(function (LearningResource $resource) {
+            $locked = $resource->is_premium || ! $resource->is_bait;
+            $courseName = $resource->course?->name;
+
+            return [[
+                'text' => ($locked ? '🔒 ' : '').$resource->title.($courseName ? " · {$courseName}" : ''),
+                'callback_data' => "open_resource:{$resource->id}",
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        })->values()->all();
+
+        $rows[] = [[
+            'text' => $copy->get('library.back'),
+            'callback_data' => 'back:library',
+        ]];
+
+        $this->telegram->replyOrEdit($chatId, $hub->label(), [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function showSaved(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $bookmarks = $user->bookmarks()
+            ->with('learningResource')
+            ->latest('id')
+            ->get()
+            ->filter(fn ($bookmark) => $bookmark->learningResource?->is_published)
+            ->values();
+
+        if ($bookmarks->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('saved.empty'), [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
+                        'text' => $copy->get('keyboard.courses'),
+                        'callback_data' => 'browse',
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]]),
+            ], $messageId);
+
+            return;
+        }
+
+        $rows = $bookmarks->map(fn ($bookmark) => [[
+            'text' => $bookmark->learningResource->title,
+            'callback_data' => 'open_resource:'.$bookmark->learningResource->id,
+            'style' => TelegramButtonStyle::Primary->value,
+        ]])->values()->all();
+
+        $this->telegram->replyOrEdit($chatId, $copy->get('saved.title'), [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
     }
 
     protected function showReferrals(User $user, int|string $chatId): void

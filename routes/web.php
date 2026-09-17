@@ -9,6 +9,7 @@ use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\ContinueController;
+use App\Http\Controllers\Telegram\MiniApp\LibraryController;
 use App\Http\Controllers\Telegram\MiniApp\Players\AssignmentPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\FlashcardsPlayerController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Telegram\MiniApp\Players\SummaryPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\WorksheetPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
+use App\Http\Controllers\Telegram\MiniApp\SavedController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
 use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +52,12 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('/', App\Http\Controllers\Telegram\MiniApp\HomeController::class)->name('home');
         Route::get('continue', [ContinueController::class, 'show'])->name('continue');
         Route::get('browse', [BrowseController::class, 'show'])->name('browse');
+        Route::get('library', [LibraryController::class, 'show'])->name('library');
+        Route::get('library/{hub}', [LibraryController::class, 'hub'])
+            ->whereIn('hub', ['notes', 'modules', 'practice', 'exams'])
+            ->name('library.hub');
+        Route::get('saved', [SavedController::class, 'show'])->name('saved');
+        Route::post('saved/{resource:slug}', [SavedController::class, 'toggle'])->name('saved.toggle');
         Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
         Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
             ->whereIn('hub', ['notes', 'modules', 'practice', 'exams'])

@@ -1,4 +1,4 @@
-<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('keyboard.browse')">
+<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('keyboard.courses')">
     @if ($state === 'empty')
         <div class="space-y-5">
             <p class="whitespace-pre-line text-base leading-relaxed text-text-secondary">{{ $copy->get('browse.empty') }}</p>
