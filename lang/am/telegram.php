@@ -59,7 +59,7 @@ return [
         'button' => '🧪 ፈተና ውሰድ',
     ],
     'profile' => [
-        'body' => "👤 :name\nStream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
+        'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
         'notifications' => 'ማሳወቂያዎች',
         'refer' => 'ይጋብዙና ያግኙ',
         'settings' => 'ቅንብሮች',

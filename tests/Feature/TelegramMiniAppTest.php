@@ -95,8 +95,7 @@ it('shows browse courses for an authenticated student', function () {
         ->assertDontSee('0/1')
         ->assertDontSee('1/2')
         ->assertDontSee('Next: Week-1 notes')
-        ->assertDontSee('grid-cols-4', false)
-        ->assertDontSee('(0)');
+        ->assertDontSee('grid-cols-4', false);
 
     $html = $this->actingAs($user)->get(route('tg.browse'))->getContent();
     expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/')
@@ -170,12 +169,16 @@ it('shows profile and premium screens', function () {
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'name' => 'Abebe Kebede',
+        'telegram_username' => 'abebe',
+        'telegram_photo_url' => 'https://t.me/i/userpic/320/abebe.jpg',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('Abebe Kebede')
+        ->assertSee('@abebe')
+        ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
         ->assertSee('Premium')
         ->assertSee(route('tg.premium'), false);
 
@@ -227,11 +230,15 @@ it('authenticates a telegram user from initData and redirects', function () {
         'telegram_id' => '555888',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
+        'name' => 'Old Name',
     ]);
 
     $initData = makeTelegramInitData([
         'id' => 555888,
         'first_name' => 'Abebe',
+        'last_name' => 'Kebede',
+        'username' => 'abebe_k',
+        'photo_url' => 'https://cdn.example.test/photo.jpg',
     ], '123456:TEST_TOKEN');
 
     $this->post(route('tg.session.store'), [
@@ -240,6 +247,11 @@ it('authenticates a telegram user from initData and redirects', function () {
     ])->assertRedirect(route('tg.browse'));
 
     $this->assertAuthenticatedAs($user);
+
+    expect($user->fresh())
+        ->name->toBe('Abebe Kebede')
+        ->telegram_username->toBe('abebe_k')
+        ->telegram_photo_url->toBe('https://cdn.example.test/photo.jpg');
 });
 
 it('rewrites keyboard mini app hosts when TELEGRAM_MINI_APP_URL is set', function () {

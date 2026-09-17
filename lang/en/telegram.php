@@ -60,7 +60,7 @@ return [
         'button' => '🧪 Take a test',
     ],
     'profile' => [
-        'body' => "👤 :name\nStream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
+        'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
         'notifications' => 'Notifications',
         'refer' => 'Refer & Earn',
         'settings' => 'Settings',

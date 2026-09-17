@@ -2,6 +2,9 @@
     use App\Enums\TelegramLocale;
 
     $theme = $user->theme ?? 'dark';
+    $initial = mb_strtoupper(mb_substr($user->name ?: 'S', 0, 1));
+    $photoUrl = $user->telegram_photo_url;
+    $username = $user->telegram_username;
 @endphp
 
 <x-telegram.mini-app.layout
@@ -10,11 +13,55 @@
     :active-nav="$activeNav"
     :title="$copy->get('keyboard.profile')"
 >
-    <div class="study-page">
+    <div
+        class="study-page"
+        x-data="{
+            photoUrl: @js($photoUrl),
+            displayName: @js($user->name),
+            username: @js($username),
+            init() {
+                const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                if (! tgUser) {
+                    return;
+                }
+                if (tgUser.photo_url) {
+                    this.photoUrl = tgUser.photo_url;
+                }
+                const name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ').trim();
+                if (name) {
+                    this.displayName = name;
+                }
+                if (tgUser.username) {
+                    this.username = tgUser.username;
+                }
+            },
+        }"
+    >
+        <div class="study-profile-hero">
+            <span class="tg-avatar tg-avatar-lg" aria-hidden="true">
+                <img
+                    x-show="photoUrl"
+                    x-cloak
+                    :src="photoUrl"
+                    @if ($photoUrl) src="{{ $photoUrl }}" @endif
+                    alt=""
+                    class="tg-avatar-img"
+                >
+                <span x-show="! photoUrl" x-text="displayName.charAt(0).toUpperCase()">{{ $initial }}</span>
+            </span>
+            <div class="min-w-0">
+                <h2 class="study-profile-name" x-text="displayName">{{ $user->name }}</h2>
+                <p class="study-profile-username" x-show="username" x-text="username ? '@' + username : ''">
+                    @if ($username)
+                        {{ '@'.$username }}
+                    @endif
+                </p>
+            </div>
+        </div>
+
         <div class="study-card study-continue">
             <p class="whitespace-pre-line text-sm leading-relaxed">
                 {{ $copy->get('profile.body', [
-                    'name' => $user->name,
                     'stream' => $user->stream?->name ?? '-',
                     'university' => $user->university?->name ?? '-',
                     'semester' => $user->semester?->name ?? '-',

@@ -99,7 +99,8 @@ class TelegramWebAppAuth
     public function authenticate(string $initData, ?string $botToken = null): User
     {
         $payload = $this->validate($initData, $botToken);
-        $telegramId = (string) $payload['user']['id'];
+        $telegramUser = $payload['user'];
+        $telegramId = (string) $telegramUser['id'];
 
         $user = User::query()
             ->where('telegram_id', $telegramId)
@@ -111,6 +112,29 @@ class TelegramWebAppAuth
 
         if (! $user->is_active) {
             throw new UnexpectedValueException('Your account is disabled. Contact support.');
+        }
+
+        $name = trim(($telegramUser['first_name'] ?? '').' '.($telegramUser['last_name'] ?? ''));
+
+        $updates = [];
+
+        if ($name !== '') {
+            $updates['name'] = $name;
+        }
+
+        if (array_key_exists('username', $telegramUser)) {
+            $updates['telegram_username'] = filled($telegramUser['username'] ?? null)
+                ? (string) $telegramUser['username']
+                : null;
+        }
+
+        if (filled($telegramUser['photo_url'] ?? null)) {
+            $updates['telegram_photo_url'] = (string) $telegramUser['photo_url'];
+        }
+
+        if ($updates !== []) {
+            $user->update($updates);
+            $user->refresh();
         }
 
         Auth::login($user);

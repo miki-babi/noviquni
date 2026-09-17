@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
     'role',
     'telegram_id',
     'telegram_username',
+    'telegram_photo_url',
     'telegram_locale',
     'theme',
     'referral_code',
