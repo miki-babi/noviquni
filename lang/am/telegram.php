@@ -30,6 +30,13 @@ return [
         'notify' => '🔔 አሳውቀኝ',
         'has_content' => 'ኮርሶችዎ — ለመማር አንዱን ይጫኑ፦',
         'course_coming_soon' => 'ለ<b>:course</b> መርጃዎች በቅርቡ ይመጣሉ — ሲወጡ ማሳወቂያ ይፈልጋሉ?',
+        'next_step' => 'ቀጣይ፦ :title',
+        'path_complete' => 'መንገዱ ተጠናቋል',
+        'no_path' => 'የኮርስ መንገድ ክፈት',
+        'path_intro' => 'የጥናት መንገድ — ሞጁል → ማስታወሻ → ስራ → ፈተና + ካርዶች → ያለፉ ፈተናዎች።',
+        'path' => 'መንገድ',
+        'plans' => 'እቅዶች',
+        'archive' => 'ማህደር',
     ],
     'hub' => [
         'prompt' => '<b>:course</b> — ምን ይፈልጋሉ?',
@@ -66,6 +73,8 @@ return [
     ],
     'menu' => [
         'choose' => 'Choose an option from the menu.',
+        'open' => 'ምናሌ',
+        'nav' => 'አሰሳ',
         'finish_onboarding' => 'Finish onboarding first. Tap /start.',
         'onboarding_complete_menu' => 'Onboarding is already complete. Use the menu.',
         'invalid_button' => 'That button is no longer valid. Use the menu.',

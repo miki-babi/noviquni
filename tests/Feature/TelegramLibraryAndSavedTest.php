@@ -65,13 +65,34 @@ it('lists resource hubs across enrolled courses only', function () {
         ->get(route('tg.library'))
         ->assertOk()
         ->assertSee('Notes')
+        ->assertSee('data-tg-menu-button', false)
         ->assertDontSee('Other course notes');
 
     $this->actingAs($user)
         ->get(route('tg.library.hub', 'notes'))
         ->assertOk()
+        ->assertSee('Physics')
         ->assertSee('Enrolled notes')
-        ->assertDontSee('Other course notes');
+        ->assertDontSee('Other course notes')
+        ->assertDontSee('🔒');
+});
+
+it('locks premium resources in the library hub for free users', function () {
+    [$user, $course, $stream] = libraryContext();
+
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Premium notes',
+        'is_premium' => true,
+        'is_bait' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.library.hub', 'notes'))
+        ->assertOk()
+        ->assertSee('Premium notes')
+        ->assertSee('🔒');
 });
 
 it('shows empty quick saved state and toggles bookmarks', function () {

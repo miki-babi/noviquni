@@ -5,28 +5,58 @@
 @source '../../storage/framework/views/*.php';
 @source '../views/**/*.blade.php';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-    --color-primary-50: #bdffde;
-    --color-primary-100: #0bd294;
-    --color-primary-200: #059467;
-    --color-primary-300: #036d4b;
-    --color-primary-400: #013b27;
-    --color-primary-500: #00150b;
-    --color-text-primary: #151515;
-    --color-text-secondary: #6b7280;
-    --color-text-muted: #9ca3af;
-    --color-surface-white: #ffffff;
-    --color-surface-gray: #f3f4f5;
-    --color-border-light: #ececec;
+    --color-primary-50: #e8f4fc;
+    --color-primary-100: #2481cc;
+    --color-primary-200: #1a6fb3;
+    --color-primary-300: #155a94;
+    --color-primary-400: #0f4470;
+    --color-primary-500: #0a2e4d;
+    --color-text-primary: var(--tg-text);
+    --color-text-secondary: var(--tg-hint);
+    --color-text-muted: var(--tg-hint);
+    --color-surface-white: var(--tg-section-bg);
+    --color-surface-gray: var(--tg-secondary-bg);
+    --color-border-light: var(--tg-separator);
     --color-star-gold: #fbbf24;
 
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-    --radius-card: 16px;
+    --radius-card: 12px;
     --radius-pill: 999px;
 
     --shadow-float: 0 20px 40px rgba(0, 0, 0, 0.08);
     --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+:root {
+    --tg-bg: #efeff4;
+    --tg-secondary-bg: #efeff4;
+    --tg-section-bg: #ffffff;
+    --tg-text: #000000;
+    --tg-hint: #8e8e93;
+    --tg-link: #2481cc;
+    --tg-button: #2481cc;
+    --tg-button-text: #ffffff;
+    --tg-separator: rgba(0, 0, 0, 0.1);
+    --tg-destructive: #ff3b30;
+    --tg-header-bg: #ffffff;
+}
+
+.dark {
+    --tg-bg: #0f0f0f;
+    --tg-secondary-bg: #0f0f0f;
+    --tg-section-bg: #1c1c1d;
+    --tg-text: #ffffff;
+    --tg-hint: #8e8e93;
+    --tg-link: #5ac8fa;
+    --tg-button: #2481cc;
+    --tg-button-text: #ffffff;
+    --tg-separator: rgba(255, 255, 255, 0.1);
+    --tg-destructive: #ff453a;
+    --tg-header-bg: #1c1c1d;
 }
 
 @layer base {
@@ -35,11 +65,11 @@
     }
 
     body {
-        background-color: var(--color-surface-white);
-        color: var(--color-text-primary);
+        background-color: var(--tg-bg);
+        color: var(--tg-text);
         font-family: var(--font-sans);
         font-size: 15px;
-        line-height: 1.6;
+        line-height: 1.45;
         -webkit-font-smoothing: antialiased;
     }
 
@@ -49,6 +79,168 @@
 }
 
 @layer components {
+    .tg-page {
+        background-color: var(--tg-bg);
+        color: var(--tg-text);
+        min-height: 100vh;
+    }
+
+    .tg-header {
+        background-color: var(--tg-header-bg);
+        border-bottom: 0.5px solid var(--tg-separator);
+    }
+
+    .tg-section-title {
+        padding: 0.75rem 1rem 0.375rem;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        color: var(--tg-hint);
+    }
+
+    .tg-section {
+        margin: 0 1rem 1.25rem;
+        overflow: hidden;
+        border-radius: 12px;
+        background-color: var(--tg-section-bg);
+    }
+
+    .tg-cell {
+        display: flex;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.625rem 1rem;
+        text-align: left;
+        text-decoration: none;
+        color: var(--tg-text);
+        background-color: transparent;
+        border: 0;
+        border-bottom: 0.5px solid var(--tg-separator);
+        width: 100%;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .tg-cell:last-child {
+        border-bottom: 0;
+    }
+
+    .tg-cell:active {
+        background-color: color-mix(in srgb, var(--tg-hint) 12%, transparent);
+    }
+
+    .tg-cell-body {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .tg-cell-title {
+        display: block;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.25;
+        color: var(--tg-text);
+    }
+
+    .tg-cell-subtitle {
+        display: block;
+        margin-top: 0.125rem;
+        font-size: 0.8125rem;
+        line-height: 1.25;
+        color: var(--tg-hint);
+    }
+
+    .tg-cell-meta {
+        flex-shrink: 0;
+        font-size: 0.875rem;
+        color: var(--tg-hint);
+    }
+
+    .tg-cell-chevron {
+        flex-shrink: 0;
+        color: var(--tg-hint);
+        font-size: 1.125rem;
+        line-height: 1;
+        opacity: 0.55;
+    }
+
+    .tg-cell-active .tg-cell-title {
+        color: var(--tg-button);
+        font-weight: 500;
+    }
+
+    .tg-btn {
+        display: inline-flex;
+        width: 100%;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background-color: var(--tg-button);
+        padding: 0.75rem 1rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--tg-button-text);
+        text-decoration: none;
+        border: 0;
+        cursor: pointer;
+    }
+
+    .tg-btn:active {
+        opacity: 0.88;
+    }
+
+    .tg-btn-secondary {
+        background-color: var(--tg-section-bg);
+        color: var(--tg-link);
+        box-shadow: inset 0 0 0 0.5px var(--tg-separator);
+    }
+
+    .tg-hint {
+        color: var(--tg-hint);
+    }
+
+    .tg-link {
+        color: var(--tg-link);
+    }
+
+    .tg-status {
+        border-radius: 12px;
+        background-color: color-mix(in srgb, var(--tg-button) 12%, var(--tg-section-bg));
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        color: var(--tg-text);
+    }
+
+    .tg-menu-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 40;
+        background: rgba(0, 0, 0, 0.4);
+    }
+
+    .tg-menu-sheet {
+        position: fixed;
+        inset-inline: 0;
+        bottom: 0;
+        z-index: 50;
+        max-height: 70vh;
+        overflow: auto;
+        border-radius: 14px 14px 0 0;
+        background: var(--tg-secondary-bg);
+        padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .tg-menu-handle {
+        margin: 0.25rem auto 0.75rem;
+        height: 0.25rem;
+        width: 2.25rem;
+        border-radius: 999px;
+        background: var(--tg-hint);
+        opacity: 0.35;
+    }
+
     .flashcard {
         perspective: 1000px;
     }

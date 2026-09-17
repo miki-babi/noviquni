@@ -6,6 +6,7 @@ use App\Enums\ResourceHub;
 use App\Http\Controllers\Controller;
 use App\Models\LearningResource;
 use App\Models\User;
+use App\Services\PremiumService;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -46,7 +47,7 @@ class LibraryController extends Controller
         ]);
     }
 
-    public function hub(string $hub): View|RedirectResponse
+    public function hub(string $hub, PremiumService $premium): View|RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
@@ -76,12 +77,23 @@ class LibraryController extends Controller
                 ])
                 ->values();
 
+        $groups = $resources
+            ->groupBy(fn (LearningResource $resource): string => (string) ($resource->course?->name ?? 'Course'))
+            ->map(fn ($items, string $courseName): array => [
+                'course_name' => $courseName,
+                'resources' => $items->map(fn (LearningResource $resource): array => [
+                    'resource' => $resource,
+                    'locked' => ! $premium->canAccess($user, $resource),
+                ])->values(),
+            ])
+            ->values();
+
         return view('telegram.mini-app.library-hub', [
             'copy' => $copy,
             'user' => $user,
             'hub' => $resourceHub,
             'title' => $resourceHub->label(),
-            'resources' => $resources,
+            'groups' => $groups,
             'activeNav' => 'resources',
         ]);
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Telegram\MiniApp;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\User;
+use App\Services\CoursePathService;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,7 @@ use Illuminate\View\View;
 
 class BrowseController extends Controller
 {
-    public function show(): View
+    public function show(CoursePathService $path): View
     {
         /** @var User $user */
         $user = Auth::user();
@@ -29,10 +30,28 @@ class BrowseController extends Controller
             default => 'has_content',
         };
 
+        $courseRows = ($state === 'has_content' ? $withContent : $courses)
+            ->map(function (Course $course) use ($user, $path): array {
+                $steps = $path->pathForUser($user, $course);
+                $total = $steps->count();
+                $completed = $steps->where('completed', true)->count();
+                $next = $total > 0 ? $path->nextStep($user, $course) : null;
+                $pathComplete = $total > 0 && $completed >= $total;
+
+                return [
+                    'course' => $course,
+                    'next' => $next,
+                    'completed' => $completed,
+                    'total' => $total,
+                    'path_complete' => $pathComplete,
+                ];
+            })
+            ->values();
+
         return view('telegram.mini-app.browse', [
             'copy' => $copy,
             'user' => $user,
-            'courses' => $state === 'has_content' ? $withContent : $courses,
+            'courseRows' => $courseRows,
             'state' => $state,
             'activeNav' => 'courses',
         ]);

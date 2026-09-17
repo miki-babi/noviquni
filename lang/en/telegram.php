@@ -31,6 +31,13 @@ return [
         'notify' => '🔔 Notify me',
         'has_content' => 'Your courses — tap one to study:',
         'course_coming_soon' => 'Resources for <b>:course</b> are coming soon — want a ping when they drop?',
+        'next_step' => 'Next: :title',
+        'path_complete' => 'Path complete',
+        'no_path' => 'Open course path',
+        'path_intro' => 'Study path — module → notes → worksheet → quiz + flashcards → past exams.',
+        'path' => 'Path',
+        'plans' => 'Plans',
+        'archive' => 'Archive',
     ],
     'hub' => [
         'prompt' => '<b>:course</b> — what do you want?',
@@ -67,6 +74,8 @@ return [
     ],
     'menu' => [
         'choose' => 'Choose an option from the menu.',
+        'open' => 'Menu',
+        'nav' => 'Navigate',
         'finish_onboarding' => 'Finish onboarding first. Tap /start.',
         'onboarding_complete_menu' => 'Onboarding is already complete. Use the menu.',
         'invalid_button' => 'That button is no longer valid. Use the menu.',

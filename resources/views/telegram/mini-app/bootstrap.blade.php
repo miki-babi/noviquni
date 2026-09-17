@@ -7,14 +7,15 @@
     <title>{{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <x-telegram.mini-app.theme-script />
 </head>
-<body class="min-h-screen bg-surface-white text-text-primary antialiased">
+<body class="tg-page antialiased">
     <main class="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
         <p class="text-base font-semibold">{{ config('app.name') }}</p>
         @if (session('error'))
-            <p id="tg-bootstrap-status" class="text-sm text-red-600">{{ session('error') }}</p>
+            <p id="tg-bootstrap-status" class="text-sm" style="color: var(--tg-destructive);">{{ session('error') }}</p>
         @else
-            <p id="tg-bootstrap-status" class="text-sm text-text-secondary">Opening your study space…</p>
+            <p id="tg-bootstrap-status" class="text-sm tg-hint">Opening your study space…</p>
         @endif
         <form id="tg-session-form" method="POST" action="{{ route('tg.session.store') }}" class="hidden">
             @csrf

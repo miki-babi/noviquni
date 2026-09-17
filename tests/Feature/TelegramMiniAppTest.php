@@ -66,15 +66,20 @@ it('shows browse courses for an authenticated student', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'title' => 'Week-1 notes',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.browse'))
         ->assertOk()
         ->assertSee('Physics')
+        ->assertSee('Next: Week-1 notes')
+        ->assertSee('0/1')
+        ->assertSee('data-tg-menu-button', false)
+        ->assertDontSee('grid-cols-4', false)
         ->assertDontSee('(0)');
 });
 

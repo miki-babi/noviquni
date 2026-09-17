@@ -1,28 +1,27 @@
 <x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('saved.title')">
-    <div class="space-y-5">
-        @if ($bookmarks->isEmpty())
-            <p class="text-base leading-relaxed text-text-secondary">{{ $copy->get('saved.empty') }}</p>
-            <a
-                href="{{ route('tg.browse') }}"
-                class="inline-flex w-full items-center justify-center rounded-2xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white"
-            >
+    @if ($bookmarks->isEmpty())
+        <div class="space-y-4 px-4">
+            <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('saved.empty') }}</p>
+            <a href="{{ route('tg.browse') }}" class="tg-btn">
                 {{ $copy->get('keyboard.courses') }}
             </a>
-        @else
-            <div class="grid gap-3">
-                @foreach ($bookmarks as $bookmark)
-                    @php $resource = $bookmark->learningResource; @endphp
-                    <a
-                        href="{{ $resource->miniAppUrl() }}"
-                        class="rounded-2xl border border-border-light px-4 py-3 text-left text-sm font-semibold text-text-primary"
-                    >
-                        {{ $resource->title }}
-                        @if ($resource->course)
-                            <span class="mt-1 block text-xs font-normal text-text-muted">{{ $resource->course->name }}</span>
-                        @endif
+        </div>
+    @else
+        <div class="tg-section">
+            @foreach ($bookmarks as $bookmark)
+                @php $resource = $bookmark->learningResource; @endphp
+                @if ($resource)
+                    <a href="{{ $resource->miniAppUrl() }}" class="tg-cell">
+                        <span class="tg-cell-body">
+                            <span class="tg-cell-title">{{ $resource->title }}</span>
+                            @if ($resource->course)
+                                <span class="tg-cell-subtitle">{{ $resource->course->name }}</span>
+                            @endif
+                        </span>
+                        <span class="tg-cell-chevron" aria-hidden="true">›</span>
                     </a>
-                @endforeach
-            </div>
-        @endif
-    </div>
+                @endif
+            @endforeach
+        </div>
+    @endif
 </x-telegram.mini-app.layout>

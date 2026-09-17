@@ -4,6 +4,7 @@
     'backUrl' => null,
     'resource' => null,
     'isBookmarked' => false,
+    'activeNav' => null,
 ])
 
 @php
@@ -19,44 +20,46 @@
     <title>{{ $title ?? config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <x-telegram.mini-app.theme-script />
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </head>
-<body class="min-h-screen bg-surface-white text-text-primary antialiased">
+<body class="tg-page antialiased">
     <div class="mx-auto flex min-h-screen max-w-lg flex-col">
-        <header class="sticky top-0 z-20 border-b border-border-light/60 bg-surface-white/95 px-4 py-4 backdrop-blur">
-            <div class="flex items-start gap-3">
+        <header class="tg-header sticky top-0 z-20 px-4 py-3">
+            <div class="flex items-center gap-3">
                 @if ($backUrl)
                     <a
                         href="{{ $backUrl }}"
-                        class="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-xl border border-border-light px-2.5 py-1.5 text-sm font-semibold text-text-secondary"
+                        class="inline-flex h-9 shrink-0 items-center justify-center px-1 text-sm font-medium tg-link"
                         aria-label="{{ $copy->get('hub.back') }}"
                     >
-                        ←
+                        ‹
                     </a>
                 @endif
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-bold tracking-tight">{{ config('app.name') }}</p>
+                    <p class="text-xs font-medium tg-hint">{{ config('app.name') }}</p>
                     @if ($title)
-                        <h1 class="mt-1 text-xl font-extrabold tracking-tight">{{ $title }}</h1>
+                        <h1 class="truncate text-lg font-semibold tracking-tight">{{ $title }}</h1>
                     @endif
                 </div>
                 @if ($resource)
-                    <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="mt-0.5 shrink-0">
+                    <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="shrink-0">
                         @csrf
                         <button
                             type="submit"
-                            class="inline-flex items-center justify-center rounded-xl border border-border-light px-2.5 py-1.5 text-xs font-semibold {{ $isBookmarked ? 'bg-primary-50 text-primary-700' : 'text-text-secondary' }}"
+                            class="inline-flex h-9 items-center justify-center rounded-lg px-2 text-xs font-semibold tg-link"
                         >
                             {{ $isBookmarked ? $copy->get('saved.unsave') : $copy->get('saved.save') }}
                         </button>
                     </form>
                 @endif
+                <x-telegram.mini-app.menu :copy="$copy" :active-nav="$activeNav" />
             </div>
         </header>
 
-        <main class="flex-1 px-4 py-5">
+        <main class="flex-1 py-3">
             @if (session('status'))
-                <div class="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <div class="mx-4 mb-3 tg-status">
                     {{ session('status') }}
                 </div>
             @endif
@@ -66,9 +69,6 @@
     </div>
 
     <script>
-        window.Telegram?.WebApp?.ready();
-        window.Telegram?.WebApp?.expand();
-
         (function () {
             const backUrl = @js($backUrl);
             const webApp = window.Telegram?.WebApp;
