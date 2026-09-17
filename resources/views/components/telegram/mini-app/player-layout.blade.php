@@ -72,13 +72,6 @@
 
             {{ $slot }}
         </main>
-
-        <x-telegram.mini-app.nav-bar
-            :copy="$copy"
-            :back-url="$backUrl"
-            :next-url="$nextUrl"
-            :next-label="$nextLabel"
-        />
     </div>
 
     <x-telegram.mini-app.back-button-script :back-url="$backUrl" />

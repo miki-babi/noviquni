@@ -50,7 +50,7 @@
             </div>
         </header>
 
-        <main class="flex-1 py-3 {{ ($backUrl || $nextUrl) ? 'pb-2' : '' }}">
+        <main class="flex-1 py-3">
             @if (session('status'))
                 <div class="mx-4 mb-3 tg-status">
                     {{ session('status') }}
@@ -59,13 +59,6 @@
 
             {{ $slot }}
         </main>
-
-        <x-telegram.mini-app.nav-bar
-            :copy="$copy"
-            :back-url="$backUrl"
-            :next-url="$nextUrl"
-            :next-label="$nextLabel"
-        />
     </div>
 
     <x-telegram.mini-app.back-button-script :back-url="$backUrl" />

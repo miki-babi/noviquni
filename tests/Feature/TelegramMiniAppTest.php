@@ -217,7 +217,7 @@ it('opens a course study path inside the mini app', function () {
         ->assertSee('Week-1 notes')
         ->assertSee('Module 1')
         ->assertSee('data-tg-header-back', false)
-        ->assertSee('data-tg-nav-bar', false)
+        ->assertDontSee('data-tg-nav-bar', false)
         ->assertSee(route('tg.browse'), false)
         ->assertDontSee('Archive');
 });
