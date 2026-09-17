@@ -84,6 +84,12 @@ return [
         'onboarding_done' => 'Onboarding complete! Explore your courses.',
         'setup_finished' => 'Setup finished.',
     ],
+    'nav' => [
+        'label' => 'Page navigation',
+        'back' => 'Back',
+        'next' => 'Next',
+        'next_step' => 'Next: :title',
+    ],
     'resource' => [
         'not_found' => 'Resource not found.',
     ],

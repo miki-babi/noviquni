@@ -2,6 +2,9 @@
     'copy',
     'activeNav' => 'courses',
     'title' => null,
+    'backUrl' => null,
+    'nextUrl' => null,
+    'nextLabel' => null,
 ])
 
 @php
@@ -24,6 +27,16 @@
     <div class="mx-auto flex min-h-screen max-w-lg flex-col">
         <header class="tg-header sticky top-0 z-20 px-4 py-3">
             <div class="flex items-center gap-3">
+                @if ($backUrl)
+                    <a
+                        href="{{ $backUrl }}"
+                        class="tg-header-back"
+                        aria-label="{{ $copy->get('nav.back') }}"
+                        data-tg-header-back
+                    >
+                        ‹
+                    </a>
+                @endif
                 <div class="min-w-0 flex-1">
                     <p class="text-xs font-medium tg-hint">{{ config('app.name') }}</p>
                     @if ($title)
@@ -34,7 +47,7 @@
             </div>
         </header>
 
-        <main class="flex-1 py-3">
+        <main class="flex-1 py-3 {{ ($backUrl || $nextUrl) ? 'pb-2' : '' }}">
             @if (session('status'))
                 <div class="mx-4 mb-3 tg-status">
                     {{ session('status') }}
@@ -43,6 +56,15 @@
 
             {{ $slot }}
         </main>
+
+        <x-telegram.mini-app.nav-bar
+            :copy="$copy"
+            :back-url="$backUrl"
+            :next-url="$nextUrl"
+            :next-label="$nextLabel"
+        />
     </div>
+
+    <x-telegram.mini-app.back-button-script :back-url="$backUrl" />
 </body>
 </html>

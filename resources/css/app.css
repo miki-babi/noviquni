@@ -241,6 +241,67 @@
         opacity: 0.35;
     }
 
+    .tg-nav-bar {
+        position: sticky;
+        bottom: 0;
+        z-index: 25;
+        margin-top: auto;
+        border-top: 0.5px solid var(--tg-separator);
+        background: color-mix(in srgb, var(--tg-header-bg) 92%, transparent);
+        backdrop-filter: blur(10px);
+        padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .tg-nav-bar-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        max-width: 32rem;
+        margin: 0 auto;
+    }
+
+    .tg-nav-btn {
+        display: inline-flex;
+        min-height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .tg-nav-btn-back {
+        background: var(--tg-section-bg);
+        color: var(--tg-link);
+        box-shadow: inset 0 0 0 0.5px var(--tg-separator);
+    }
+
+    .tg-nav-btn-next {
+        background: var(--tg-button);
+        color: var(--tg-button-text);
+    }
+
+    .tg-nav-btn-spacer {
+        visibility: hidden;
+        pointer-events: none;
+    }
+
+    .tg-header-back {
+        display: inline-flex;
+        height: 2.25rem;
+        min-width: 2rem;
+        flex-shrink: 0;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        line-height: 1;
+        font-weight: 400;
+        color: var(--tg-link);
+        text-decoration: none;
+    }
+
     .flashcard {
         perspective: 1000px;
     }

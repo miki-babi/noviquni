@@ -101,7 +101,26 @@ trait OpensMiniAppResource
             'backUrl' => $resource->course
                 ? route('tg.courses.show', $resource->course)
                 : route('tg.browse'),
+            'nextUrl' => $this->pathNudgeUrl($resource),
+            'nextLabel' => $this->pathNextLabel($access['copy'], $resource),
         ]);
+    }
+
+    protected function pathNextLabel(TelegramCopy $copy, LearningResource $resource): ?string
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        $next = app(CoursePathService::class)->nextAfter($user, $resource);
+
+        if ($next === null) {
+            return null;
+        }
+
+        return $copy->get('nav.next_step', ['title' => $next->title]);
     }
 
     protected function shouldShowQuizNudge(LearningResource $resource): bool

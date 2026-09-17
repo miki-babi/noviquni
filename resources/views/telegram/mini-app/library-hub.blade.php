@@ -1,4 +1,9 @@
-<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$title">
+<x-telegram.mini-app.layout
+    :copy="$copy"
+    :active-nav="$activeNav"
+    :title="$title"
+    :back-url="route('tg.library')"
+>
     @if ($groups->isEmpty())
         <p class="px-4 text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.hub_empty', ['hub' => strtolower($hub->label())]) }}</p>
     @else
@@ -24,10 +29,4 @@
             </div>
         @endforeach
     @endif
-
-    <div class="px-4 pt-2">
-        <a href="{{ route('tg.library') }}" class="tg-btn tg-btn-secondary">
-            {{ $copy->get('library.back') }}
-        </a>
-    </div>
 </x-telegram.mini-app.layout>

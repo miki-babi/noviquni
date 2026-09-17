@@ -2,6 +2,8 @@
     'copy',
     'title' => null,
     'backUrl' => null,
+    'nextUrl' => null,
+    'nextLabel' => null,
     'resource' => null,
     'isBookmarked' => false,
     'activeNav' => null,
@@ -30,8 +32,9 @@
                 @if ($backUrl)
                     <a
                         href="{{ $backUrl }}"
-                        class="inline-flex h-9 shrink-0 items-center justify-center px-1 text-sm font-medium tg-link"
-                        aria-label="{{ $copy->get('hub.back') }}"
+                        class="tg-header-back"
+                        aria-label="{{ $copy->get('nav.back') }}"
+                        data-tg-header-back
                     >
                         ‹
                     </a>
@@ -66,32 +69,15 @@
 
             {{ $slot }}
         </main>
+
+        <x-telegram.mini-app.nav-bar
+            :copy="$copy"
+            :back-url="$backUrl"
+            :next-url="$nextUrl"
+            :next-label="$nextLabel"
+        />
     </div>
 
-    <script>
-        (function () {
-            const backUrl = @js($backUrl);
-            const webApp = window.Telegram?.WebApp;
-
-            if (! webApp?.BackButton) {
-                return;
-            }
-
-            webApp.BackButton.show();
-            webApp.BackButton.onClick(function () {
-                if (backUrl) {
-                    window.location.href = backUrl;
-                    return;
-                }
-
-                if (window.history.length > 1) {
-                    window.history.back();
-                    return;
-                }
-
-                webApp.close();
-            });
-        })();
-    </script>
+    <x-telegram.mini-app.back-button-script :back-url="$backUrl" />
 </body>
 </html>

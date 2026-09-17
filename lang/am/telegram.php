@@ -83,6 +83,12 @@ return [
         'onboarding_done' => 'Onboarding complete! Explore your courses.',
         'setup_finished' => 'Setup finished.',
     ],
+    'nav' => [
+        'label' => 'የገጽ አሰሳ',
+        'back' => 'ተመለስ',
+        'next' => 'ቀጣይ',
+        'next_step' => 'ቀጣይ፦ :title',
+    ],
     'resource' => [
         'not_found' => 'Resource not found.',
     ],

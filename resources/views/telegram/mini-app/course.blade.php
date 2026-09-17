@@ -1,4 +1,11 @@
-<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$course->name">
+<x-telegram.mini-app.layout
+    :copy="$copy"
+    :active-nav="$activeNav"
+    :title="$course->name"
+    :back-url="route('tg.browse')"
+    :next-url="$next?->miniAppUrl()"
+    :next-label="$next ? $copy->get('nav.next_step', ['title' => $next->title]) : null"
+>
     <p class="px-4 pb-2 text-[15px] leading-relaxed tg-hint">
         {{ $copy->get('browse.path_intro') }}
     </p>
@@ -88,10 +95,4 @@
             @endforeach
         </div>
     @endif
-
-    <div class="px-4 pt-2">
-        <a href="{{ route('tg.browse') }}" class="tg-btn tg-btn-secondary">
-            {{ $copy->get('hub.back') }}
-        </a>
-    </div>
 </x-telegram.mini-app.layout>
