@@ -8,19 +8,21 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-primary-50: #ece9ff;
-    --color-primary-100: #7c6cff;
-    --color-primary-200: #6556e6;
-    --color-primary-300: #4f42b8;
-    --color-primary-400: #3a318a;
-    --color-primary-500: #25205c;
+    --color-primary-50: #feeee1;
+    --color-primary-100: #ff7a2e;
+    --color-primary-200: #f0651a;
+    --color-primary-300: #ea5b12;
+    --color-primary-400: #c44d0f;
+    --color-primary-500: #9a3c0c;
+    --color-primary-600: #f0651a;
     --color-text-primary: var(--tg-text);
     --color-text-secondary: var(--tg-hint);
-    --color-text-muted: var(--tg-hint);
-    --color-surface-white: var(--tg-section-bg);
+    --color-text-muted: var(--tg-muted);
+    --color-surface-white: var(--tg-card);
     --color-surface-gray: var(--tg-secondary-bg);
-    --color-border-light: var(--tg-separator);
+    --color-border-light: var(--tg-card-border);
     --color-star-gold: #fbbf24;
+    --color-success-green: #16a34a;
 
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -33,43 +35,49 @@
 
 :root,
 .light {
-    --tg-bg: #f4f6fa;
-    --tg-secondary-bg: #f4f6fa;
+    --tg-bg: #ffffff;
+    --tg-secondary-bg: #f3f4f5;
     --tg-section-bg: #ffffff;
-    --tg-text: #0e121b;
+    --tg-text: #151515;
     --tg-hint: #6b7280;
-    --tg-link: #7c6cff;
-    --tg-button: #7c6cff;
+    --tg-muted: #9ca3af;
+    --tg-link: #f0651a;
+    --tg-button: #f0651a;
     --tg-button-text: #ffffff;
-    --tg-separator: #d8dee9;
+    --tg-separator: #ececec;
     --tg-destructive: #ff453a;
-    --tg-header-bg: #f4f6fa;
-    --tg-accent: #7c6cff;
+    --tg-header-bg: #ffffff;
+    --tg-accent: #f0651a;
+    --tg-accent-soft: #feeee1;
     --tg-card: #ffffff;
-    --tg-card-border: #d8dee9;
+    --tg-card-border: #ececec;
     --tg-chunk-border: 1px;
     --tg-chunk-radius: 14px;
     --tg-chunk-shadow: none;
+    --tg-success: #16a34a;
 }
 
 .dark {
-    --tg-bg: #0e121b;
-    --tg-secondary-bg: #0e121b;
-    --tg-section-bg: #1a1f2e;
-    --tg-text: #f4f6fa;
-    --tg-hint: #9aa3b5;
-    --tg-link: #7c6cff;
-    --tg-button: #7c6cff;
+    --tg-bg: #151515;
+    --tg-secondary-bg: #1f1f1f;
+    --tg-section-bg: #1f1f1f;
+    --tg-text: #ffffff;
+    --tg-hint: #9ca3af;
+    --tg-muted: #6b7280;
+    --tg-link: #ff7a2e;
+    --tg-button: #f0651a;
     --tg-button-text: #ffffff;
-    --tg-separator: #2a3142;
+    --tg-separator: #2e2e2e;
     --tg-destructive: #ff453a;
-    --tg-header-bg: #0e121b;
-    --tg-accent: #7c6cff;
-    --tg-card: #1a1f2e;
-    --tg-card-border: #2a3142;
+    --tg-header-bg: #151515;
+    --tg-accent: #f0651a;
+    --tg-accent-soft: color-mix(in srgb, #f0651a 18%, #151515);
+    --tg-card: #1f1f1f;
+    --tg-card-border: #2e2e2e;
     --tg-chunk-border: 1px;
     --tg-chunk-radius: 14px;
     --tg-chunk-shadow: none;
+    --tg-success: #16a34a;
 }
 
 @layer base {
@@ -90,7 +98,8 @@
         color: var(--tg-text);
         font-family: var(--font-sans);
         font-size: 15px;
-        line-height: 1.45;
+        font-weight: 400;
+        line-height: 1.6;
         -webkit-font-smoothing: antialiased;
     }
 
@@ -113,19 +122,19 @@
 
     .tg-page-title {
         font-size: 1.375rem;
-        font-weight: 600;
-        line-height: 1.25;
+        font-weight: 700;
+        line-height: 1.2;
         letter-spacing: -0.02em;
         color: var(--tg-text);
     }
 
     .tg-section-title {
         padding: 0.75rem 1.25rem 0.375rem;
-        font-size: 0.8125rem;
+        font-size: 0.75rem;
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.04em;
-        color: var(--tg-hint);
+        color: var(--tg-muted);
     }
 
     .tg-section {
@@ -202,13 +211,13 @@
     }
 
     .tg-cell-active {
-        background: color-mix(in srgb, var(--tg-accent) 12%, transparent);
+        background: var(--tg-accent-soft);
         box-shadow: inset 3px 0 0 var(--tg-accent);
     }
 
     .tg-cell-active .tg-cell-title {
-        color: var(--tg-text);
-        font-weight: 500;
+        color: var(--tg-accent);
+        font-weight: 600;
     }
 
     .tg-btn {
@@ -216,9 +225,9 @@
         width: 100%;
         align-items: center;
         justify-content: center;
-        border-radius: var(--tg-chunk-radius);
+        border-radius: var(--radius-pill);
         background-color: var(--tg-button);
-        padding: 0.875rem 1rem;
+        padding: 0.875rem 1.25rem;
         min-height: 3.25rem;
         font-size: 0.9375rem;
         font-weight: 600;
@@ -257,8 +266,8 @@
     }
 
     .tg-status {
-        border-radius: 12px;
-        background-color: color-mix(in srgb, var(--tg-accent) 14%, var(--tg-card));
+        border-radius: var(--tg-chunk-radius);
+        background-color: var(--tg-accent-soft);
         padding: 0.75rem 1rem;
         font-size: 0.875rem;
         color: var(--tg-text);
@@ -324,8 +333,8 @@
         justify-content: center;
         overflow: hidden;
         border-radius: 999px;
-        background: color-mix(in srgb, var(--tg-accent) 22%, var(--tg-bg));
-        color: var(--tg-text);
+        background: var(--tg-accent-soft);
+        color: var(--tg-accent);
         font-size: 0.9375rem;
         font-weight: 600;
     }
@@ -365,7 +374,7 @@
     }
 
     .tg-drawer-link-active {
-        background: color-mix(in srgb, var(--tg-accent) 14%, transparent);
+        background: var(--tg-accent-soft);
         color: var(--tg-accent);
     }
 
@@ -581,7 +590,7 @@
         width: 100%;
         align-items: center;
         justify-content: center;
-        border-radius: var(--tg-chunk-radius);
+        border-radius: var(--radius-pill);
         background: var(--tg-accent);
         color: #fff;
         font-size: 0.9375rem;
@@ -603,10 +612,10 @@
         align-items: center;
         justify-content: center;
         border-radius: 999px;
-        background: color-mix(in srgb, var(--tg-accent) 20%, var(--tg-bg));
-        color: var(--tg-text);
+        background: var(--tg-accent-soft);
+        color: var(--tg-accent);
         font-size: 0.9375rem;
-        font-weight: 600;
+        font-weight: 700;
     }
 
     .study-card-title {
@@ -618,8 +627,9 @@
 
     .study-card-meta {
         margin-top: 0.15rem;
-        font-size: 0.8125rem;
-        color: var(--tg-hint);
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--tg-muted);
     }
 
     .flashcard {
