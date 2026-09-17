@@ -8,13 +8,13 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    --color-primary-50: #feeee1;
-    --color-primary-100: #ff7a2e;
-    --color-primary-200: #f0651a;
-    --color-primary-300: #ea5b12;
-    --color-primary-400: #c44d0f;
-    --color-primary-500: #9a3c0c;
-    --color-primary-600: #f0651a;
+    --color-primary-50: #bdffde;
+    --color-primary-100: #0bd294;
+    --color-primary-200: #059467;
+    --color-primary-300: #036d4b;
+    --color-primary-400: #025539;
+    --color-primary-500: #013d29;
+    --color-primary-600: #059467;
     --color-text-primary: var(--tg-text);
     --color-text-secondary: var(--tg-hint);
     --color-text-muted: var(--tg-muted);
@@ -22,7 +22,7 @@
     --color-surface-gray: var(--tg-secondary-bg);
     --color-border-light: var(--tg-card-border);
     --color-star-gold: #fbbf24;
-    --color-success-green: #16a34a;
+    --color-success-green: #0bd294;
 
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -41,20 +41,20 @@
     --tg-text: #151515;
     --tg-hint: #6b7280;
     --tg-muted: #9ca3af;
-    --tg-link: #f0651a;
-    --tg-button: #f0651a;
+    --tg-link: #059467;
+    --tg-button: #059467;
     --tg-button-text: #ffffff;
     --tg-separator: #ececec;
     --tg-destructive: #ff453a;
     --tg-header-bg: #ffffff;
-    --tg-accent: #f0651a;
-    --tg-accent-soft: #feeee1;
+    --tg-accent: #059467;
+    --tg-accent-soft: #bdffde;
     --tg-card: #ffffff;
     --tg-card-border: #ececec;
     --tg-chunk-border: 1px;
     --tg-chunk-radius: 14px;
     --tg-chunk-shadow: none;
-    --tg-success: #16a34a;
+    --tg-success: #0bd294;
 }
 
 .dark {
@@ -64,20 +64,20 @@
     --tg-text: #ffffff;
     --tg-hint: #9ca3af;
     --tg-muted: #6b7280;
-    --tg-link: #ff7a2e;
-    --tg-button: #f0651a;
+    --tg-link: #0bd294;
+    --tg-button: #059467;
     --tg-button-text: #ffffff;
     --tg-separator: #2e2e2e;
     --tg-destructive: #ff453a;
     --tg-header-bg: #151515;
-    --tg-accent: #f0651a;
-    --tg-accent-soft: color-mix(in srgb, #f0651a 18%, #151515);
+    --tg-accent: #059467;
+    --tg-accent-soft: color-mix(in srgb, #059467 22%, #151515);
     --tg-card: #1f1f1f;
     --tg-card-border: #2e2e2e;
     --tg-chunk-border: 1px;
     --tg-chunk-radius: 14px;
     --tg-chunk-shadow: none;
-    --tg-success: #16a34a;
+    --tg-success: #0bd294;
 }
 
 @layer base {
@@ -239,7 +239,8 @@
     }
 
     .tg-btn:active {
-        opacity: 0.88;
+        background-color: var(--color-primary-300);
+        opacity: 1;
     }
 
     .tg-btn-secondary {
