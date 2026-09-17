@@ -302,6 +302,26 @@
         text-decoration: none;
     }
 
+    .tg-lottie {
+        display: block;
+        width: 9rem;
+        height: 9rem;
+        margin-inline: auto;
+        pointer-events: none;
+    }
+
+    .tg-lottie-hub {
+        width: 1.75rem;
+        height: 1.75rem;
+        margin: 0;
+        flex-shrink: 0;
+    }
+
+    .tg-lottie-loading {
+        width: 7rem;
+        height: 7rem;
+    }
+
     .flashcard {
         perspective: 1000px;
     }

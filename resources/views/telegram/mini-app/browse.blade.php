@@ -1,6 +1,7 @@
 <x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('keyboard.courses')">
     @if ($state === 'empty')
-        <div class="space-y-4 px-4">
+        <div class="space-y-4 px-4 text-center">
+            <x-telegram.lottie name="empty-courses" />
             <p class="whitespace-pre-line text-[15px] leading-relaxed tg-hint">{{ $copy->get('browse.empty') }}</p>
             <a
                 href="https://t.me/{{ config('services.telegram.bot_username') }}?start=setup"
@@ -12,6 +13,9 @@
         </div>
     @elseif ($state === 'coming_soon')
         <div class="space-y-4">
+            <div class="px-4 text-center">
+                <x-telegram.lottie name="empty-courses" />
+            </div>
             <p class="whitespace-pre-line px-4 text-[15px] leading-relaxed tg-hint">{{ $copy->get('browse.coming_soon') }}</p>
             <div class="tg-section">
                 @foreach ($courseRows as $row)

@@ -1,1 +1,1 @@
-//
+import './telegram-lottie.js';

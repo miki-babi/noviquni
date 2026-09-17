@@ -1,6 +1,7 @@
 <x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('saved.title')">
     @if ($bookmarks->isEmpty())
-        <div class="space-y-4 px-4">
+        <div class="space-y-4 px-4 text-center">
+            <x-telegram.lottie name="empty-saved" />
             <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('saved.empty') }}</p>
             <a href="{{ route('tg.browse') }}" class="tg-btn">
                 {{ $copy->get('keyboard.courses') }}
