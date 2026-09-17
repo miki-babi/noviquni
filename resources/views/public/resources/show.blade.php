@@ -1,9 +1,5 @@
 @php
-    use App\Enums\CollegeResourceKind;
-
-    $canStudy = $resource->canStudyOnWeb();
-    $studyKind = $canStudy ? $resource->studyKind() : null;
-    $studyPayload = $canStudy ? $resource->studyPayload() : null;
+    $canStudy = false;
 @endphp
 
 <x-layouts.public :seo="$seo" :breadcrumbs="$breadcrumbs" :json-ld="$jsonLd">
@@ -14,11 +10,10 @@
             @if ($resource->description)
                 <p class="max-w-3xl text-lg text-text-secondary">{{ $resource->description }}</p>
             @endif
-            @if ($canStudy)
-                <x-cta.telegram label="Also open in Telegram" :payload="'resource_'.$resource->id" />
-            @else
-                <x-cta.telegram label="Open in Telegram to access" :payload="'resource_'.$resource->id" />
-            @endif
+            <x-cta.telegram
+                :label="$resource->is_bait ? 'Grab free Week-1 bait in Telegram' : 'Open in Telegram to access'"
+                :payload="'resource_'.$resource->id"
+            />
         </header>
 
         <x-ui.card class="!bg-surface-gray !border-transparent !shadow-none">
@@ -61,10 +56,10 @@
                 <div>
                     <dt class="text-xs font-medium text-text-muted">Access</dt>
                     <dd class="font-semibold text-text-primary">
-                        @if ($resource->is_premium)
+                        @if ($resource->is_bait)
+                            Free Week-1 bait via Telegram
+                        @elseif ($resource->is_premium)
                             Premium via Telegram
-                        @elseif ($canStudy)
-                            Study on the web
                         @else
                             Available via Telegram
                         @endif
@@ -88,77 +83,24 @@
             <section class="max-w-3xl text-text-secondary">{!! nl2br(e($resource->seo_content)) !!}</section>
         @endif
 
-        @if ($canStudy && $studyPayload !== null)
-            <section class="space-y-4">
-                <h2 class="text-2xl font-bold text-text-primary">
-                    @switch ($studyKind)
-                        @case (CollegeResourceKind::Notes)
-                            Study notes
-                            @break
-                        @case (CollegeResourceKind::Quiz)
-                            Practice quiz
-                            @break
-                        @case (CollegeResourceKind::Exam)
-                            Practice exam
-                            @break
-                        @case (CollegeResourceKind::Flashcards)
-                            Flashcards
-                            @break
-                        @default
-                            Study
-                    @endswitch
-                </h2>
-
-                @switch ($studyKind)
-                    @case (CollegeResourceKind::Notes)
-                        <x-study.notes :payload="$studyPayload" />
-                        @break
-                    @case (CollegeResourceKind::Quiz)
-                        <x-study.quiz :payload="$studyPayload" />
-                        @break
-                    @case (CollegeResourceKind::Exam)
-                        <x-study.exam :payload="$studyPayload" />
-                        @break
-                    @case (CollegeResourceKind::Flashcards)
-                        <x-study.flashcards :payload="$studyPayload" />
-                        @break
-                @endswitch
-            </section>
-        @else
-            <section class="space-y-3">
-                <h2 class="text-2xl font-bold text-text-primary">How do I access this resource?</h2>
-                <p class="text-text-secondary">
-                    Open {{ config('app.name') }} in Telegram to read this {{ strtolower($resource->type->label()) }}.
-                    Public pages explain what is covered; the full generated content is delivered inside Telegram.
-                </p>
-                <x-cta.telegram label="Continue in Telegram" :payload="'resource_'.$resource->id" />
-            </section>
-        @endif
+        <section class="space-y-3">
+            <h2 class="text-2xl font-bold text-text-primary">How do I access this resource?</h2>
+            <p class="text-text-secondary">
+                Open {{ config('app.name') }} in Telegram to study this {{ strtolower($resource->type->label()) }}.
+                Public pages explain what is covered; the organized study path lives inside Telegram.
+            </p>
+            <x-cta.telegram label="Continue in Telegram" :payload="'resource_'.$resource->id" />
+        </section>
 
         @if ($resource->course)
             <section class="space-y-3">
                 <h2 class="text-2xl font-bold text-text-primary">Related links</h2>
-                <ul class="space-y-2 text-primary-200">
-                    <li><a href="{{ route('courses.show', $resource->course) }}" class="hover:underline">{{ $resource->course->name }} resources</a></li>
-                    <li><a href="{{ route('hubs.course', ['exams', $resource->course]) }}" class="hover:underline">{{ $resource->course->name }} past exams</a></li>
-                    <li><a href="{{ route('hubs.course', ['modules', $resource->course]) }}" class="hover:underline">{{ $resource->course->name }} modules</a></li>
-                    <li><a href="{{ route('hubs.course', ['notes', $resource->course]) }}" class="hover:underline">{{ $resource->course->name }} notes</a></li>
-                    <li><a href="{{ route('hubs.course', ['practice', $resource->course]) }}" class="hover:underline">{{ $resource->course->name }} practice</a></li>
-                </ul>
-            </section>
-        @endif
-
-        @if ($related->isNotEmpty())
-            <section class="space-y-4">
-                <h2 class="text-2xl font-bold text-text-primary">Related resources</h2>
-                <ul class="space-y-3">
-                    @foreach ($related as $item)
+                <ul class="list-disc space-y-1 pl-5 text-primary-200">
+                    <li><a href="{{ route('courses.show', $resource->course) }}" class="hover:underline">{{ $resource->course->name }}</a></li>
+                    @foreach (\App\Enums\ResourceHub::cases() as $hub)
                         <li>
-                            <a href="{{ route('resources.show', $item) }}" class="block">
-                                <x-ui.card class="transition hover:-translate-y-0.5">
-                                    <span class="font-semibold text-text-primary">{{ $item->title }}</span>
-                                    <span class="mt-1 block text-sm text-text-secondary">{{ $item->type->label() }}</span>
-                                </x-ui.card>
+                            <a href="{{ route('hubs.course', ['hub' => $hub->value, 'course' => $resource->course]) }}" class="hover:underline">
+                                {{ $hub->label() }} for {{ $resource->course->name }}
                             </a>
                         </li>
                     @endforeach

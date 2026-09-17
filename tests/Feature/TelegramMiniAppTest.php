@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\OnboardingStep;
-use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
@@ -66,7 +65,7 @@ it('shows browse courses for an authenticated student', function () {
         ->assertDontSee('(0)');
 });
 
-it('shows continue resume card when a download exists', function () {
+it('shows continue next path step for bait resources', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -80,12 +79,11 @@ it('shows continue resume card when a download exists', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->published()->notes()->create([
+    $resource = LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Chapter notes',
     ]);
-    $user->downloads()->create(['learning_resource_id' => $resource->id]);
 
     $this->actingAs($user)
         ->get(route('tg.continue'))
@@ -113,7 +111,7 @@ it('shows profile and premium screens', function () {
         ->assertSee('Premium');
 });
 
-it('opens a course hub inside the mini app', function () {
+it('opens a course study path inside the mini app', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -127,14 +125,14 @@ it('opens a course hub inside the mini app', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'title' => 'Week-1 notes',
     ]);
-    LearningResource::factory()->published()->create([
+    LearningResource::factory()->published()->module()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Module,
         'title' => 'Module 1',
     ]);
 
@@ -142,8 +140,10 @@ it('opens a course hub inside the mini app', function () {
         ->get(route('tg.courses.show', $course))
         ->assertOk()
         ->assertSee('Chemistry')
-        ->assertSee('Notes')
-        ->assertSee('Modules');
+        ->assertSee('Study path', false)
+        ->assertSee('Week-1 notes')
+        ->assertSee('Module 1')
+        ->assertDontSee('Archive');
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

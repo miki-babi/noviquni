@@ -26,6 +26,7 @@ class PremiumController extends Controller
             'price' => $settings->premiumPrice(),
             'required' => $settings->requiredReferrals(),
             'progress' => $referrals->qualifiedCount($user),
+            'urgency' => $settings->cohortUrgencyCopy(),
             'activeNav' => 'premium',
         ]);
     }

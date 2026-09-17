@@ -12,6 +12,11 @@ class TelegramDeepLink
         return "https://t.me/{$bot}?start={$start}";
     }
 
+    public function forBait(): string
+    {
+        return $this->url('bait');
+    }
+
     public function forResource(int $resourceId): string
     {
         return $this->url('resource_'.$resourceId);

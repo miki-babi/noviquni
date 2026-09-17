@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ResourceType;
 use App\Models\LearningResource;
 use App\Models\User;
 use App\Services\PremiumService;
@@ -12,25 +13,54 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
 });
 
-it('allows free published resources for any student', function () {
+it('allows bait resources for free students', function () {
     $student = User::factory()->student()->create();
-    $resource = LearningResource::factory()->published()->create([
-        'is_premium' => false,
-    ]);
+    $resource = LearningResource::factory()->bait()->notes()->create();
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });
 
-it('blocks premium resources without an active subscription', function () {
+it('blocks non-bait resources for free students', function () {
     $student = User::factory()->student()->create();
-    $resource = LearningResource::factory()->published()->premium()->create();
+    $resource = LearningResource::factory()->published()->create([
+        'is_premium' => false,
+        'is_bait' => false,
+    ]);
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeFalse();
+});
+
+it('blocks flashcards for free students even if marked bait', function () {
+    $student = User::factory()->student()->create();
+    $module = LearningResource::factory()->published()->module()->create();
+    $resource = LearningResource::factory()->published()->flashcards()->create([
+        'module_id' => $module->id,
+        'course_id' => $module->course_id,
+        'stream_id' => $module->stream_id,
+        'is_bait' => true,
+    ]);
+
+    expect($resource->fresh()->is_bait)->toBeFalse()
+        ->and($resource->fresh()->is_premium)->toBeTrue()
+        ->and(app(PremiumService::class)->canAccess($student, $resource->fresh()))->toBeFalse();
 });
 
 it('allows premium resources when the student has premium', function () {
     $student = User::factory()->student()->premium()->create();
     $resource = LearningResource::factory()->published()->premium()->create();
+
+    expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
+});
+
+it('allows flashcards for premium students', function () {
+    $student = User::factory()->student()->premium()->create();
+    $module = LearningResource::factory()->published()->module()->create();
+    $resource = LearningResource::factory()->published()->flashcards()->create([
+        'module_id' => $module->id,
+        'course_id' => $module->course_id,
+        'stream_id' => $module->stream_id,
+        'type' => ResourceType::Flashcards,
+    ]);
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });

@@ -36,7 +36,7 @@ enum ResourceHub: string
     {
         return match ($this) {
             self::Modules => [ResourceType::Module],
-            self::Notes => [ResourceType::LectureNotes, ResourceType::Summary],
+            self::Notes => [ResourceType::LectureNotes, ResourceType::Summary, ResourceType::Worksheet],
             self::Exams => [ResourceType::PastExam],
             self::Practice => [ResourceType::PracticeQuestion, ResourceType::Flashcards],
         };

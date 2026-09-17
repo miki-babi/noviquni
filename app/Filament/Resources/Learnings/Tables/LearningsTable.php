@@ -24,14 +24,18 @@ class LearningsTable
                 TextColumn::make('stream.name'),
                 TextColumn::make('course.name'),
                 IconColumn::make('is_premium')->boolean(),
+                IconColumn::make('is_bait')->label('Bait')->boolean(),
                 IconColumn::make('is_published')->boolean(),
+                TextColumn::make('sort_order')->sortable(),
             ])
             ->filters([
                 SelectFilter::make('stream')->relationship('stream', 'name'),
                 SelectFilter::make('course')->relationship('course', 'name'),
                 TernaryFilter::make('is_premium'),
+                TernaryFilter::make('is_bait'),
                 TernaryFilter::make('is_published'),
             ])
+            ->defaultSort('sort_order')
             ->recordActions([
                 EditAction::make(),
             ])

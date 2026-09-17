@@ -60,6 +60,7 @@ class ManageSettings extends Page
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
+            'cohort_urgency_copy' => $settings->cohortUrgencyCopy(),
         ]);
     }
 
@@ -99,6 +100,11 @@ class ManageSettings extends Page
                         Textarea::make('payment_instructions')
                             ->rows(4)
                             ->helperText('Use {amount} and {reference} placeholders.')
+                            ->columnSpanFull(),
+                        Textarea::make('cohort_urgency_copy')
+                            ->label('Cohort urgency copy')
+                            ->rows(2)
+                            ->helperText('Shown on the Mini App premium screen.')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -188,6 +194,7 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PREMIUM_REFERRAL_REWARD, (string) $data['premium_referral_reward']);
         $settings->set(SettingsService::PREMIUM_DURATION_DAYS, (string) $data['premium_duration_days']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
+        $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
 
         $image = $data['telegram_start_image'] ?? null;
         if (is_array($image)) {

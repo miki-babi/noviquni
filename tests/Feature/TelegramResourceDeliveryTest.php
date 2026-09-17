@@ -45,6 +45,7 @@ it('sends generated quiz content as telegram messages instead of a document', fu
         'type' => ResourceType::PracticeQuestion,
         'generation_kind' => CollegeResourceKind::Quiz,
         'is_premium' => false,
+        'is_bait' => true,
         'content' => [
             'kind' => 'quiz',
             'scope_type' => 'section',

@@ -45,9 +45,18 @@ class LearningForm
                     ->helperText('Topics covered, shown as a list on the public page.')
                     ->columnSpanFull(),
                 Select::make('type')
-                    ->options(ResourceType::class)
-                    ->disabled()
-                    ->dehydrated(),
+                    ->options(collect(ResourceType::creatableCases())->mapWithKeys(
+                        fn (ResourceType $type) => [$type->value => $type->label()]
+                    )->all())
+                    ->required()
+                    ->live()
+                    ->native(false)
+                    ->afterStateUpdated(function (Set $set, ?string $state): void {
+                        if ($state === ResourceType::Flashcards->value) {
+                            $set('is_premium', true);
+                            $set('is_bait', false);
+                        }
+                    }),
                 Select::make('generation_kind')
                     ->label('Generation kind')
                     ->options(CollegeResourceKind::class)
@@ -79,7 +88,29 @@ class LearningForm
                         if ($streamId !== null) {
                             $set('stream_id', $streamId);
                         }
+
+                        $set('module_id', null);
                     }),
+                Select::make('module_id')
+                    ->label('Parent module')
+                    ->options(fn (Get $get): array => filled($get('course_id'))
+                        ? LearningResource::query()
+                            ->where('course_id', $get('course_id'))
+                            ->where('type', ResourceType::Module)
+                            ->orderBy('sort_order')
+                            ->orderBy('title')
+                            ->pluck('title', 'id')
+                            ->all()
+                        : [])
+                    ->searchable()
+                    ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
+                    ->required(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
+                    ->helperText('Required for flashcards. Links notes, worksheets, and quizzes to the module spine.'),
+                TextInput::make('sort_order')
+                    ->numeric()
+                    ->integer()
+                    ->default(0)
+                    ->required(),
                 Select::make('university_id')
                     ->relationship('university', 'name')
                     ->searchable()
@@ -88,7 +119,17 @@ class LearningForm
                     ->relationship('semester', 'name')
                     ->searchable()
                     ->preload(),
-                Toggle::make('is_premium')->default(false),
+                Toggle::make('is_premium')
+                    ->default(false)
+                    ->live()
+                    ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
+                    ->dehydrated(),
+                Toggle::make('is_bait')
+                    ->label('Free Week-1 bait')
+                    ->default(false)
+                    ->helperText('Free students only open bait resources (notes / sample quiz / sample exam).')
+                    ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value
+                        || (bool) $get('is_premium')),
                 Toggle::make('is_published')->default(false),
                 Textarea::make('content_preview')
                     ->label('Generated content')
@@ -277,7 +318,36 @@ class LearningForm
                         ->relationship('semester', 'name')
                         ->searchable()
                         ->preload(),
-                    Toggle::make('is_premium')->default(false),
+                    Select::make('module_id')
+                        ->label('Parent module')
+                        ->options(fn (Get $get): array => filled($get('course_id'))
+                            ? LearningResource::query()
+                                ->where('course_id', $get('course_id'))
+                                ->where('type', ResourceType::Module)
+                                ->orderBy('sort_order')
+                                ->orderBy('title')
+                                ->pluck('title', 'id')
+                                ->all()
+                            : [])
+                        ->searchable()
+                        ->required(fn (Get $get): bool => $get('generation_kind') === CollegeResourceKind::Flashcards->value
+                            || $get('type') === ResourceType::Flashcards->value)
+                        ->helperText('Required for flashcards. Attach notes/quiz/exam to a module when possible.'),
+                    TextInput::make('sort_order')
+                        ->numeric()
+                        ->integer()
+                        ->default(0)
+                        ->required(),
+                    Toggle::make('is_premium')
+                        ->default(fn (Get $get): bool => $get('generation_kind') === CollegeResourceKind::Flashcards->value)
+                        ->live()
+                        ->disabled(fn (Get $get): bool => $get('generation_kind') === CollegeResourceKind::Flashcards->value)
+                        ->dehydrated(),
+                    Toggle::make('is_bait')
+                        ->label('Free Week-1 bait')
+                        ->default(false)
+                        ->disabled(fn (Get $get): bool => $get('generation_kind') === CollegeResourceKind::Flashcards->value
+                            || (bool) $get('is_premium')),
                     Toggle::make('is_published')->default(false),
                     TextInput::make('title')
                         ->required()
@@ -385,5 +455,10 @@ class LearningForm
         $set('generation_kind', $mapped['generation_kind']->value);
         $set('content', $encoded);
         $set('content_preview', $encoded);
+
+        if ($kind === CollegeResourceKind::Flashcards) {
+            $set('is_premium', true);
+            $set('is_bait', false);
+        }
     }
 }

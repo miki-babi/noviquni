@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Telegram\MiniApp\Concerns;
 
-use App\Enums\ResourceHub;
+use App\Enums\CollegeResourceKind;
 use App\Enums\ResourceType;
 use App\Models\LearningResource;
 use App\Models\User;
+use App\Services\College\TelegramResourceFormatter;
+use App\Services\CoursePathService;
 use App\Services\PremiumService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
@@ -57,6 +59,47 @@ trait OpensMiniAppResource
         ];
     }
 
+    protected function openCatalogPlayer(
+        LearningResource $resource,
+        ResourceType $expectedType,
+        string $view,
+        PremiumService $premium,
+        SettingsService $settings,
+        ReferralService $referrals,
+        TelegramResourceFormatter $formatter,
+        ?CollegeResourceKind $interactiveKind = null,
+    ): View|RedirectResponse {
+        abort_unless($resource->type === $expectedType, 404);
+
+        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
+
+        if ($access instanceof RedirectResponse || $access instanceof View) {
+            return $access;
+        }
+
+        $payload = null;
+
+        if ($interactiveKind !== null
+            && $resource->studyKind() === $interactiveKind
+            && ($playerPayload = $resource->playerPayload()) !== null) {
+            $payload = $playerPayload;
+        }
+
+        return view($view, [
+            'copy' => $access['copy'],
+            'user' => $access['user'],
+            'resource' => $resource,
+            'course' => $resource->course,
+            'payload' => $payload,
+            'chunks' => $payload === null ? $formatter->format($resource) : [],
+            'showQuizNudge' => $this->shouldShowQuizNudge($resource),
+            'pathNudgeUrl' => $this->pathNudgeUrl($resource),
+            'backUrl' => $resource->course
+                ? route('tg.courses.show', $resource->course)
+                : route('tg.browse'),
+        ]);
+    }
+
     protected function shouldShowQuizNudge(LearningResource $resource): bool
     {
         if ($resource->course_id === null) {
@@ -67,16 +110,32 @@ trait OpensMiniAppResource
             ResourceType::LectureNotes,
             ResourceType::Summary,
             ResourceType::Module,
+            ResourceType::Worksheet,
         ], true);
 
         if (! $isNotesOrModule) {
             return false;
         }
 
-        return LearningResource::query()
-            ->published()
-            ->where('course_id', $resource->course_id)
-            ->whereIn('type', ResourceHub::Practice->typeValues())
-            ->exists();
+        $next = app(CoursePathService::class)->nextAfter(Auth::user(), $resource);
+
+        return $next !== null && in_array($next->type, [
+            ResourceType::Worksheet,
+            ResourceType::PracticeQuestion,
+            ResourceType::Flashcards,
+        ], true);
+    }
+
+    protected function pathNudgeUrl(LearningResource $resource): ?string
+    {
+        $user = Auth::user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        $next = app(CoursePathService::class)->nextAfter($user, $resource);
+
+        return $next?->miniAppUrl();
     }
 }

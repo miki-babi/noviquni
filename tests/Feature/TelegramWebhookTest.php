@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\OnboardingStep;
-use App\Enums\ResourceType;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -227,7 +226,7 @@ it('shows browse courses without zero counts when content exists', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Intro notes',
@@ -285,7 +284,7 @@ it('shows coming soon browse state without counts when enrolled but empty', func
     });
 });
 
-it('shows hub fork after course tap', function () {
+it('shows study path after course tap', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -300,25 +299,21 @@ it('shows hub fork after course tap', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    $notes = LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'title' => 'Week-1 notes',
     ]);
-    LearningResource::factory()->published()->create([
+    $module = LearningResource::factory()->published()->module()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Module,
         'title' => 'Module 1',
-    ]);
-    LearningResource::factory()->published()->quiz()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
     ]);
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555023, "course:{$course->id}", 30, 403))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) use ($course, $notes, $module) {
         if (! str_contains($request->url(), '/editMessageText')) {
             return false;
         }
@@ -326,10 +321,10 @@ it('shows hub fork after course tap', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Physics')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}")
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:modules:{$course->id}")
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:practice:{$course->id}");
+        return str_contains((string) ($data['text'] ?? ''), 'Study path for Physics')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$notes->id}")
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$module->id}")
+            && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.courses.show', $course));
     });
 });
 
@@ -348,7 +343,7 @@ it('shows continue resume card when a prior download exists', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->published()->notes()->create([
+    $resource = LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Chapter notes',
@@ -435,7 +430,7 @@ it('still routes legacy my courses label to browse', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -584,7 +579,7 @@ it('uses editMessageText for back to courses navigation', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -620,4 +615,107 @@ it('rate limits free text reprompts during onboarding', function () {
         ->count();
 
     expect($editCountAfterReprompts - $editCountAfterStart)->toBe(1);
+});
+
+it('opens a bait course path from /start bait', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Chemistry',
+        'slug' => 'chemistry',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555030',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $notes = LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Bait notes',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555030, '/start bait', 500))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($notes) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Study path for Chemistry')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$notes->id}");
+    });
+});
+
+it('opens a resource from /start resource deep link', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555031',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $resource = LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Deep link notes',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555031, '/start resource_'.$resource->id, 501))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'Deep link notes');
+    });
+});
+
+it('opens a course from /start course deep link', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'English',
+        'slug' => 'english',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555032',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+
+    LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'English bait',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555032, '/start course_english', 502))
+        ->assertOk();
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'Study path for English');
+    });
 });

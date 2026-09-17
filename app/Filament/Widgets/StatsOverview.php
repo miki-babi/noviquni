@@ -27,8 +27,15 @@ class StatsOverview extends StatsOverviewWidget
         $referrals = Referral::query()->count();
         $conversion = $totalStudents > 0 ? round(($referrals / $totalStudents) * 100, 1) : 0;
         $downloads = ResourceDownload::query()->count();
+        $weeklyActiveStudy = ResourceDownload::query()
+            ->where('created_at', '>=', now()->subDays(7))
+            ->select('user_id')
+            ->distinct()
+            ->count('user_id');
 
         return [
+            Stat::make('Weekly active study', (string) $weeklyActiveStudy)
+                ->description('Distinct students who opened a resource in 7d'),
             Stat::make('Total students', (string) $totalStudents),
             Stat::make('New (7d)', (string) $newStudents),
             Stat::make('Active students', (string) $activeStudents),

@@ -54,6 +54,11 @@ class Course extends Model
         return $this->hasMany(LearningResource::class);
     }
 
+    public function studyPlans(): HasMany
+    {
+        return $this->hasMany(StudyPlan::class);
+    }
+
     /**
      * @param  Builder<Course>  $query
      * @return Builder<Course>

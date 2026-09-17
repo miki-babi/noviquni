@@ -9,10 +9,15 @@ use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\ContinueController;
+use App\Http\Controllers\Telegram\MiniApp\Players\AssignmentPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\FlashcardsPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\ModulePlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\NotesPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\OtherPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\SummaryPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\Players\WorksheetPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
@@ -47,13 +52,18 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('browse', [BrowseController::class, 'show'])->name('browse');
         Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
         Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
-            ->whereIn('hub', ['notes', 'modules', 'practice'])
+            ->whereIn('hub', ['notes', 'modules', 'practice', 'exams'])
             ->name('courses.hub');
         Route::get('resources/{resource:slug}', [App\Http\Controllers\Telegram\MiniApp\ResourceController::class, 'show'])->name('resources.show');
+        Route::get('play/module/{resource:slug}', ModulePlayerController::class)->name('play.module');
         Route::get('play/notes/{resource:slug}', NotesPlayerController::class)->name('play.notes');
-        Route::get('play/quiz/{resource:slug}', QuizPlayerController::class)->name('play.quiz');
+        Route::get('play/summary/{resource:slug}', SummaryPlayerController::class)->name('play.summary');
+        Route::get('play/worksheet/{resource:slug}', WorksheetPlayerController::class)->name('play.worksheet');
         Route::get('play/exam/{resource:slug}', ExamPlayerController::class)->name('play.exam');
+        Route::get('play/assignment/{resource:slug}', AssignmentPlayerController::class)->name('play.assignment');
+        Route::get('play/quiz/{resource:slug}', QuizPlayerController::class)->name('play.quiz');
         Route::get('play/flashcards/{resource:slug}', FlashcardsPlayerController::class)->name('play.flashcards');
+        Route::get('play/other/{resource:slug}', OtherPlayerController::class)->name('play.other');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile');
         Route::post('profile/notifications', [ProfileController::class, 'toggleNotifications'])->name('profile.notifications');
         Route::post('profile/notifications/enable', [ProfileController::class, 'enableNotifications'])->name('profile.notifications.enable');

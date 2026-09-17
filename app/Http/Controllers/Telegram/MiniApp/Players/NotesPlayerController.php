@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Telegram\MiniApp\Players;
 
 use App\Enums\CollegeResourceKind;
+use App\Enums\ResourceType;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Telegram\MiniApp\Concerns\OpensMiniAppResource;
 use App\Models\LearningResource;
+use App\Services\College\TelegramResourceFormatter;
 use App\Services\PremiumService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
@@ -21,28 +23,17 @@ class NotesPlayerController extends Controller
         PremiumService $premium,
         SettingsService $settings,
         ReferralService $referrals,
+        TelegramResourceFormatter $formatter,
     ): View|RedirectResponse {
-        abort_unless($resource->studyKind() === CollegeResourceKind::Notes, 404);
-
-        $payload = $resource->playerPayload();
-        abort_unless($payload !== null, 404);
-
-        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
-
-        if ($access instanceof RedirectResponse || $access instanceof View) {
-            return $access;
-        }
-
-        return view('telegram.mini-app.players.notes', [
-            'copy' => $access['copy'],
-            'user' => $access['user'],
-            'resource' => $resource,
-            'course' => $resource->course,
-            'payload' => $payload,
-            'showQuizNudge' => $this->shouldShowQuizNudge($resource),
-            'backUrl' => $resource->course
-                ? route('tg.courses.show', $resource->course)
-                : route('tg.browse'),
-        ]);
+        return $this->openCatalogPlayer(
+            $resource,
+            ResourceType::LectureNotes,
+            'telegram.mini-app.players.notes',
+            $premium,
+            $settings,
+            $referrals,
+            $formatter,
+            CollegeResourceKind::Notes,
+        );
     }
 }

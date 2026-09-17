@@ -6,9 +6,13 @@
             </div>
         @else
             <div class="rounded-2xl border border-border-light px-4 py-4 text-sm leading-relaxed space-y-2">
-                <p class="font-semibold">⭐ Premium</p>
+                <p class="font-semibold">⭐ Premium — full study path</p>
+                <p>Modules, notes, worksheets, quizzes, flashcards, and past exams.</p>
                 <p>Price: {{ $price }} ETB</p>
                 <p>Referrals: {{ $progress }}/{{ $required }}</p>
+                @if (filled($urgency))
+                    <p class="text-amber-800">{{ $urgency }}</p>
+                @endif
             </div>
 
             @if (session('payment_instructions'))

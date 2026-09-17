@@ -25,7 +25,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'course_id',
     'university_id',
     'semester_id',
+    'module_id',
+    'sort_order',
     'is_premium',
+    'is_bait',
     'is_published',
     'content',
     'generation_kind',
@@ -45,9 +48,25 @@ class LearningResource extends Model
      */
     protected $attributes = [
         'is_premium' => false,
+        'is_bait' => false,
         'is_published' => false,
         'is_indexable' => true,
+        'sort_order' => 0,
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (LearningResource $resource): void {
+            if ($resource->type === ResourceType::Flashcards) {
+                $resource->is_premium = true;
+                $resource->is_bait = false;
+            }
+
+            if ($resource->is_bait) {
+                $resource->is_premium = false;
+            }
+        });
+    }
 
     public function stream(): BelongsTo
     {
@@ -69,20 +88,27 @@ class LearningResource extends Model
         return $this->belongsTo(Semester::class);
     }
 
+    public function module(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'module_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'module_id')->orderBy('sort_order');
+    }
+
     public function downloads(): HasMany
     {
         return $this->hasMany(ResourceDownload::class);
     }
 
     /**
-     * Whether this published free resource can be studied in the browser.
+     * Public web is CTA-only — never an in-browser study surface.
      */
     public function canStudyOnWeb(): bool
     {
-        return $this->is_published
-            && ! $this->is_premium
-            && $this->studyKind() !== null
-            && $this->rawStudyPayload() !== null;
+        return false;
     }
 
     public function studyKind(): ?CollegeResourceKind
@@ -101,17 +127,13 @@ class LearningResource extends Model
     }
 
     /**
-     * Study payload for web viewers. Null when the resource must not be studied on the web.
+     * Study payload for web viewers. Always null — web is CTA only.
      *
      * @return array<string, mixed>|null
      */
     public function studyPayload(): ?array
     {
-        if (! $this->canStudyOnWeb()) {
-            return null;
-        }
-
-        return $this->rawStudyPayload();
+        return null;
     }
 
     /**
@@ -130,13 +152,7 @@ class LearningResource extends Model
 
     public function miniAppRouteName(): string
     {
-        $kind = $this->studyKind();
-
-        if ($kind !== null && $this->playerPayload() !== null) {
-            return $kind->miniAppRouteName();
-        }
-
-        return 'tg.resources.show';
+        return $this->type->miniAppRouteName();
     }
 
     public function miniAppUrl(): string
@@ -149,7 +165,7 @@ class LearningResource extends Model
      */
     public function flashcards(): array
     {
-        $payload = $this->studyPayload();
+        $payload = $this->playerPayload();
 
         if ($payload === null) {
             return [];
@@ -166,6 +182,26 @@ class LearningResource extends Model
     protected function published(Builder $query): Builder
     {
         return $query->where('is_published', true);
+    }
+
+    /**
+     * @param  Builder<LearningResource>  $query
+     * @return Builder<LearningResource>
+     */
+    #[Scope]
+    protected function bait(Builder $query): Builder
+    {
+        return $query->where('is_bait', true);
+    }
+
+    /**
+     * @param  Builder<LearningResource>  $query
+     * @return Builder<LearningResource>
+     */
+    #[Scope]
+    protected function modules(Builder $query): Builder
+    {
+        return $query->where('type', ResourceType::Module);
     }
 
     /**
@@ -223,8 +259,10 @@ class LearningResource extends Model
             'topics' => 'array',
             'content' => 'array',
             'is_premium' => 'boolean',
+            'is_bait' => 'boolean',
             'is_published' => 'boolean',
             'is_indexable' => 'boolean',
+            'sort_order' => 'integer',
         ];
     }
 

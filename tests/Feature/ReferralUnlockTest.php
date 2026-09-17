@@ -9,7 +9,10 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
-    app(SettingsService::class)->set(SettingsService::REQUIRED_REFERRALS, '3');
+});
+
+it('defaults required referrals to 3', function () {
+    expect(app(SettingsService::class)->requiredReferrals())->toBe(3);
 });
 
 it('attributes a referral and unlocks premium after required referrals', function () {
@@ -25,6 +28,20 @@ it('attributes a referral and unlocks premium after required referrals', functio
 
     expect($referrer->fresh()->hasActivePremium())->toBeTrue()
         ->and(app(ReferralService::class)->qualifiedCount($referrer->fresh()))->toBeGreaterThanOrEqual(3);
+});
+
+it('does not unlock premium before reaching the required referral count', function () {
+    $referrer = User::factory()->student()->create();
+
+    foreach (range(1, 2) as $i) {
+        $referred = User::factory()->student()->create([
+            'name' => "Student {$i}",
+        ]);
+
+        app(ReferralService::class)->attributeReferral($referred, $referrer->referral_code);
+    }
+
+    expect($referrer->fresh()->hasActivePremium())->toBeFalse();
 });
 
 it('ignores self referrals', function () {

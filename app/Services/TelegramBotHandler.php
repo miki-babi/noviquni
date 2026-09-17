@@ -36,6 +36,7 @@ class TelegramBotHandler
         public PaymentService $payments,
         public PremiumService $premium,
         public SettingsService $settings,
+        public CoursePathService $coursePath,
     ) {}
 
     /**
@@ -80,17 +81,25 @@ class TelegramBotHandler
 
         if (str_starts_with($text, '/start')) {
             $parts = explode(' ', $text, 2);
-            $code = $parts[1] ?? null;
+            $payload = filled($parts[1] ?? null) ? trim((string) $parts[1]) : null;
 
-            if (filled($code) && $user->referred_by_user_id === null) {
-                $this->referrals->attributeReferral($user, $code);
+            if (filled($payload) && $user->referred_by_user_id === null && ! $this->isNavigationStartPayload($payload)) {
+                $this->referrals->attributeReferral($user, $payload);
                 $user->refresh();
             }
 
             if ($user->onboarding_step !== OnboardingStep::Complete) {
+                if ($this->isNavigationStartPayload($payload)) {
+                    Cache::put($this->pendingStartCacheKey($user), $payload, now()->addDay());
+                }
+
                 $user->update(['onboarding_step' => OnboardingStep::Stream]);
                 $this->askStream($user, $chatId);
 
+                return;
+            }
+
+            if ($this->resumeStartPayload($user, $chatId, $payload)) {
                 return;
             }
 
@@ -659,34 +668,9 @@ class TelegramBotHandler
             return;
         }
 
-        $hubButtons = [];
+        $steps = $this->coursePath->pathForUser($user, $course);
 
-        foreach ([ResourceHub::Notes, ResourceHub::Modules, ResourceHub::Practice] as $hub) {
-            $count = LearningResource::query()
-                ->published()
-                ->where('course_id', $courseId)
-                ->whereIn('type', $hub->typeValues())
-                ->count();
-
-            if ($count === 0) {
-                continue;
-            }
-
-            $labelKey = match ($hub) {
-                ResourceHub::Notes => 'hub.notes',
-                ResourceHub::Modules => 'hub.modules',
-                ResourceHub::Practice => 'hub.quiz',
-                ResourceHub::Exams => 'hub.quiz',
-            };
-
-            $hubButtons[] = [
-                'text' => $copy->get($labelKey),
-                'callback_data' => "hub:{$hub->value}:{$courseId}",
-                'style' => TelegramButtonStyle::Primary->value,
-            ];
-        }
-
-        if ($hubButtons === []) {
+        if ($steps->isEmpty()) {
             $this->telegram->replyOrEdit(
                 $chatId,
                 $copy->get('browse.course_coming_soon', ['course' => $course->name]),
@@ -709,20 +693,124 @@ class TelegramBotHandler
             return;
         }
 
+        $rows = $steps->take(8)->map(function (array $item) {
+            $resource = $item['resource'];
+            $prefix = $item['locked'] ? '🔒 ' : ($item['completed'] ? '✓ ' : '');
+
+            return [[
+                'text' => $prefix.$resource->title,
+                'callback_data' => 'open_resource:'.$resource->id,
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        })->all();
+
+        $rows[] = [[
+            'text' => 'Open full path in Mini App',
+            'web_app' => ['url' => route('tg.courses.show', $course)],
+            'style' => TelegramButtonStyle::Success->value,
+        ]];
+
+        if ($user->hasActivePremium()) {
+            foreach ([ResourceHub::Notes, ResourceHub::Modules, ResourceHub::Practice, ResourceHub::Exams] as $hub) {
+                $count = LearningResource::query()
+                    ->published()
+                    ->where('course_id', $courseId)
+                    ->whereIn('type', $hub->typeValues())
+                    ->count();
+
+                if ($count === 0) {
+                    continue;
+                }
+
+                $rows[] = [[
+                    'text' => 'Archive: '.$hub->label(),
+                    'callback_data' => "hub:{$hub->value}:{$courseId}",
+                ]];
+            }
+        }
+
+        $rows[] = [[
+            'text' => $copy->get('hub.back'),
+            'callback_data' => 'back:courses',
+        ]];
+
         $this->telegram->replyOrEdit(
             $chatId,
-            $copy->get('hub.prompt', ['course' => $course->name]),
+            "Study path for {$course->name}:\nModule → notes → worksheet → quiz + flashcards → past exams.",
             [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    $hubButtons,
-                    [[
-                        'text' => $copy->get('hub.back'),
-                        'callback_data' => 'back:courses',
-                    ]],
-                ]),
+                'reply_markup' => $this->telegram->inlineKeyboard($rows),
             ],
             $messageId,
         );
+    }
+
+    protected function isNavigationStartPayload(?string $payload): bool
+    {
+        if (! filled($payload)) {
+            return false;
+        }
+
+        return $payload === 'bait'
+            || $payload === 'web'
+            || str_starts_with($payload, 'resource_')
+            || str_starts_with($payload, 'course_');
+    }
+
+    protected function pendingStartCacheKey(User $user): string
+    {
+        return "telegram.pending_start.{$user->id}";
+    }
+
+    protected function resumeStartPayload(User $user, int|string $chatId, ?string $payload = null): bool
+    {
+        $payload ??= Cache::pull($this->pendingStartCacheKey($user));
+
+        if (! filled($payload) || ! $this->isNavigationStartPayload($payload)) {
+            return false;
+        }
+
+        Cache::forget($this->pendingStartCacheKey($user));
+
+        if ($payload === 'bait' || $payload === 'web') {
+            $course = $user->courses()->orderBy('courses.name')->first();
+
+            if ($course !== null) {
+                $this->showCourseHub($user, $chatId, $course->id);
+
+                return true;
+            }
+
+            $this->showBrowse($user, $chatId);
+
+            return true;
+        }
+
+        if (str_starts_with($payload, 'resource_')) {
+            $resourceId = (int) Str::after($payload, 'resource_');
+
+            if ($resourceId > 0) {
+                $this->openResource($user, $chatId, $resourceId);
+
+                return true;
+            }
+        }
+
+        if (str_starts_with($payload, 'course_')) {
+            $slug = Str::after($payload, 'course_');
+            $course = Course::query()->where('slug', $slug)->first();
+
+            if ($course !== null) {
+                if (! $user->courses()->where('courses.id', $course->id)->exists()) {
+                    $user->courses()->syncWithoutDetaching([$course->id]);
+                }
+
+                $this->showCourseHub($user, $chatId, $course->id);
+
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function listResources(
@@ -1277,6 +1365,12 @@ class TelegramBotHandler
         $this->telegram->sendMessage($chatId, $copy->get('menu.onboarding_done'), [
             'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
+
+        $user = $user->fresh();
+
+        if ($user !== null && ! $this->resumeStartPayload($user, $chatId)) {
+            // Pending deep link already handled, or none stored.
+        }
 
         return null;
     }

@@ -6,15 +6,15 @@
                 <x-ui.badge>✦ Freshman resources for Ethiopian universities</x-ui.badge>
 
                 <h1 class="max-w-xl text-[40px] font-extrabold leading-[1.1] tracking-tight text-text-primary sm:text-[48px]">
-                    Better study tools for Ethiopian university students
+                    Noviquni — the organized freshman study system
                 </h1>
 
                 <p class="max-w-lg text-[15px] text-text-secondary">
-                    Find modules, notes, past exams, and practice sets for freshman courses — then open your personalized library in Telegram.
+                    Modules, notes, worksheets, quizzes, flashcards, and past exams in one path — not another PDF dump. Gift the files. Sell the study system.
                 </p>
 
                 <div class="flex flex-wrap items-center gap-4">
-                    <x-cta.telegram label="Open Telegram" payload="web" />
+                    <x-cta.telegram label="Grab free Week-1 / course bait" payload="bait" />
                     <a href="{{ route('courses.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-text-primary hover:text-primary-200">
                         <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary-50 text-primary-300">▶</span>
                         Browse courses

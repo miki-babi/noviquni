@@ -9,17 +9,18 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('renders the public home page with telegram cta', function () {
+it('renders the public home page with telegram bait cta', function () {
     config(['services.telegram.bot_username' => 'noviquni_bot']);
 
     $response = $this->get(route('home'));
 
     $response->assertOk();
     $response->assertSee('digital companion for Ethiopian university students', false);
-    $response->assertSee('https://t.me/noviquni_bot?start=web', false);
+    $response->assertSee('https://t.me/noviquni_bot?start=bait', false);
+    $response->assertSee('Grab free Week-1 / course bait', false);
     $response->assertSee('<link rel="canonical"', false);
     $response->assertSee('application/ld+json', false);
-    $response->assertSee('Better study tools for Ethiopian university students', false);
+    $response->assertSee('organized freshman study system', false);
 });
 
 it('shows active universities and returns 404 for inactive ones', function () {
@@ -94,7 +95,7 @@ it('shows published resources and hides unpublished ones', function () {
         ->assertSee('Physics Notes Pack')
         ->assertSee('Mechanics')
         ->assertSee('https://t.me/noviquni_bot?start=resource_'.$published->id, false)
-        ->assertSee('full generated content is delivered inside Telegram', false);
+        ->assertSee('organized study path lives inside Telegram', false);
 
     $this->get(route('resources.show', $unpublished))
         ->assertNotFound();

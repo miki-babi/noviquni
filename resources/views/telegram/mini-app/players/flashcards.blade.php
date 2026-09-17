@@ -4,6 +4,10 @@
             <p class="text-sm text-text-secondary">{{ $course->name }}</p>
         @endif
 
-        <x-study.flashcards :payload="$payload" />
+        @if ($payload)
+            <x-study.flashcards :payload="$payload" />
+        @else
+            <x-telegram.mini-app.player-reader :chunks="$chunks" :copy="$copy" />
+        @endif
     </div>
 </x-telegram.mini-app.player-layout>

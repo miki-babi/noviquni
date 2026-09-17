@@ -19,7 +19,6 @@ class LearningResourceFactory extends Factory
      */
     public function definition(): array
     {
-        $course = Course::factory()->create();
         $title = fake()->unique()->sentence(3);
 
         return [
@@ -27,10 +26,13 @@ class LearningResourceFactory extends Factory
             'slug' => Str::slug($title).'-'.Str::random(5),
             'description' => fake()->paragraph(),
             'topics' => fake()->words(4),
-            'type' => fake()->randomElement(ResourceType::cases()),
-            'course_id' => $course->id,
-            'stream_id' => $course->stream_id,
+            'type' => fake()->randomElement(ResourceType::creatableCases()),
+            'course_id' => Course::factory(),
+            'stream_id' => fn (array $attributes) => Course::query()->find($attributes['course_id'])?->stream_id,
+            'module_id' => null,
+            'sort_order' => 0,
             'is_premium' => false,
+            'is_bait' => false,
             'is_published' => false,
             'is_indexable' => true,
             'content' => null,
@@ -49,6 +51,37 @@ class LearningResourceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_premium' => true,
+            'is_bait' => false,
+        ]);
+    }
+
+    public function bait(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_bait' => true,
+            'is_premium' => false,
+            'is_published' => true,
+        ]);
+    }
+
+    public function module(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::Module,
+            'module_id' => null,
+            'generation_kind' => null,
+            'content' => null,
+        ]);
+    }
+
+    public function worksheet(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => ResourceType::Worksheet,
+            'generation_kind' => null,
+            'content' => [
+                'body' => fake()->paragraphs(2, true),
+            ],
         ]);
     }
 
@@ -158,6 +191,8 @@ class LearningResourceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => ResourceType::Flashcards,
+            'is_premium' => true,
+            'is_bait' => false,
             'generation_kind' => CollegeResourceKind::Flashcards,
             'content' => [
                 'kind' => CollegeResourceKind::Flashcards->value,

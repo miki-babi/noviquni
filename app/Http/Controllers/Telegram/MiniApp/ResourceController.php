@@ -3,44 +3,15 @@
 namespace App\Http\Controllers\Telegram\MiniApp;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Telegram\MiniApp\Concerns\OpensMiniAppResource;
 use App\Models\LearningResource;
-use App\Services\College\TelegramResourceFormatter;
-use App\Services\PremiumService;
-use App\Services\ReferralService;
-use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 
 class ResourceController extends Controller
 {
-    use OpensMiniAppResource;
+    public function show(LearningResource $resource): RedirectResponse
+    {
+        abort_unless($resource->is_published, 404);
 
-    public function show(
-        LearningResource $resource,
-        TelegramResourceFormatter $formatter,
-        PremiumService $premium,
-        SettingsService $settings,
-        ReferralService $referrals,
-    ): View|RedirectResponse {
-        if ($resource->studyKind() !== null && $resource->playerPayload() !== null) {
-            return redirect()->route($resource->miniAppRouteName(), $resource);
-        }
-
-        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
-
-        if ($access instanceof RedirectResponse || $access instanceof View) {
-            return $access;
-        }
-
-        return view('telegram.mini-app.resource', [
-            'copy' => $access['copy'],
-            'user' => $access['user'],
-            'resource' => $resource,
-            'course' => $resource->course,
-            'chunks' => $formatter->format($resource),
-            'showQuizNudge' => $this->shouldShowQuizNudge($resource),
-            'activeNav' => 'browse',
-        ]);
+        return redirect()->route($resource->miniAppRouteName(), $resource);
     }
 }

@@ -1,8 +1,10 @@
 # Noviquni — V1 task tracker
 
-Acquisition + conversion loop for Ethiopian freshman students: **Telegram** is the student product, **`/admin`** is Filament, **public web** is SEO + free study + CTA into Telegram. Content wedge: **Freshman · Natural · Semester 1** (Math, Physics, Chemistry, English). No student web login.
+**Gift the files. Sell the study system.**
 
-Horizon: ~2 weeks focused engineering + content wiring. Product contact: Luna.
+Telegram-first academic study system for Ethiopian freshmen. Public web is catalog CTA only. Product source of truth: `Noviquni-V1-Offer-One-Pager.md`.
+
+Horizon: focused engineering + content wiring. Product contact: Luna.
 
 ---
 
@@ -19,54 +21,64 @@ Horizon: ~2 weeks focused engineering + content wiring. Product contact: Luna.
 
 | Decision | Value |
 | --- | --- |
-| Surface | Telegram = student product; `/admin` = Filament; public web = SEO + free study + Telegram CTA |
+| Positioning | Gift the files. Sell the study system — organized path, not a PDF dump |
+| Surface | Telegram = student product; `/admin` = Filament; public web = SEO catalog + bait CTA into Telegram (**no in-browser study**) |
 | Student web login | Out of scope |
-| Campus focus | All-uni / online — no single-campus hardcode |
-| Content wedge | Freshman · Natural · Semester 1 core courses; university is optional metadata/filter |
+| Campus focus | Stream/course scoped; university optional metadata — sales copy uses [Campus/Stream] when known |
+| Content wedge | Freshman · Natural · Semester 1 core courses |
 | Premium price | ~**30 ETB** (admin-configurable) |
 | Referral unlock | **N = 3** qualified referrals = same Premium as pay (admin-configurable; default **3**) |
 | Premium model | **One SKU** — pay OR refer unlocks the same `premium` access |
-| Payments | Manual verify (instructions + reference); no gateway this slice |
+| Payments | Manual verify (Telebirr instructions OK); no gateway this slice |
+| Metric | **Weekly active study** — not resource count |
+| Flashcards | Always premium; always module-linked; not free bait; not a headline |
+| Assignment / homework mill | Never ships — keep enum for leftovers; do not create or surface |
 
 ### Free vs Premium matrix
 
-**Free (always)**
+**Free (bait only)**
 
 | Type | Rule |
 | --- | --- |
-| Notes / modules | Chapter 1 (or first ~20–25%) of each Natural S1 core — full quality, not a stub |
-| Practice | 1–2 sample mid-style questions per chapter with short solution |
-| Quiz | Chapter 1 quiz only, **or** hard daily cap (e.g. 5 Q/day) — pick one and document |
-| Flashcards | First deck **or** ~20 cards per course free; rest premium |
+| Short notes | 1–2 thin notes flagged `is_bait` |
+| Past exam | 1 mid/final sample flagged `is_bait` |
+| Quiz | Sample quiz (few questions) flagged `is_bait` |
+| Week-1 checklist | One published `bait_checklist` study plan per course |
+| Free path | Note → sample quiz only |
 | Catalog / browse / onboarding / profile | Free |
 | Referral invite + progress | Free (**never** gate) |
-| Broadcasts | Free |
-| Public web | Free published samples only + Telegram CTA |
+| Public web | Teaser/meta + “Grab free Week-1 / course bait” Telegram CTA — **never** full study UI |
+
+**Do not include on free:** full stacks, full week plans, full archive, flashcards.
 
 **Premium (pay 30 ETB OR 3 referrals)**
 
 | Type | Rule |
 | --- | --- |
-| Notes | Full Natural S1 packs (all chapters) |
-| Quiz / exam trainer | Full banks |
-| Past exams | Mids + finals packs (primary conversion lever) |
-| Flashcards | Full decks |
+| Modules | Full ordered spine (`sort_order`) |
+| Short notes | Aligned to modules |
+| Worksheets | Per module in the path |
+| Quizzes | Full banks |
+| Flashcards | Module-linked decks only |
+| Past exams | Mid + final packs |
+| Week / exam-sprint plans | Wrap the path |
+| Course archive | Hubs as secondary browse |
+
+**Premium path (per course):** Module → short note → worksheet → quiz + flashcards → past mid/final.
 
 **Packaging rules**
 
-1. One entitlement: `is_premium` unlocks all premium-flagged resources — no per-course SKUs.
-2. Teaser rule: every premium content *type* for a course should have at least one free sample.
-3. Wedge focus: Natural S1 cores first — do not spray half-flagged content across Social / other years.
-4. Web: never render full premium body; teaser/meta + “Open in Telegram” CTA.
-5. Bot copy (adapt as needed): `Premium = full Natural S1 notes + quizzes + past finals — 30 ETB or invite 3 friends.`
-
-**Pragmatic V1:** if chapter-partial notes are hard, publish two resources per unit — `… (Free preview)` and `… (Full)` — rather than a schema rewrite. Prefer admin settings over hardcoded price/N/copy. Keep existing referral qualification rules unless broken.
+1. One entitlement: `premium_until` unlocks all premium-flagged resources — no per-course SKUs.
+2. Free students only open `is_bait` resources + bait checklist; other steps show locked titles + CTA.
+3. Flashcards: `is_premium = true` and `module_id` required.
+4. Web: never render study payload; teaser/meta + Telegram CTA only.
+5. Bot copy (adapt): `Premium = the full Natural S1 study path — modules, notes, worksheets, quizzes, flashcards, past exams — 30 ETB or invite 3 friends.`
 
 ---
 
 ## Now
 
-**WP0 — Commit/ship the uncommitted public SEO site + College API work** (still in the working tree). Keep Pest green, then move to WP1.
+**Align product with V1 Offer One-Pager** — path schema, bait gating, CTA-only web, study plans, weekly active study metric.
 
 ---
 
@@ -78,11 +90,11 @@ Do not rebuild these.
 
 - [x] `/start`, referral attach, button onboarding (stream → university → semester → courses)
 - [x] Main menu, resource browse, premium gating
-- [x] Deep links from web (`resource_*`, `course_slug`)
+- [x] Deep link URL builders (`resource_*`, `course_slug`)
 
 ### Catalog & admin
 
-- [x] Streams, universities, courses, semesters, learning resources (module/notes/summary/exam/assignment/practice/flashcards)
+- [x] Streams, universities, courses, semesters, learning resources
 - [x] Filament CRUD, College API resource wizard, payments verify/reject
 - [x] Broadcasts, referral rewards/withdrawals, settings, activity logs
 
@@ -92,13 +104,12 @@ Do not rebuild these.
 - [x] Pay **or** referral unlock the same premium entitlement
 - [x] Withdrawals from bot; settings-driven price and referral N
 
-### Public site & College API (implemented in working tree — not yet committed)
+### Public site & College API
 
-- [x] Routes: home, universities, streams, courses, resources, hubs (`/modules`, `/notes`, `/exams`, `/practice`)
+- [x] Routes: home, universities, streams, courses, resources, hubs
 - [x] SEO: meta, JSON-LD, sitemap, robots, breadcrumbs
-- [x] Free in-browser study; premium body not rendered (Telegram CTA)
 - [x] College API client + mapper
-- [x] Pest coverage for webhook, resource access, study pages, SEO/sitemap, College API, payments, referrals, broadcasts, admin
+- [x] Pest coverage for webhook, resource access, SEO/sitemap, College API, payments, referrals, broadcasts, admin
 
 ### Seeder baseline
 
@@ -106,72 +117,54 @@ Do not rebuild these.
 
 ---
 
-## Next (V1 slice)
+## Next (V1 offer slice)
 
-Work top to bottom. Check when done.
+### WP0 — Tracker + defaults
 
-### WP0 — Repo hygiene
+- [ ] README locked decisions match one-pager
+- [ ] Defaults: `premium_price = 30`, `required_referrals = 3`
+- [ ] Tests lock N=3 default
 
-- [ ] Commit / PR the uncommitted public SEO site + College API work
-- [ ] Ensure Pest still passes: webhook/onboarding, resource access, study pages, SEO/sitemap, College API, payment verification, referrals, broadcasts, admin access
-- [ ] Fix deploy/env docs only if required to run locally
+### WP1 — Path schema + Filament
 
-**Done when:** main (or release branch) contains the public site + College API; CI/tests green.
+- [ ] `module_id`, `sort_order`, `is_bait` on learning resources
+- [ ] `ResourceType::Worksheet`; StudyPlan + items
+- [ ] Filament: parent module, sort order, bait; hide Assignment create
+- [ ] Flashcards require module + premium
 
-### WP1 — Settings & referral threshold
+### WP2 — Telegram ordered path
 
-- [ ] Defaults: `premium_price = 30`, `required_referrals = 3` (code default is still `5` in `SettingsService`)
-- [ ] Confirm referral unlock grants the same premium/subscription state as verified payment
-- [ ] No hardcoded “5 friends” strings — use the setting (default 3)
-- [ ] Tests: unlock at 3, not at 2; lock **default** N=3 (not only a test override)
+- [ ] `CoursePathService`; course UI = path not hubs-first
+- [ ] Continue = next path step
+- [ ] Free: bait only; premium: full path
+- [ ] Hubs = premium archive secondary (include exams)
 
-**Done when:** changing N in admin changes unlock behavior without code deploy; tests lock N=3 default.
+### WP3 — CTA-only web + deep links
 
-### WP2 — Free/premium packaging (matrix)
+- [ ] No in-browser study
+- [ ] Home CTA: “Grab free Week-1 / course bait”
+- [ ] `/start` handles `bait`, `resource_*`, `course_*`
 
-- [ ] Model or convention for teaser vs full (e.g. two resources, `preview_resource_id`, or structured free-until-chapter)
-- [ ] Enforce matrix in Telegram delivery (notes, quiz, exam, flashcards)
-- [ ] Enforce matrix on public study pages (free body only)
-- [ ] Premium CTA: price + referral progress (X/3) + pay instructions entry
-- [ ] Tests: free sample accessible; premium blocked; unlock after pay; unlock after 3 referrals
+### WP4 — Study plans + WAU
 
-**Done when:** non-premium students get teasers only; premium students get full Natural S1 flagged content.
-
-### WP3 — Ship public acquisition loop
-
-- [ ] Public loop committed and deployable (routes/SEO/study/CTA already implemented — see Built)
-- [ ] Cold-visitor path verified: free sample on web → Telegram on the right course/resource
-- [ ] Premium pages do not leak full content in production
-
-**Done when:** a cold visitor can study a free sample on web and land in Telegram on the right resource.
-
-### WP4 — Natural S1 content spine
-
-Use College API / admin wizard to **generate and publish** (not just scaffold) for Mathematics, Physics, Chemistry, English:
-
-- [ ] Free: Ch1 (or ~20–25%) notes + sample mid Qs + ch1 quiz or capped quiz + flashcard teaser
-- [ ] Premium: full notes + full quiz/trainer + past mid/final pack + full flashcards
-- [ ] All published, correctly flagged, attached to Natural + course (+ optional semester S1)
-
-**Done when:** a new Natural student sees a non-empty free path and a clear premium wall before “full exam readiness.”
+- [ ] Filament StudyPlan CRUD
+- [ ] Mini-app: bait checklist free; week / exam-sprint premium
+- [ ] Cohort urgency setting on premium screen
+- [ ] Filament: Weekly active study (7d distinct openers)
 
 ### WP5 — Soft launch verification
 
-- [ ] Checklist: onboard → open ≥3 free resources → premium wall → manual payment verify → premium access
-- [ ] Second path: 3 referred students qualify → referrer unlocks premium
-- [ ] Broadcasts still send; referral progress UI shows N=3
-- [ ] Note friction for PM (copy, payment instructions)
+- [ ] Free bait path → premium wall → pay unlock
+- [ ] Referral unlock at N=3
+- [ ] Cold visitor: web CTA → Telegram bait
 
-**Done when:** both unlock paths proven on staging/non-prod bot; known issues listed.
+### Definition of Done
 
-### Definition of Done (slice)
-
-- [ ] Public site + College API shipped (committed, deployable)
-- [ ] Defaults: 30 ETB, referral unlock **3**
-- [ ] Free/premium behavior matches the matrix for Telegram + web
-- [ ] Natural S1 four-course spine published (free teasers + premium full)
-- [ ] E2E: free path, pay unlock, referral unlock all verified
-- [ ] No new work started on out-of-scope list
+- [ ] One-pager free/premium/never-ships reflected in code + README
+- [ ] Ordered path + bait gating in Telegram
+- [ ] Web is CTA only
+- [ ] Study plans + weekly active study metric
+- [ ] Pest green for changed behaviors
 
 ---
 
@@ -181,35 +174,35 @@ Use College API / admin wizard to **generate and publish** (not just scaffold) f
 - Social stream spine
 - Telebirr / automated PSP when manual verify becomes painful
 - Opportunities as curated TG posts only (ops), not a module
+- Contests/streaks into week plans
+- PPT file storage as module companions
 - Keyboard builder, bookmarks product, student web login
 
 ---
 
-## Out of scope (this slice)
+## Out of scope / Never ships (V1)
 
-Do **not** build these now:
-
-- Opportunities / jobs / scholarships module
-- Career paths / portfolio
-- GPA calculator, study planner, Pomodoro, etc.
-- Configurable Telegram Keyboard Builder (keep fixed menu)
+- Campus Survival OS (registration, dorm, ID, costs, logistics)
+- Career paths / internship / opportunity marketplace
+- Portfolio builder
+- Assignment / homework mill
+- National “all Ethiopia PDFs” factory
+- SEO as the product (site = CTA only)
 - Payment gateway / Telebirr automation
-- Full Amharic i18n (bilingual snippets OK if already trivial)
 - Student web accounts / dashboard
-- Bookmarks product, real file-download product
-- Social stream parity, Year 2+, AI tutor, video library
-- Multi-tier subscription plans (1mo / 6mo / 1yr)
-
-If a task is not in WP0–WP5, do not build it in this slice.
+- Multi-tier subscription plans
+- Feature-checklist arms race
 
 ---
 
 ## North-star checks
 
-- New student can open ≥3 free resources without premium
-- Premium resources show clear unlock CTA (30 ETB **or** invite 3 friends)
-- After 3 qualified referrals **or** admin-verified payment → full premium access
-- Public free pages study in browser; premium never fully exposed on web (CTA to Telegram)
+- New student can open bait notes + sample quiz without premium
+- Flashcards and week plans never free
+- Premium resources / path steps show clear unlock CTA (30 ETB **or** invite 3 friends)
+- After 3 qualified referrals **or** admin-verified payment → full path access
+- Public pages never render study payload — Telegram CTA only
+- Admin dashboard shows weekly active study
 
 ---
 

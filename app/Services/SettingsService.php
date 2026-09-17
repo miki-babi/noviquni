@@ -26,6 +26,8 @@ class SettingsService
 
     public const TELEGRAM_START_BUTTONS = 'telegram_start_buttons';
 
+    public const COHORT_URGENCY_COPY = 'cohort_urgency_copy';
+
     /**
      * @return array<string, string>
      */
@@ -33,7 +35,7 @@ class SettingsService
     {
         return [
             self::PREMIUM_PRICE => '30',
-            self::REQUIRED_REFERRALS => '5',
+            self::REQUIRED_REFERRALS => '3',
             self::FREE_REFERRAL_REWARD => '2',
             self::PREMIUM_REFERRAL_REWARD => '10',
             self::PREMIUM_DURATION_DAYS => '30',
@@ -41,6 +43,7 @@ class SettingsService
             self::TELEGRAM_START_IMAGE => '',
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
+            self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock the full study path this week — 30 ETB or invite 3 friends.',
         ];
     }
 
@@ -70,7 +73,7 @@ class SettingsService
 
     public function requiredReferrals(): int
     {
-        return (int) $this->get(self::REQUIRED_REFERRALS, '5');
+        return (int) $this->get(self::REQUIRED_REFERRALS, '3');
     }
 
     public function freeReferralReward(): float
@@ -120,6 +123,11 @@ class SettingsService
         return $this->telegramStartImage() !== null
             || ! TelegramHtml::isBlank($this->telegramStartCaption())
             || $this->telegramStartButtons() !== [];
+    }
+
+    public function cohortUrgencyCopy(): string
+    {
+        return $this->get(self::COHORT_URGENCY_COPY);
     }
 
     public function seedDefaults(): void

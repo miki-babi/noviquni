@@ -5,26 +5,34 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('renders interactive study UIs for free published college resources', function (string $state, string $visibleText, string $heading) {
+it('never renders interactive study UIs on public resource pages', function (string $state, string $hiddenText, bool $bait) {
     config(['services.telegram.bot_username' => 'noviquni_bot']);
 
     $resource = LearningResource::factory()->published()->{$state}()->create([
-        'title' => 'Anthropology '.$heading,
+        'title' => 'Anthropology Resource',
         'slug' => 'anthropology-'.str($state)->slug(),
+        'is_bait' => $bait,
     ]);
 
-    $this->get(route('resources.show', $resource))
+    $response = $this->get(route('resources.show', $resource))
         ->assertOk()
-        ->assertSee($heading, false)
-        ->assertSee($visibleText, false)
-        ->assertSee('Study on the web', false)
-        ->assertSee('Also open in Telegram', false)
-        ->assertDontSee('full generated content is delivered inside Telegram', false);
+        ->assertSee('Anthropology Resource', false)
+        ->assertSee('https://t.me/noviquni_bot?start=resource_'.$resource->id, false)
+        ->assertSee('organized study path lives inside Telegram', false)
+        ->assertDontSee($hiddenText, false)
+        ->assertDontSee('Study on the web', false)
+        ->assertDontSee('Also open in Telegram', false);
+
+    if ($bait) {
+        $response->assertSee('Grab free Week-1 bait in Telegram', false);
+    } else {
+        $response->assertSee('Open in Telegram to access', false);
+    }
 })->with([
-    'notes' => ['notes', 'Anthropology studies humankind across time and space.', 'Study notes'],
-    'quiz' => ['quiz', 'What are the Greek roots of anthropology?', 'Practice quiz'],
-    'exam' => ['exam', 'Which statement best describes anthropology?', 'Practice exam'],
-    'flashcards' => ['flashcards', 'What does anthropos mean?', 'Flashcards'],
+    'notes' => ['notes', 'Anthropology studies humankind across time and space.', true],
+    'quiz' => ['quiz', 'What are the Greek roots of anthropology?', true],
+    'exam' => ['exam', 'Which statement best describes anthropology?', true],
+    'flashcards' => ['flashcards', 'What does anthropos mean?', false],
 ]);
 
 it('hides premium quiz payload from the public page and keeps the telegram cta', function () {
@@ -39,7 +47,7 @@ it('hides premium quiz payload from the public page and keeps the telegram cta',
         ->assertOk()
         ->assertSee('Premium Anthropology Quiz')
         ->assertSee('Premium via Telegram', false)
-        ->assertSee('full generated content is delivered inside Telegram', false)
+        ->assertSee('organized study path lives inside Telegram', false)
         ->assertSee('https://t.me/noviquni_bot?start=resource_'.$resource->id, false)
         ->assertDontSee('What are the Greek roots of anthropology?', false)
         ->assertDontSee('Anthropos and logos', false)
@@ -73,6 +81,6 @@ it('keeps telegram landing for free resources without study payload', function (
     $this->get(route('resources.show', $resource))
         ->assertOk()
         ->assertSee('Module Pack')
-        ->assertSee('full generated content is delivered inside Telegram', false)
+        ->assertSee('organized study path lives inside Telegram', false)
         ->assertDontSee('Practice quiz', false);
 });
