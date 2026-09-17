@@ -140,7 +140,10 @@ return [
     ],
     'saved' => [
         'title' => 'Quick saved',
+        'page_title' => 'Quick saved (:page/:pages)',
         'empty' => 'Nothing saved yet — tap Save on a resource.',
+        'back' => '‹ Back',
+        'next' => 'Next ›',
         'save' => 'Save',
         'unsave' => 'Saved',
         'saved_status' => 'Saved to Quick saved.',

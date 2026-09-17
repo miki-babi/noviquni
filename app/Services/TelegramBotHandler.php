@@ -182,6 +182,10 @@ class TelegramBotHandler
             str_starts_with($data, 'hub:') => $this->handleHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
+            str_starts_with($data, 'saved:page:') => $this->guardComplete(
+                $user,
+                fn () => $this->showSaved($user, $chatId, $messageId, (int) Str::after($data, 'saved:page:')),
+            ),
             $data === 'notify:on' => $this->handleNotifyOn($user, $chatId),
             $data === 'profile:notify' => $this->guardComplete($user, function () use ($user, $chatId): void {
                 $this->toggleNotifications($user, $chatId);
@@ -452,7 +456,7 @@ class TelegramBotHandler
         match ($action) {
             'courses', 'browse' => $this->sendMiniAppOpen($user, $chatId, 'courses', 'tg.browse'),
             'resources' => $this->sendMiniAppOpen($user, $chatId, 'resources', 'tg.library'),
-            'saved' => $this->sendMiniAppOpen($user, $chatId, 'saved', 'tg.saved'),
+            'saved' => $this->showSaved($user, $chatId),
             'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
             'continue' => $this->showContinue($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),
@@ -1109,9 +1113,10 @@ class TelegramBotHandler
         ], $messageId);
     }
 
-    protected function showSaved(User $user, int|string $chatId, ?int $messageId = null): void
+    protected function showSaved(User $user, int|string $chatId, ?int $messageId = null, int $page = 0): void
     {
         $copy = TelegramCopy::for($user);
+        $perPage = 5;
 
         $bookmarks = $user->bookmarks()
             ->with('learningResource')
@@ -1134,13 +1139,52 @@ class TelegramBotHandler
             return;
         }
 
-        $rows = $bookmarks->map(fn ($bookmark) => [[
-            'text' => $bookmark->learningResource->title,
-            'callback_data' => 'open_resource:'.$bookmark->learningResource->id,
-            'style' => TelegramButtonStyle::Primary->value,
-        ]])->values()->all();
+        $totalPages = (int) max(1, (int) ceil($bookmarks->count() / $perPage));
+        $page = max(0, min($page, $totalPages - 1));
 
-        $this->telegram->replyOrEdit($chatId, $copy->get('saved.title'), [
+        $rows = $bookmarks
+            ->slice($page * $perPage, $perPage)
+            ->map(function ($bookmark) {
+                $resource = $bookmark->learningResource;
+                $typeLabel = $resource->type instanceof ResourceType
+                    ? $resource->type->label()
+                    : '';
+                $label = trim($typeLabel.' · '.$resource->title, ' ·');
+
+                return [[
+                    'text' => Str::limit($label, 64, '…'),
+                    'callback_data' => 'open_resource:'.$resource->id,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            })
+            ->values()
+            ->all();
+
+        if ($totalPages > 1) {
+            $nav = [];
+
+            if ($page > 0) {
+                $nav[] = [
+                    'text' => $copy->get('saved.back'),
+                    'callback_data' => 'saved:page:'.($page - 1),
+                ];
+            }
+
+            if ($page < $totalPages - 1) {
+                $nav[] = [
+                    'text' => $copy->get('saved.next'),
+                    'callback_data' => 'saved:page:'.($page + 1),
+                    'style' => TelegramButtonStyle::Primary->value,
+                ];
+            }
+
+            $rows[] = $nav;
+        }
+
+        $this->telegram->replyOrEdit($chatId, $copy->get('saved.page_title', [
+            'page' => $page + 1,
+            'pages' => $totalPages,
+        ]), [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
     }

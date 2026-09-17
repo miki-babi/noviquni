@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\OnboardingStep;
+use App\Enums\ResourceType;
 use App\Jobs\ProcessTelegramUpdateJob;
+use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
@@ -218,7 +220,7 @@ it('shows continue studying CTA on start when user has courses', function () {
     });
 });
 
-it('shows browse courses without zero counts when content exists', function () {
+it('sends an inline Mini App opener when Courses is tapped', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -233,27 +235,40 @@ it('shows browse courses without zero counts when content exists', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Intro notes',
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555004, '📖 Browse'))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555004, '📚 Courses'))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttonText = (string) data_get($data, 'reply_markup.inline_keyboard.0.0.text');
 
-        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course:{$course->id}"
-            && $buttonText === 'Physics'
-            && ! str_contains($buttonText, '(0)');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📚 Open Courses';
+    });
+});
+
+it('sends an inline Mini App opener for legacy Browse label', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555014',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555014, '📖 Browse', 500))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -275,19 +290,15 @@ it('shows coming soon browse state without counts when enrolled but empty', func
     $this->postJson('/telegram/webhook', telegramMessagePayload(555022, '📖 Browse', 402))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'coming soon')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Mathematics'
-                && ($button['callback_data'] ?? '') === "course:{$course->id}")
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'notify:on')
-            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), '(0)'));
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -391,11 +402,10 @@ it('shows profile submenu with notifications refer and settings', function () {
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:notify')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:refer')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'profile:settings');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Profile in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Open Profile';
     });
 });
 
@@ -447,14 +457,14 @@ it('still routes legacy my courses label to browse', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555027, '📚 My Courses', 407))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "course:{$course->id}";
+        return data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -781,5 +791,128 @@ it('still opens continue from the legacy continue label', function () {
         }
 
         return str_contains((string) data_get($request->data(), 'text'), 'Pick up where you left off');
+    });
+});
+
+it('lists quick saved as chat buttons newest first without opening the Mini App', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555040',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $older = LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Older notes',
+        'type' => ResourceType::LectureNotes,
+    ]);
+    $newer = LearningResource::factory()->bait()->worksheet()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Newer worksheet',
+        'type' => ResourceType::Worksheet,
+    ]);
+
+    Bookmark::query()->create([
+        'user_id' => $user->id,
+        'learning_resource_id' => $older->id,
+    ]);
+    Bookmark::query()->create([
+        'user_id' => $user->id,
+        'learning_resource_id' => $newer->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555040, '🔖 Quick saved', 540))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($older, $newer) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
+        $buttons = $rows->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
+            && data_get($rows, '0.0.callback_data') === "open_resource:{$newer->id}"
+            && data_get($rows, '1.0.callback_data') === "open_resource:{$older->id}"
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Worksheet · Newer worksheet'))
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Lecture notes · Older notes'))
+            && $buttons->every(fn (array $button) => ! isset($button['web_app']));
+    });
+});
+
+it('paginates quick saved with next and back callbacks', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Chemistry',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555041',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    foreach (range(1, 6) as $index) {
+        $resource = LearningResource::factory()->bait()->notes()->create([
+            'course_id' => $course->id,
+            'stream_id' => $stream->id,
+            'title' => "Saved notes {$index}",
+        ]);
+
+        Bookmark::query()->create([
+            'user_id' => $user->id,
+            'learning_resource_id' => $resource->id,
+        ]);
+    }
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555041, '🔖 Quick saved', 541))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
+        $buttons = $rows->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/2)')
+            && $rows->count() === 6
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:1'
+                && ($button['text'] ?? '') === 'Next ›')
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:0');
+    });
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:1', 99, 542))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (2/2)')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:0'
+                && ($button['text'] ?? '') === '‹ Back')
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:1');
     });
 });
