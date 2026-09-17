@@ -100,7 +100,7 @@ it('sends the admin start photo caption and inline buttons on /start', function 
         $data = $request->data();
 
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+            && str_contains((string) ($data['text'] ?? ''), 'Choose an option from the menu.')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses'
             && data_get($data, 'reply_markup.keyboard.0.0.web_app.url') === route('tg.browse');
     });
@@ -128,6 +128,14 @@ it('falls back to default welcome when no custom start message is configured', f
 
         return str_contains((string) ($data['text'] ?? ''), 'Welcome back, Abebe')
             && filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
+    });
+
+    Http::assertSent(function ($request) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/sendMessage')
+            && (string) ($data['text'] ?? '') === 'Choose an option from the menu.'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses';
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendPhoto'));

@@ -487,7 +487,7 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage(
             $chatId,
-            TelegramCopy::for($user)->get('start.keyboard_hint'),
+            TelegramCopy::for($user)->get('menu.choose'),
             ['reply_markup' => $this->telegram->mainKeyboard($user)],
         );
     }
