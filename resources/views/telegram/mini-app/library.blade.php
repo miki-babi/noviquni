@@ -2,19 +2,12 @@
     <p class="px-4 pb-2 text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.title') }}</p>
 
     @if ($hubs->every(fn (array $item): bool => $item['count'] === 0))
-        <div class="space-y-3 px-4 text-center">
-            <x-telegram.lottie name="empty-library" />
-            <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.empty') }}</p>
-        </div>
+        <p class="px-4 text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.empty') }}</p>
     @else
         <div class="tg-section">
             @foreach ($hubs as $item)
                 @if ($item['count'] > 0)
                     <a href="{{ route('tg.library.hub', $item['hub']->value) }}" class="tg-cell">
-                        <x-telegram.lottie
-                            name="hub-{{ $item['hub']->value }}"
-                            class="tg-lottie tg-lottie-hub"
-                        />
                         <span class="tg-cell-body">
                             <span class="tg-cell-title">{{ $item['label'] }}</span>
                         </span>

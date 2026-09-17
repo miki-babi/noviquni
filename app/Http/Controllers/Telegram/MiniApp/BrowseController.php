@@ -44,14 +44,19 @@ class BrowseController extends Controller
                     'completed' => $completed,
                     'total' => $total,
                     'path_complete' => $pathComplete,
+                    'resource_count' => (int) $course->published_resources_count,
                 ];
             })
             ->values();
+
+        $continue = $courseRows
+            ->first(fn (array $row): bool => $row['next'] !== null && ! $row['path_complete']);
 
         return view('telegram.mini-app.browse', [
             'copy' => $copy,
             'user' => $user,
             'courseRows' => $courseRows,
+            'continue' => $continue,
             'state' => $state,
             'activeNav' => 'courses',
         ]);

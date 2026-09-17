@@ -11,7 +11,6 @@
 </head>
 <body class="tg-page antialiased">
     <main class="mx-auto flex min-h-screen max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
-        <x-telegram.lottie name="loading" class="tg-lottie tg-lottie-loading" />
         <p class="text-base font-semibold">{{ config('app.name') }}</p>
         @if (session('error'))
             <p id="tg-bootstrap-status" class="text-sm" style="color: var(--tg-destructive);">{{ session('error') }}</p>

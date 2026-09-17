@@ -63,10 +63,11 @@ it('shows browse courses for an authenticated student', function () {
         'onboarding_step' => OnboardingStep::Complete,
         'stream_id' => $stream->id,
         'is_active' => true,
+        'name' => 'Abebe Kebede',
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
@@ -75,12 +76,28 @@ it('shows browse courses for an authenticated student', function () {
     $this->actingAs($user)
         ->get(route('tg.browse'))
         ->assertOk()
+        ->assertSee('Courses')
+        ->assertSee('Continue')
+        ->assertSee('Resume →')
         ->assertSee('Physics')
-        ->assertSee('Next: Week-1 notes')
-        ->assertSee('0/1')
+        ->assertSee('Week-1 notes')
+        ->assertSee('My courses')
+        ->assertSee('1 resources')
+        ->assertSee('+ Add another course')
+        ->assertSee($resource->miniAppUrl(), false)
         ->assertSee('data-tg-menu-button', false)
+        ->assertSee('Study')
+        ->assertSee('Account')
+        ->assertSee('Other')
+        ->assertSee('Abebe Kebede')
+        ->assertDontSee('0/1')
+        ->assertDontSee('1/2')
+        ->assertDontSee('Next: Week-1 notes')
         ->assertDontSee('grid-cols-4', false)
         ->assertDontSee('(0)');
+
+    $html = $this->actingAs($user)->get(route('tg.browse'))->getContent();
+    expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/');
 });
 
 it('shows continue next path step for bait resources', function () {

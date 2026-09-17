@@ -7,6 +7,7 @@
     'resource' => null,
     'isBookmarked' => false,
     'activeNav' => null,
+    'user' => null,
 ])
 
 @php
@@ -14,7 +15,7 @@
 @endphp
 
 <!DOCTYPE html>
-<html lang="{{ $copy->locale }}">
+<html lang="{{ $copy->locale }}" class="dark">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -28,7 +29,7 @@
 <body class="tg-page antialiased">
     <div class="mx-auto flex min-h-screen max-w-lg flex-col">
         <header class="tg-header sticky top-0 z-20 px-4 py-3">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
                 @if ($backUrl)
                     <a
                         href="{{ $backUrl }}"
@@ -40,9 +41,8 @@
                     </a>
                 @endif
                 <div class="min-w-0 flex-1">
-                    <p class="text-xs font-medium tg-hint">{{ config('app.name') }}</p>
                     @if ($title)
-                        <h1 class="truncate text-lg font-semibold tracking-tight">{{ $title }}</h1>
+                        <h1 class="tg-page-title truncate">{{ $title }}</h1>
                     @endif
                 </div>
                 @if ($resource)
@@ -50,13 +50,13 @@
                         @csrf
                         <button
                             type="submit"
-                            class="inline-flex h-9 items-center justify-center rounded-lg px-2 text-xs font-semibold tg-link"
+                            class="inline-flex h-11 items-center justify-center rounded-xl px-2 text-xs font-semibold tg-link"
                         >
                             {{ $isBookmarked ? $copy->get('saved.unsave') : $copy->get('saved.save') }}
                         </button>
                     </form>
                 @endif
-                <x-telegram.mini-app.menu :copy="$copy" :active-nav="$activeNav" />
+                <x-telegram.mini-app.menu :copy="$copy" :active-nav="$activeNav" :user="$user" />
             </div>
         </header>
 
