@@ -27,11 +27,45 @@
             const form = document.getElementById('tg-session-form');
             const input = document.getElementById('init_data');
             const status = document.getElementById('tg-bootstrap-status');
+            const diagnoseUrl = @json(route('tg.session.diagnose'));
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
             const maxWaitMs = 1500;
             const pollMs = 50;
             const startedAt = Date.now();
 
+            function diagnose(payload) {
+                fetch(diagnoseUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify(payload),
+                    keepalive: true,
+                    credentials: 'same-origin',
+                }).catch(function () {});
+            }
+
+            function clientContext(extra) {
+                const tg = window.Telegram?.WebApp;
+                const initData = tg?.initData || '';
+
+                return Object.assign({
+                    has_telegram: Boolean(tg),
+                    has_init_data: Boolean(initData),
+                    init_data_length: initData.length,
+                    tg_platform: tg?.platform || null,
+                    tg_version: tg?.version || null,
+                    path: window.location.pathname,
+                    waited_ms: Date.now() - startedAt,
+                }, extra || {});
+            }
+
             function showFallback() {
+                diagnose(clientContext({ event: 'init_data_missing' }));
+
                 if (!status || status.dataset.error === '1') {
                     return;
                 }
@@ -41,6 +75,7 @@
             }
 
             function submitInitData(initData) {
+                diagnose(clientContext({ event: 'init_data_present' }));
                 input.value = initData;
                 form.submit();
             }
@@ -74,6 +109,10 @@
                 if (status) {
                     status.dataset.error = '1';
                 }
+                diagnose(clientContext({
+                    event: 'auth_error',
+                    message: status?.textContent?.slice(0, 200) || 'auth_error',
+                }));
             @endif
 
             tryAuthenticate();

@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Services\SettingsService;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Event;
 
 uses(RefreshDatabase::class);
 
@@ -230,4 +232,77 @@ it('rejects redirects that are not under the /tg path', function () {
     ])->assertRedirect(route('tg.home'));
 
     $this->assertAuthenticatedAs($user);
+});
+
+it('logs guest bootstrap and client diagnose events', function () {
+    $logged = collect();
+
+    Event::listen(
+        MessageLogged::class,
+        function (MessageLogged $event) use ($logged): void {
+            $logged->push($event);
+        }
+    );
+
+    $this->get(route('tg.browse'))->assertOk();
+
+    expect($logged->contains(
+        fn (MessageLogged $event): bool => $event->level === 'info'
+            && $event->message === 'Telegram mini-app guest bootstrap'
+    ))->toBeTrue();
+
+    $this->postJson(route('tg.session.diagnose'), [
+        'event' => 'init_data_missing',
+        'has_telegram' => true,
+        'has_init_data' => false,
+        'init_data_length' => 0,
+        'tg_platform' => 'android',
+        'tg_version' => '8.0',
+        'path' => '/tg/browse',
+        'waited_ms' => 1500,
+    ])->assertOk()->assertJson(['ok' => true]);
+
+    expect($logged->contains(
+        fn (MessageLogged $event): bool => $event->level === 'info'
+            && $event->message === 'Telegram mini-app client diagnose'
+            && ($event->context['event'] ?? null) === 'init_data_missing'
+    ))->toBeTrue();
+});
+
+it('logs session store failures without exposing initData', function () {
+    $logged = collect();
+
+    Event::listen(
+        MessageLogged::class,
+        function (MessageLogged $event) use ($logged): void {
+            $logged->push($event);
+        }
+    );
+
+    User::factory()->student()->create([
+        'telegram_id' => '555891',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $initData = makeTelegramInitData([
+        'id' => 555891,
+        'first_name' => 'Abebe',
+    ], 'wrong-token');
+
+    $this->from(route('tg.browse'))
+        ->post(route('tg.session.store'), [
+            'init_data' => $initData,
+            'redirect' => route('tg.browse'),
+        ])
+        ->assertRedirect();
+
+    $failure = $logged->first(
+        fn (MessageLogged $event): bool => $event->level === 'warning'
+            && $event->message === 'Telegram mini-app session.store failed'
+    );
+
+    expect($failure)->not->toBeNull()
+        ->and($failure->context['reason'] ?? null)->toBe('Telegram initData signature is invalid.')
+        ->and(json_encode($failure->context))->not->toContain($initData);
 });

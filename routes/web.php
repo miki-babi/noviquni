@@ -47,6 +47,9 @@ Route::prefix('tg')->name('tg.')->group(function () {
     Route::post('session', [SessionController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('session.store');
+    Route::post('session/diagnose', [SessionController::class, 'diagnose'])
+        ->middleware('throttle:60,1')
+        ->name('session.diagnose');
 
     Route::middleware(['telegram.miniapp', 'throttle:60,1'])->group(function () {
         Route::get('/', App\Http\Controllers\Telegram\MiniApp\HomeController::class)->name('home');

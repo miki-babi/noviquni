@@ -11,6 +11,38 @@ class TelegramWebAppAuth
     public function __construct(public int $maxAgeSeconds = 86400) {}
 
     /**
+     * Safe metadata for logs — never includes hash or raw initData.
+     *
+     * @return array{
+     *     init_data_length: int,
+     *     has_hash: bool,
+     *     has_user: bool,
+     *     auth_date: int|null,
+     *     auth_age_seconds: int|null,
+     *     telegram_user_id: string|null
+     * }
+     */
+    public function safeInitDataMeta(string $initData): array
+    {
+        $params = [];
+        parse_str($initData, $params);
+
+        $authDate = isset($params['auth_date']) ? (int) $params['auth_date'] : null;
+        $userJson = (string) ($params['user'] ?? '');
+        $user = json_decode($userJson, true);
+        $telegramUserId = is_array($user) && isset($user['id']) ? (string) $user['id'] : null;
+
+        return [
+            'init_data_length' => strlen($initData),
+            'has_hash' => filled($params['hash'] ?? null),
+            'has_user' => filled($userJson),
+            'auth_date' => $authDate > 0 ? $authDate : null,
+            'auth_age_seconds' => $authDate > 0 ? abs(now()->timestamp - $authDate) : null,
+            'telegram_user_id' => $telegramUserId,
+        ];
+    }
+
+    /**
      * @return array{user: array<string, mixed>, auth_date: int, raw: array<string, string>}
      */
     public function validate(string $initData, ?string $botToken = null): array
