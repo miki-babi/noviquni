@@ -16,4 +16,27 @@ class EditLearning extends EditRecord
             DeleteAction::make(),
         ];
     }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        unset($data['file_mode']);
+
+        if (array_key_exists('files', $data)) {
+            $files = $data['files'];
+
+            if (is_string($files) && filled($files)) {
+                $data['files'] = [$files];
+            } elseif (! is_array($files) || $files === []) {
+                $data['files'] = null;
+            } else {
+                $data['files'] = array_values(array_filter($files, fn ($path): bool => filled($path)));
+            }
+        }
+
+        return $data;
+    }
 }

@@ -134,6 +134,7 @@ it('creates a learning resource from college API generated content via the creat
 
     Livewire::test(CreateLearning::class)
         ->fillForm([
+            'creation_mode' => 'generate',
             'stream_id' => $stream->id,
             'course_id' => $course->id,
             'is_premium' => false,

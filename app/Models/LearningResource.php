@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'is_published',
     'content',
     'generation_kind',
+    'files',
     'seo_title',
     'seo_description',
     'seo_content',
@@ -109,6 +110,11 @@ class LearningResource extends Model
     public function canStudyOnWeb(): bool
     {
         return false;
+    }
+
+    public function hasFiles(): bool
+    {
+        return filled($this->files);
     }
 
     public function studyKind(): ?CollegeResourceKind
@@ -258,6 +264,7 @@ class LearningResource extends Model
             'generation_kind' => CollegeResourceKind::class,
             'topics' => 'array',
             'content' => 'array',
+            'files' => 'array',
             'is_premium' => 'boolean',
             'is_bait' => 'boolean',
             'is_published' => 'boolean',

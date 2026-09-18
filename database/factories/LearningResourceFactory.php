@@ -37,7 +37,17 @@ class LearningResourceFactory extends Factory
             'is_indexable' => true,
             'content' => null,
             'generation_kind' => null,
+            'files' => null,
         ];
+    }
+
+    public function withFiles(array $paths = ['learning-resources/sample.pdf']): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'files' => $paths,
+            'generation_kind' => null,
+            'content' => null,
+        ]);
     }
 
     public function published(): static

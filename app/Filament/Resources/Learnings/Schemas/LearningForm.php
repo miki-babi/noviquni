@@ -11,12 +11,15 @@ use App\Services\College\CollegeApiClient;
 use App\Services\College\CollegeApiException;
 use App\Services\College\CollegeCurriculumOptions;
 use App\Services\College\LearningResourceMapper;
+use Filament\Forms\Components\Component;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -131,11 +134,13 @@ class LearningForm
                     ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value
                         || (bool) $get('is_premium')),
                 Toggle::make('is_published')->default(false),
+                ...static::fileFields(required: false),
                 Textarea::make('content_preview')
                     ->label('Generated content')
                     ->rows(12)
                     ->disabled()
                     ->dehydrated(false)
+                    ->visible(fn (?LearningResource $record): bool => filled($record?->content))
                     ->afterStateHydrated(function (Textarea $component, mixed $state, ?LearningResource $record): void {
                         $content = $record?->content;
                         $component->state(
@@ -155,8 +160,24 @@ class LearningForm
     public static function createSteps(): array
     {
         return [
+            Step::make('Source')
+                ->description('1. Generate from the College API, or upload final study files.')
+                ->schema([
+                    ToggleButtons::make('creation_mode')
+                        ->label('How do you want to create this resource?')
+                        ->options([
+                            'generate' => 'Generate from College API',
+                            'upload' => 'Upload files',
+                        ])
+                        ->default('generate')
+                        ->required()
+                        ->live()
+                        ->grouped()
+                        ->dehydrated(false),
+                ]),
             Step::make('Courses')
-                ->description('1. Fetch all Noviq college courses, then modules for the selected course.')
+                ->description('2. Fetch all Noviq college courses, then modules for the selected course.')
+                ->visible(fn (Get $get): bool => static::isGenerateMode($get))
                 ->schema([
                     Select::make('api_course_id')
                         ->label('College course')
@@ -188,7 +209,8 @@ class LearningForm
                         }),
                 ]),
             Step::make('Curriculum')
-                ->description('2. Load the syllabus tree and pick a section (or unit / whole module).')
+                ->description('3. Load the syllabus tree and pick a section (or unit / whole module).')
+                ->visible(fn (Get $get): bool => static::isGenerateMode($get))
                 ->schema([
                     Select::make('api_scope_type')
                         ->label('Generate for')
@@ -232,7 +254,8 @@ class LearningForm
                         ->dehydrated(false),
                 ]),
             Step::make('Generate')
-                ->description('3. Create an activity from the selected sectionId / unitId / moduleId.')
+                ->description('4. Create an activity from the selected sectionId / unitId / moduleId.')
+                ->visible(fn (Get $get): bool => static::isGenerateMode($get))
                 ->schema([
                     Select::make('generation_kind')
                         ->label('Resource kind')
@@ -280,8 +303,108 @@ class LearningForm
                 ->afterValidation(function (Get $get, Set $set): void {
                     static::generateAndFill($get, $set);
                 }),
+            Step::make('Upload')
+                ->description('2. Enter details and attach the final study file(s).')
+                ->visible(fn (Get $get): bool => static::isUploadMode($get))
+                ->schema([
+                    Select::make('type')
+                        ->options(collect(ResourceType::creatableCases())->mapWithKeys(
+                            fn (ResourceType $type) => [$type->value => $type->label()]
+                        )->all())
+                        ->required()
+                        ->live()
+                        ->native(false)
+                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            if ($state === ResourceType::Flashcards->value) {
+                                $set('is_premium', true);
+                                $set('is_bait', false);
+                            }
+                        }),
+                    TextInput::make('title')
+                        ->required()
+                        ->live(onBlur: true)
+                        ->afterStateUpdated(fn (Set $set, ?string $state) => $set('slug', Str::slug($state ?? '')))
+                        ->columnSpanFull(),
+                    TextInput::make('slug')
+                        ->required()
+                        ->unique(ignoreRecord: true)
+                        ->columnSpanFull(),
+                    Textarea::make('description')->rows(3)->columnSpanFull(),
+                    TagsInput::make('topics')->columnSpanFull(),
+                    Select::make('stream_id')
+                        ->relationship('stream', 'name')
+                        ->live()
+                        ->afterStateUpdated(fn (Set $set) => $set('course_id', null))
+                        ->searchable()
+                        ->preload()
+                        ->helperText('Optional. Leave blank to browse all local courses.'),
+                    Select::make('course_id')
+                        ->label('Local course')
+                        ->options(fn (Get $get): array => Course::query()
+                            ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all())
+                        ->required()
+                        ->live()
+                        ->searchable()
+                        ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            if (! filled($state)) {
+                                return;
+                            }
+
+                            $streamId = Course::query()->whereKey($state)->value('stream_id');
+                            if ($streamId !== null) {
+                                $set('stream_id', $streamId);
+                            }
+
+                            $set('module_id', null);
+                        }),
+                    Select::make('module_id')
+                        ->label('Parent module')
+                        ->options(fn (Get $get): array => filled($get('course_id'))
+                            ? LearningResource::query()
+                                ->where('course_id', $get('course_id'))
+                                ->where('type', ResourceType::Module)
+                                ->orderBy('sort_order')
+                                ->orderBy('title')
+                                ->pluck('title', 'id')
+                                ->all()
+                            : [])
+                        ->searchable()
+                        ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
+                        ->required(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
+                        ->helperText('Required for flashcards. Attach notes/quiz/exam to a module when possible.'),
+                    TextInput::make('sort_order')
+                        ->numeric()
+                        ->integer()
+                        ->default(0)
+                        ->required(),
+                    Select::make('university_id')
+                        ->relationship('university', 'name')
+                        ->searchable()
+                        ->preload(),
+                    Select::make('semester_id')
+                        ->relationship('semester', 'name')
+                        ->searchable()
+                        ->preload(),
+                    Toggle::make('is_premium')
+                        ->default(false)
+                        ->live()
+                        ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
+                        ->dehydrated(),
+                    Toggle::make('is_bait')
+                        ->label('Free Week-1 bait')
+                        ->default(false)
+                        ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value
+                            || (bool) $get('is_premium')),
+                    Toggle::make('is_published')->default(false),
+                    ...static::fileFields(required: true),
+                    ...SeoFields::make(),
+                ]),
             Step::make('Publish')
-                ->description('4. Attach the generated resource to a local course and review details.')
+                ->description('5. Attach the generated resource to a local course and review details.')
+                ->visible(fn (Get $get): bool => static::isGenerateMode($get))
                 ->schema([
                     Select::make('stream_id')
                         ->relationship('stream', 'name')
@@ -380,6 +503,59 @@ class LearningForm
                     ...SeoFields::make(),
                 ]),
         ];
+    }
+
+    /**
+     * @return list<Component>
+     */
+    protected static function fileFields(bool $required = false): array
+    {
+        return [
+            ToggleButtons::make('file_mode')
+                ->label('File upload')
+                ->options([
+                    'single' => 'One file',
+                    'multiple' => 'Multiple files',
+                ])
+                ->default('single')
+                ->required()
+                ->live()
+                ->grouped()
+                ->dehydrated(false)
+                ->afterStateHydrated(function (ToggleButtons $component, mixed $state, ?LearningResource $record): void {
+                    $files = $record?->files ?? [];
+                    $component->state(count($files) > 1 ? 'multiple' : 'single');
+                }),
+            FileUpload::make('files')
+                ->label(fn (Get $get): string => $get('file_mode') === 'multiple' ? 'Study files' : 'Study file')
+                ->disk(config('filesystems.default'))
+                ->directory('learning-resources')
+                ->multiple()
+                ->maxFiles(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
+                ->acceptedFileTypes([
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-powerpoint',
+                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                ])
+                ->required($required)
+                ->helperText('Stored for admin use now. Student players will use these files in a later stage.')
+                ->columnSpanFull(),
+        ];
+    }
+
+    protected static function isGenerateMode(Get $get): bool
+    {
+        return ($get('creation_mode') ?? 'generate') === 'generate';
+    }
+
+    protected static function isUploadMode(Get $get): bool
+    {
+        return $get('creation_mode') === 'upload';
     }
 
     protected static function generateAndFill(Get $get, Set $set): void
