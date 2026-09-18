@@ -107,8 +107,7 @@ class LearningForm
                         : [])
                     ->searchable()
                     ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                    ->required(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
-                    ->helperText('Required for flashcards. Links notes, worksheets, and quizzes to the module spine.'),
+                    ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
                 TextInput::make('sort_order')
                     ->numeric()
                     ->integer()
@@ -373,8 +372,7 @@ class LearningForm
                             : [])
                         ->searchable()
                         ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                        ->required(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
-                        ->helperText('Required for flashcards. Attach notes/quiz/exam to a module when possible.'),
+                        ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->integer()
@@ -453,9 +451,7 @@ class LearningForm
                                 ->all()
                             : [])
                         ->searchable()
-                        ->required(fn (Get $get): bool => $get('generation_kind') === CollegeResourceKind::Flashcards->value
-                            || $get('type') === ResourceType::Flashcards->value)
-                        ->helperText('Required for flashcards. Attach notes/quiz/exam to a module when possible.'),
+                        ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->integer()
