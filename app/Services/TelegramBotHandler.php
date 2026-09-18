@@ -118,6 +118,12 @@ class TelegramBotHandler
         }
 
         if ($text === $this->telegram->courseKeyboardBackLabel()) {
+            if (Cache::pull($this->resourceHubSelectionCacheKey($user)) !== null) {
+                $this->showResourceKeyboard($user, $chatId);
+
+                return;
+            }
+
             $this->sendReplyKeyboard($user, $chatId);
 
             return;
@@ -126,17 +132,32 @@ class TelegramBotHandler
         $resourceHub = $this->telegram->resourceHubForKeyboardLabel($user, $text);
 
         if ($resourceHub !== null) {
-            $this->sendResourceHubMiniAppOpen($user, $chatId, $resourceHub);
+            $this->showCoursesForResourceHub($user, $chatId, $resourceHub);
 
             return;
         }
 
+        $selectedResourceHub = ResourceHub::tryFrom((string) Cache::get($this->resourceHubSelectionCacheKey($user)));
         $course = $user->courses()
             ->active()
+            ->when(
+                $selectedResourceHub !== null,
+                fn ($query) => $query->whereHas(
+                    'learningResources',
+                    fn ($resourceQuery) => $resourceQuery->published()->whereIn('type', $selectedResourceHub->typeValues()),
+                ),
+            )
             ->where('courses.name', $this->courseNameFromKeyboardLabel($text))
             ->first();
 
         if ($course !== null) {
+            if ($selectedResourceHub !== null) {
+                Cache::forget($this->resourceHubSelectionCacheKey($user));
+                $this->sendCourseResourceHubMiniAppOpen($user, $chatId, $course, $selectedResourceHub);
+
+                return;
+            }
+
             $this->showCourseHub($user, $chatId, $course->id);
 
             return;
@@ -528,17 +549,34 @@ class TelegramBotHandler
         ]);
     }
 
-    protected function sendResourceHubMiniAppOpen(User $user, int|string $chatId, ResourceHub $hub): void
+    protected function showCoursesForResourceHub(User $user, int|string $chatId, ResourceHub $hub): void
     {
-        $this->telegram->sendMessage($chatId, 'Open '.$hub->label().' in the study app:', [
+        Cache::put($this->resourceHubSelectionCacheKey($user), $hub->value, now()->addMinutes(15));
+
+        $this->telegram->sendMessage($chatId, 'Choose a course for '.$hub->label().':', [
+            'reply_markup' => $this->telegram->courseKeyboard($user, $hub),
+        ]);
+    }
+
+    protected function sendCourseResourceHubMiniAppOpen(User $user, int|string $chatId, Course $course, ResourceHub $hub): void
+    {
+        $this->telegram->sendMessage($chatId, 'Open '.$hub->label().' for '.$course->name.' in the study app:', [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 [
                     'text' => '📚 Open '.$hub->label(),
-                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.library.hub', ['hub' => $hub->value])],
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.library.hub', [
+                        'hub' => $hub->value,
+                        'course' => $course->slug,
+                    ])],
                     'style' => TelegramButtonStyle::Success->value,
                 ],
             ]]),
         ]);
+    }
+
+    protected function resourceHubSelectionCacheKey(User $user): string
+    {
+        return 'telegram.resource_hub_selection.'.$user->id;
     }
 
     protected function courseNameFromKeyboardLabel(string $text): string

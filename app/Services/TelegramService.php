@@ -148,10 +148,17 @@ class TelegramService
     /**
      * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
      */
-    public function courseKeyboard(User $user): array
+    public function courseKeyboard(User $user, ?ResourceHub $resourceHub = null): array
     {
         $courses = $user->courses()
             ->active()
+            ->when(
+                $resourceHub !== null,
+                fn ($query) => $query->whereHas(
+                    'learningResources',
+                    fn ($resourceQuery) => $resourceQuery->published()->whereIn('type', $resourceHub->typeValues()),
+                ),
+            )
             ->orderBy('courses.name')
             ->get();
 

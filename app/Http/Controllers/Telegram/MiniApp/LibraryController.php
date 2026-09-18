@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\PremiumService;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -47,7 +48,7 @@ class LibraryController extends Controller
         ]);
     }
 
-    public function hub(string $hub, PremiumService $premium): View|RedirectResponse
+    public function hub(Request $request, string $hub, PremiumService $premium): View|RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
@@ -59,6 +60,14 @@ class LibraryController extends Controller
 
         $copy = TelegramCopy::for($user);
         $courseIds = $user->courses()->pluck('courses.id');
+        $courseSlug = $request->string('course')->toString();
+        $course = $courseSlug === ''
+            ? null
+            : $user->courses()->where('courses.slug', $courseSlug)->first();
+
+        if ($courseSlug !== '' && $course === null) {
+            abort(404);
+        }
 
         $resources = $courseIds->isEmpty()
             ? collect()
@@ -66,6 +75,7 @@ class LibraryController extends Controller
                 ->published()
                 ->with('course')
                 ->whereIn('course_id', $courseIds)
+                ->when($course !== null, fn ($query) => $query->where('course_id', $course->id))
                 ->whereIn('type', $resourceHub->typeValues())
                 ->orderBy('sort_order')
                 ->orderBy('title')

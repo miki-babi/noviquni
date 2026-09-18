@@ -307,7 +307,7 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
     });
 });
 
-it('opens the selected resource type in the mini app', function () {
+it('shows courses with the selected resource type in a reply keyboard', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
     $user = User::factory()->student()->create([
@@ -326,12 +326,43 @@ it('opens the selected resource type in the mini app', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Notes'))
         ->assertOk();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($course) {
         $data = $request->data();
 
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) ($data['text'] ?? ''), 'Open Notes in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library.hub', 'notes');
+            && str_contains((string) ($data['text'] ?? ''), 'Choose a course for Notes')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 '.$course->name
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+    });
+});
+
+it('opens the selected course resource type in the mini app', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555028',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+    LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📚 Notes', 600))->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📗 Physics', 601))->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) ($data['text'] ?? ''), 'Open Notes for Physics in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library.hub', [
+                'hub' => 'notes',
+                'course' => $course->slug,
+            ]);
     });
 });
 
