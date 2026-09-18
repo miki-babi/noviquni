@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -21,7 +22,7 @@ beforeEach(function () {
     ]);
 });
 
-it('sends generated quiz content as telegram messages instead of a document', function () {
+it('opens generated quiz content in the mini app instead of dumping questions', function () {
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 99]], 200),
@@ -46,6 +47,7 @@ it('sends generated quiz content as telegram messages instead of a document', fu
         'generation_kind' => CollegeResourceKind::Quiz,
         'is_premium' => false,
         'is_bait' => true,
+        'files' => null,
         'content' => [
             'kind' => 'quiz',
             'scope_type' => 'section',
@@ -89,17 +91,89 @@ it('sends generated quiz content as telegram messages instead of a document', fu
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($resource) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $text = (string) ($request['text'] ?? '');
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+        $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
 
         return str_contains($text, 'Anthropology Quiz')
-            && str_contains($text, 'What are the Greek roots of anthropology?')
-            && str_contains($text, 'Anthropos and logos');
+            && ! str_contains($text, 'What are the Greek roots of anthropology?')
+            && ($button['text'] ?? null) === 'Open in study app'
+            && ($button['style'] ?? null) === 'success'
+            && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource);
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
+});
+
+it('sends uploaded resource files as telegram documents', function () {
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+
+    $relativePath = 'learnings/week-1-notes.pdf';
+    Storage::disk($disk)->put($relativePath, 'fake-pdf-bytes');
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendDocument' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555778',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+    ]);
+    $user->courses()->attach($course->id);
+
+    $resource = LearningResource::factory()->published()->create([
+        'title' => 'Week 1 Lecture Notes',
+        'stream_id' => $stream->id,
+        'course_id' => $course->id,
+        'type' => ResourceType::Notes,
+        'generation_kind' => null,
+        'content' => null,
+        'is_premium' => false,
+        'is_bait' => true,
+        'files' => [$relativePath],
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9002,
+        'callback_query' => [
+            'id' => 'cb-9002',
+            'data' => 'open_resource:'.$resource->id,
+            'from' => [
+                'id' => 555778,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 43,
+                'chat' => ['id' => 555778],
+                'text' => 'Resources',
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/sendDocument');
+    });
+
+    Http::assertNotSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
+
+        return array_key_exists('web_app', $button);
+    });
 });

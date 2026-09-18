@@ -18,7 +18,6 @@ use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
 use App\Models\Withdrawal;
-use App\Services\College\TelegramResourceFormatter;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Collection;
@@ -1088,10 +1087,77 @@ class TelegramBotHandler
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
 
-        $chunks = app(TelegramResourceFormatter::class)->format($resource);
+        if ($resource->hasFiles()) {
+            $this->sendResourceFiles($chatId, $resource);
 
-        foreach ($chunks as $chunk) {
-            $this->telegram->sendMessage($chatId, $chunk);
+            return;
+        }
+
+        $text = '<b>'.e($resource->title).'</b>';
+
+        if (filled($resource->description)) {
+            $text .= "\n\n".e($resource->description);
+        }
+
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('resource.open_in_app'),
+                    'web_app' => [
+                        'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
+                            'resource' => $resource,
+                        ]),
+                    ],
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ]]),
+        ]);
+    }
+
+    protected function sendResourceFiles(int|string $chatId, LearningResource $resource): void
+    {
+        $disk = Storage::disk(config('filesystems.default'));
+        $caption = $resource->title;
+        $sent = false;
+
+        foreach ($resource->files ?? [] as $path) {
+            if (! is_string($path) || blank($path)) {
+                continue;
+            }
+
+            if (! $disk->exists($path)) {
+                Log::warning('Telegram resource file missing on disk.', [
+                    'resource_id' => $resource->id,
+                    'path' => $path,
+                ]);
+
+                continue;
+            }
+
+            $absolutePath = $disk->path($path);
+
+            if (! is_file($absolutePath)) {
+                Log::warning('Telegram resource file path is not a local file.', [
+                    'resource_id' => $resource->id,
+                    'path' => $path,
+                ]);
+
+                continue;
+            }
+
+            $this->telegram->sendDocument(
+                $chatId,
+                $absolutePath,
+                $sent ? '' : $caption,
+            );
+            $sent = true;
+        }
+
+        if (! $sent) {
+            $this->telegram->sendMessage(
+                $chatId,
+                '<b>'.e($resource->title).'</b>',
+            );
         }
     }
 

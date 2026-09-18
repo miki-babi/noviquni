@@ -49,11 +49,18 @@ class TelegramService
      */
     public function sendDocument(int|string $chatId, string $fileUrlOrId, string $caption = ''): ?array
     {
-        return $this->call('sendDocument', [
+        $params = [
             'chat_id' => $chatId,
-            'document' => $fileUrlOrId,
             'caption' => $caption,
-        ]);
+        ];
+
+        if ($this->isLocalFilesystemPath($fileUrlOrId)) {
+            return $this->callMultipart('sendDocument', $params, 'document', $fileUrlOrId);
+        }
+
+        $params['document'] = $fileUrlOrId;
+
+        return $this->call('sendDocument', $params);
     }
 
     /**

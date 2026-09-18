@@ -120,6 +120,7 @@ return [
     ],
     'resource' => [
         'not_found' => 'Resource not found.',
+        'open_in_app' => 'Open in study app',
     ],
     'library' => [
         'title' => 'Resources across your courses',

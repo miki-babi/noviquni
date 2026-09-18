@@ -119,6 +119,7 @@ return [
     ],
     'resource' => [
         'not_found' => 'Resource not found.',
+        'open_in_app' => 'በጥናት መተግበሪያ ክፈት',
     ],
     'library' => [
         'title' => 'በኮርሶችዎ ያሉ መርጃዎች',
