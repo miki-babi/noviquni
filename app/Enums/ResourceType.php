@@ -49,7 +49,7 @@ enum ResourceType: string
     }
 
     /**
-     * Types admins may create for the V1 study path.
+     * Types admins may create for the catalog.
      *
      * @return list<self>
      */
@@ -68,21 +68,5 @@ enum ResourceType: string
             self::FinalExam,
             self::ReferenceBooks,
         ];
-    }
-
-    /**
-     * Path order within a module spine.
-     */
-    public function pathRank(): int
-    {
-        return match ($this) {
-            self::Module => 0,
-            self::Notes => 1,
-            self::Worksheet => 2,
-            self::Quiz => 3,
-            self::Flashcards => 4,
-            self::PracticeExams, self::MidExam, self::FinalExam => 5,
-            default => 99,
-        };
     }
 }

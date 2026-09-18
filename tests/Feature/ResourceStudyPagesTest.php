@@ -18,7 +18,7 @@ it('never renders interactive study UIs on public resource pages', function (str
         ->assertOk()
         ->assertSee('Anthropology Resource', false)
         ->assertSee('https://t.me/noviquni_bot?start=resource_'.$resource->id, false)
-        ->assertSee('organized study path lives inside Telegram', false)
+        ->assertSee('study materials open inside Telegram', false)
         ->assertDontSee($hiddenText, false)
         ->assertDontSee('Study on the web', false)
         ->assertDontSee('Also open in Telegram', false);
@@ -47,7 +47,7 @@ it('hides premium quiz payload from the public page and keeps the telegram cta',
         ->assertOk()
         ->assertSee('Premium Anthropology Quiz')
         ->assertSee('Premium via Telegram', false)
-        ->assertSee('organized study path lives inside Telegram', false)
+        ->assertSee('study materials open inside Telegram', false)
         ->assertSee('https://t.me/noviquni_bot?start=resource_'.$resource->id, false)
         ->assertDontSee('What are the Greek roots of anthropology?', false)
         ->assertDontSee('Anthropos and logos', false)
@@ -81,6 +81,6 @@ it('keeps telegram landing for free resources without study payload', function (
     $this->get(route('resources.show', $resource))
         ->assertOk()
         ->assertSee('Module Pack')
-        ->assertSee('organized study path lives inside Telegram', false)
+        ->assertSee('study materials open inside Telegram', false)
         ->assertDontSee('Practice quiz', false);
 });

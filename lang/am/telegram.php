@@ -39,8 +39,6 @@ return [
     ],
     'browse' => [
         'page_title' => 'ኮርሶች',
-        'continue' => 'ቀጥል',
-        'resume' => 'ቀጥል →',
         'my_courses' => 'የእኔ ኮርሶች',
         'add_course' => '+ ሌላ ኮርስ ጨምር',
         'resources_count' => ':count መርጃዎች',
@@ -51,13 +49,10 @@ return [
         'notify' => '🔔 አሳውቀኝ',
         'has_content' => 'ኮርሶችዎ — ለመማር አንዱን ይጫኑ፦',
         'course_coming_soon' => 'ለ<b>:course</b> መርጃዎች በቅርቡ ይመጣሉ — ሲወጡ ማሳወቂያ ይፈልጋሉ?',
-        'next_step' => 'ቀጣይ፦ :title',
-        'path_complete' => 'መንገዱ ተጠናቋል',
-        'no_path' => 'የኮርስ መንገድ ክፈት',
-        'path_intro' => 'የጥናት መንገድ — ሞጁል → ማስታወሻ → ስራ → ፈተና + ካርዶች → ያለፉ ፈተናዎች።',
-        'path' => 'መንገድ',
+        'course_hubs' => '<b>:course</b> — ሃብ ይምረጡ፦',
+        'open_course_mini_app' => 'ኮርሱን በ Mini App ክፈት',
+        'hubs' => 'ሃቦች',
         'plans' => 'እቅዶች',
-        'archive' => 'ማህደር',
     ],
     'hub' => [
         'prompt' => '<b>:course</b> — ምን ይፈልጋሉ?',
@@ -67,10 +62,6 @@ return [
         'back' => '« Back',
         'resources' => 'Resources:',
         'no_resources' => 'No published resources for this course yet.',
-    ],
-    'quiz_nudge' => [
-        'text' => "በ:course ፈጣን ምርመራ?\n5 ጥያቄዎች · ~3 ደቂቃ",
-        'button' => '🧪 ፈተና ውሰድ',
     ],
     'profile' => [
         'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
@@ -125,7 +116,6 @@ return [
         'label' => 'የገጽ አሰሳ',
         'back' => 'ተመለስ',
         'next' => 'ቀጣይ',
-        'next_step' => 'ቀጣይ፦ :title',
     ],
     'resource' => [
         'not_found' => 'Resource not found.',

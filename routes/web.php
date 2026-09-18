@@ -8,7 +8,6 @@ use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
-use App\Http\Controllers\Telegram\MiniApp\ContinueController;
 use App\Http\Controllers\Telegram\MiniApp\LibraryController;
 use App\Http\Controllers\Telegram\MiniApp\Players\AssignmentPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
@@ -53,7 +52,6 @@ Route::prefix('tg')->name('tg.')->group(function () {
 
     Route::middleware(['telegram.miniapp', 'throttle:60,1'])->group(function () {
         Route::get('/', App\Http\Controllers\Telegram\MiniApp\HomeController::class)->name('home');
-        Route::get('continue', [ContinueController::class, 'show'])->name('continue');
         Route::get('browse', [BrowseController::class, 'show'])->name('browse');
         Route::get('library', [LibraryController::class, 'show'])->name('library');
         Route::get('library/{hub}', [LibraryController::class, 'hub'])

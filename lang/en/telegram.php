@@ -40,8 +40,6 @@ return [
     ],
     'browse' => [
         'page_title' => 'Courses',
-        'continue' => 'Continue',
-        'resume' => 'Resume →',
         'my_courses' => 'My courses',
         'add_course' => '+ Add another course',
         'resources_count' => ':count resources',
@@ -52,13 +50,10 @@ return [
         'notify' => '🔔 Notify me',
         'has_content' => 'Your courses — tap one to study:',
         'course_coming_soon' => 'Resources for <b>:course</b> are coming soon — want a ping when they drop?',
-        'next_step' => 'Next: :title',
-        'path_complete' => 'Path complete',
-        'no_path' => 'Open course path',
-        'path_intro' => 'Study path — module → notes → worksheet → quiz + flashcards → past exams.',
-        'path' => 'Path',
+        'course_hubs' => '<b>:course</b> — choose a hub:',
+        'open_course_mini_app' => 'Open course in Mini App',
+        'hubs' => 'Hubs',
         'plans' => 'Plans',
-        'archive' => 'Archive',
     ],
     'hub' => [
         'prompt' => '<b>:course</b> — what do you want?',
@@ -68,10 +63,6 @@ return [
         'back' => '« Back',
         'resources' => 'Resources:',
         'no_resources' => 'No published resources for this course yet.',
-    ],
-    'quiz_nudge' => [
-        'text' => "Quick check on :course?\n5 questions · ~3 min",
-        'button' => '🧪 Take a test',
     ],
     'profile' => [
         'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
@@ -126,7 +117,6 @@ return [
         'label' => 'Page navigation',
         'back' => 'Back',
         'next' => 'Next',
-        'next_step' => 'Next: :title',
     ],
     'resource' => [
         'not_found' => 'Resource not found.',

@@ -168,7 +168,7 @@ it('logs the outbound telegram payloads sent after /start', function () {
         ->and($startLogs[0]->context['ok'] ?? null)->toBeTrue()
         ->and($startLogs[0]->context['telegram_message_id'] ?? null)->toBe(51)
         ->and((string) ($startLogs[0]->context['text'] ?? ''))->toContain('Welcome back, Abebe')
-        ->and(data_get($startLogs[0]->context, 'reply_markup.inline_keyboard.0.0.web_app.url'))->toBe(route('tg.continue'))
+        ->and(data_get($startLogs[0]->context, 'reply_markup.inline_keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
         ->and((string) ($startLogs[1]->context['text'] ?? ''))->toContain('Your study menu is ready')
         ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.0.0.text'))->toBe('📚 Courses');
 });

@@ -84,14 +84,13 @@ it('shows browse courses for an authenticated student', function () {
         ->get(route('tg.browse'))
         ->assertOk()
         ->assertSee('Courses')
-        ->assertSee('Continue')
-        ->assertSee('Resume →')
         ->assertSee('Physics')
-        ->assertSee('Week-1 notes')
         ->assertSee('My courses')
         ->assertSee('1 resources')
         ->assertSee('+ Add another course')
-        ->assertSee($resource->miniAppUrl(), false)
+        ->assertDontSee('Continue')
+        ->assertDontSee('Resume →')
+        ->assertDontSee('Week-1 notes')
         ->assertSee('data-tg-menu-button', false)
         ->assertSee('Resources')
         ->assertSee('Profile')
@@ -143,7 +142,7 @@ it('shows saved link on resources page', function () {
         ->assertSee(route('tg.saved'), false);
 });
 
-it('shows continue next path step for bait resources', function () {
+it('shows course hubs for enrolled students', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -157,18 +156,21 @@ it('shows continue next path step for bait resources', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Chapter notes',
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.continue'))
+        ->get(route('tg.browse'))
         ->assertOk()
         ->assertSee('Mathematics')
-        ->assertSee('Chapter notes')
-        ->assertSee(route('tg.play.notes', $resource), false);
+        ->assertSee('1 resources');
+
+    $this->actingAs($user)
+        ->get(route('tg.home'))
+        ->assertRedirect(route('tg.browse'));
 });
 
 it('shows profile and premium screens', function () {
@@ -195,7 +197,7 @@ it('shows profile and premium screens', function () {
         ->assertSee('Premium');
 });
 
-it('opens a course study path inside the mini app', function () {
+it('opens course hubs inside the mini app', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -224,12 +226,20 @@ it('opens a course study path inside the mini app', function () {
         ->get(route('tg.courses.show', $course))
         ->assertOk()
         ->assertSee('Chemistry')
-        ->assertSee('Week-1 notes')
-        ->assertSee('Module 1')
+        ->assertSee('Notes')
+        ->assertSee('Modules')
+        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']), false)
+        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'modules']), false)
+        ->assertDontSee('Week-1 notes')
+        ->assertDontSee('Module 1')
         ->assertSee('data-tg-header-back', false)
         ->assertDontSee('data-tg-nav-bar', false)
-        ->assertSee(route('tg.browse'), false)
-        ->assertDontSee('Archive');
+        ->assertSee(route('tg.browse'), false);
+
+    $this->actingAs($user)
+        ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
+        ->assertOk()
+        ->assertSee('Week-1 notes');
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

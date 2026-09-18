@@ -216,7 +216,7 @@ it('shows continue studying CTA on start when user has courses', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Welcome back, Abebe')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.continue');
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -418,7 +418,7 @@ it('shows coming soon browse state without counts when enrolled but empty', func
     });
 });
 
-it('shows study path after course tap', function () {
+it('shows course hubs after course tap', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -433,12 +433,12 @@ it('shows study path after course tap', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $notes = LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
     ]);
-    $module = LearningResource::factory()->published()->module()->create([
+    LearningResource::factory()->published()->module()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Module 1',
@@ -447,7 +447,7 @@ it('shows study path after course tap', function () {
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555023, "course:{$course->id}", 30, 403))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course, $notes, $module) {
+    Http::assertSent(function ($request) use ($course) {
         if (! str_contains($request->url(), '/editMessageText')) {
             return false;
         }
@@ -455,9 +455,10 @@ it('shows study path after course tap', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Study path for Physics')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$notes->id}")
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$module->id}")
+        return str_contains((string) ($data['text'] ?? ''), 'Physics')
+            && str_contains((string) ($data['text'] ?? ''), 'choose a hub')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}")
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:modules:{$course->id}")
             && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.courses.show', $course));
     });
 });
@@ -778,7 +779,7 @@ it('opens a bait course path from /start bait', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555030, '/start bait', 500))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($notes) {
+    Http::assertSent(function ($request) use ($course) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
@@ -786,8 +787,9 @@ it('opens a bait course path from /start bait', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Study path for Chemistry')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "open_resource:{$notes->id}");
+        return str_contains((string) ($data['text'] ?? ''), 'Chemistry')
+            && str_contains((string) ($data['text'] ?? ''), 'choose a hub')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}");
     });
 });
 
@@ -852,7 +854,9 @@ it('opens a course from /start course deep link', function () {
             return false;
         }
 
-        return str_contains((string) data_get($request->data(), 'text'), 'Study path for English');
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'English') && str_contains($text, 'choose a hub');
     });
 });
 
@@ -964,7 +968,7 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
             && data_get($rows, '0.0.callback_data') === "open_resource:{$newer->id}"
             && data_get($rows, '1.0.callback_data') === "open_resource:{$older->id}"
             && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Worksheet · Newer worksheet'))
-            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Lecture notes · Older notes'))
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Notes · Older notes'))
             && $buttons->every(fn (array $button) => ! isset($button['web_app']));
     });
 });

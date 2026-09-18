@@ -43,7 +43,7 @@ class SettingsService
             self::TELEGRAM_START_IMAGE => '',
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
-            self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock the full study path this week — 30 ETB or invite 3 friends.',
+            self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock full resources this week — 30 ETB or invite 3 friends.',
         ];
     }
 

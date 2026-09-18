@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\User;
-use App\Services\CoursePathService;
+use App\Services\StudyPlanService;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +15,7 @@ use Illuminate\View\View;
 
 class CourseController extends Controller
 {
-    public function show(Course $course, CoursePathService $path): View|RedirectResponse
+    public function show(Course $course, StudyPlanService $studyPlans): View|RedirectResponse
     {
         /** @var User $user */
         $user = Auth::user();
@@ -25,11 +25,9 @@ class CourseController extends Controller
         }
 
         $copy = TelegramCopy::for($user);
-        $steps = $path->pathForUser($user, $course);
-        $plans = $path->plansForUser($user, $course);
-        $next = $path->nextStep($user, $course);
+        $plans = $studyPlans->plansForUser($user, $course);
 
-        $archiveHubs = collect([
+        $hubs = collect([
             ResourceHub::Modules,
             ResourceHub::Notes,
             ResourceHub::Practice,
@@ -59,11 +57,8 @@ class CourseController extends Controller
             'copy' => $copy,
             'user' => $user,
             'course' => $course,
-            'steps' => $steps,
             'plans' => $plans,
-            'next' => $next,
-            'archiveHubs' => $archiveHubs,
-            'isPremium' => $user->hasActivePremium(),
+            'hubs' => $hubs,
             'activeNav' => 'courses',
         ]);
     }
@@ -85,11 +80,6 @@ class CourseController extends Controller
 
         if (! $user->courses()->where('courses.id', $course->id)->exists()) {
             return redirect()->route('tg.browse');
-        }
-
-        // Archive hubs are a premium secondary view; free students stay on the path.
-        if (! $user->hasActivePremium()) {
-            return redirect()->route('tg.courses.show', $course);
         }
 
         $copy = TelegramCopy::for($user);

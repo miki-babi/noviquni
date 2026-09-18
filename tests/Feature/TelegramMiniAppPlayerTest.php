@@ -279,9 +279,8 @@ it('redirects the resource dispatcher to the matching catalog player', function 
         ->assertRedirect(route('tg.play.module', $module));
 });
 
-it('links continue to the next path step and archive hubs for premium', function () {
+it('opens course hubs for free and premium students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
-    $user->update(['premium_until' => now()->addDays(7)]);
 
     $module = LearningResource::factory()->published()->module()->create([
         'course_id' => $course->id,
@@ -300,9 +299,10 @@ it('links continue to the next path step and archive hubs for premium', function
     expect($notes->miniAppUrl())->toBe(route('tg.play.notes', $notes));
 
     $this->actingAs($user->fresh())
-        ->get(route('tg.continue'))
+        ->get(route('tg.courses.show', $course))
         ->assertOk()
-        ->assertSee(route('tg.play.module', $module), false);
+        ->assertSee('Notes')
+        ->assertSee('Modules');
 
     $this->actingAs($user->fresh())
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))

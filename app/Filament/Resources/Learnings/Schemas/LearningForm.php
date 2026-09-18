@@ -107,7 +107,7 @@ class LearningForm
                         : [])
                     ->searchable()
                     ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                    ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
+                    ->helperText('Optional. Groups this resource under a parent module.'),
                 TextInput::make('sort_order')
                     ->numeric()
                     ->integer()
@@ -372,7 +372,7 @@ class LearningForm
                             : [])
                         ->searchable()
                         ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                        ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
+                        ->helperText('Optional. Groups this resource under a parent module.'),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->integer()
@@ -451,7 +451,7 @@ class LearningForm
                                 ->all()
                             : [])
                         ->searchable()
-                        ->helperText('Links notes, worksheets, quizzes, and flashcards to the module spine when set.'),
+                        ->helperText('Optional. Groups this resource under a parent module.'),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->integer()

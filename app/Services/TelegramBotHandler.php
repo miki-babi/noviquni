@@ -37,7 +37,6 @@ class TelegramBotHandler
         public PaymentService $payments,
         public PremiumService $premium,
         public SettingsService $settings,
-        public CoursePathService $coursePath,
     ) {}
 
     /**
@@ -646,7 +645,7 @@ class TelegramBotHandler
                 'inline_keyboard' => [[
                     [
                         'text' => $copy->get('start.returning_button'),
-                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.continue')],
+                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.browse')],
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
                 ]],
@@ -819,9 +818,27 @@ class TelegramBotHandler
             return;
         }
 
-        $steps = $this->coursePath->pathForUser($user, $course);
+        $rows = [];
 
-        if ($steps->isEmpty()) {
+        foreach ([ResourceHub::Modules, ResourceHub::Notes, ResourceHub::Practice, ResourceHub::Exams] as $hub) {
+            $count = LearningResource::query()
+                ->published()
+                ->where('course_id', $courseId)
+                ->whereIn('type', $hub->typeValues())
+                ->count();
+
+            if ($count === 0) {
+                continue;
+            }
+
+            $rows[] = [[
+                'text' => $hub->label().' ('.$count.')',
+                'callback_data' => "hub:{$hub->value}:{$courseId}",
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        }
+
+        if ($rows === []) {
             $this->telegram->replyOrEdit(
                 $chatId,
                 $copy->get('browse.course_coming_soon', ['course' => $course->name]),
@@ -844,41 +861,11 @@ class TelegramBotHandler
             return;
         }
 
-        $rows = $steps->take(8)->map(function (array $item) {
-            $resource = $item['resource'];
-            $prefix = $item['locked'] ? '🔒 ' : ($item['completed'] ? '✓ ' : '');
-
-            return [[
-                'text' => $prefix.$resource->title,
-                'callback_data' => 'open_resource:'.$resource->id,
-                'style' => TelegramButtonStyle::Primary->value,
-            ]];
-        })->all();
-
         $rows[] = [[
-            'text' => 'Open full path in Mini App',
+            'text' => $copy->get('browse.open_course_mini_app'),
             'web_app' => ['url' => route('tg.courses.show', $course)],
             'style' => TelegramButtonStyle::Success->value,
         ]];
-
-        if ($user->hasActivePremium()) {
-            foreach ([ResourceHub::Notes, ResourceHub::Modules, ResourceHub::Practice, ResourceHub::Exams] as $hub) {
-                $count = LearningResource::query()
-                    ->published()
-                    ->where('course_id', $courseId)
-                    ->whereIn('type', $hub->typeValues())
-                    ->count();
-
-                if ($count === 0) {
-                    continue;
-                }
-
-                $rows[] = [[
-                    'text' => 'Archive: '.$hub->label(),
-                    'callback_data' => "hub:{$hub->value}:{$courseId}",
-                ]];
-            }
-        }
 
         $rows[] = [[
             'text' => $copy->get('hub.back'),
@@ -887,7 +874,7 @@ class TelegramBotHandler
 
         $this->telegram->replyOrEdit(
             $chatId,
-            "Study path for {$course->name}:\nModule → notes → worksheet → quiz + flashcards → past exams.",
+            $copy->get('browse.course_hubs', ['course' => $course->name]),
             [
                 'reply_markup' => $this->telegram->inlineKeyboard($rows),
             ],
@@ -1036,57 +1023,6 @@ class TelegramBotHandler
         foreach ($chunks as $chunk) {
             $this->telegram->sendMessage($chatId, $chunk);
         }
-
-        $this->maybeSendQuizNudge($user, $chatId, $resource);
-    }
-
-    protected function maybeSendQuizNudge(User $user, int|string $chatId, LearningResource $resource): void
-    {
-        $course = $resource->course;
-
-        if ($course === null) {
-            return;
-        }
-
-        $isNotesOrModule = in_array($resource->type, [
-            ResourceType::Notes,
-            ResourceType::Module,
-        ], true);
-
-        if (! $isNotesOrModule) {
-            return;
-        }
-
-        $hasPractice = LearningResource::query()
-            ->published()
-            ->where('course_id', $course->id)
-            ->whereIn('type', ResourceHub::Practice->typeValues())
-            ->exists();
-
-        if (! $hasPractice) {
-            return;
-        }
-
-        $copy = TelegramCopy::for($user);
-
-        $this->telegram->sendMessage(
-            $chatId,
-            $copy->get('quiz_nudge.text', ['course' => $course->name]),
-            [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    [
-                        'text' => $copy->get('quiz_nudge.button'),
-                        'web_app' => [
-                            'url' => $this->telegram->miniAppUrl('tg.courses.hub', [
-                                'course' => $course,
-                                'hub' => ResourceHub::Practice->value,
-                            ]),
-                        ],
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ]]),
-            ],
-        );
     }
 
     protected function showPremium(User $user, int|string $chatId): void

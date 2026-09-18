@@ -51,41 +51,13 @@
                 </div>
             </a>
         @else
-            @if ($continue)
-                @php
-                    $progressPct = $continue['total'] > 0
-                        ? (int) round(($continue['completed'] / $continue['total']) * 100)
-                        : 0;
-                @endphp
-                <article class="study-card study-continue">
-                    <p class="study-continue-label">{{ $copy->get('browse.continue') }}</p>
-                    <h2 class="study-continue-title">{{ $continue['course']->name }}</h2>
-                    <p class="study-continue-sub">
-                        {{ $continue['next']->title }}
-                        @if ($continue['next']->type)
-                            · {{ $continue['next']->type->label() }}
-                        @endif
-                    </p>
-                    @if ($continue['total'] > 0)
-                        <div class="study-progress" aria-hidden="true">
-                            <span style="width: {{ $progressPct }}%;"></span>
-                        </div>
-                    @endif
-                    <a href="{{ $continue['next']->miniAppUrl() }}" class="study-resume">
-                        {{ $copy->get('browse.resume') }}
-                    </a>
-                </article>
-            @endif
-
             <p class="tg-section-title" style="padding-inline: 0;">{{ $copy->get('browse.my_courses') }}</p>
 
             @foreach ($courseRows as $row)
                 @php
                     $course = $row['course'];
                     $initial = mb_strtoupper(mb_substr($course->name, 0, 1));
-                    $meta = $row['path_complete']
-                        ? $copy->get('browse.path_complete')
-                        : $copy->get('browse.resources_count', ['count' => $row['resource_count']]);
+                    $meta = $copy->get('browse.resources_count', ['count' => $row['resource_count']]);
                 @endphp
                 <a href="{{ route('tg.courses.show', $course) }}" class="study-card">
                     <div class="study-card-inner">

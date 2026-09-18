@@ -7,7 +7,6 @@ use App\Enums\ResourceType;
 use App\Models\LearningResource;
 use App\Models\User;
 use App\Services\College\TelegramResourceFormatter;
-use App\Services\CoursePathService;
 use App\Services\PremiumService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
@@ -100,69 +99,10 @@ trait OpensMiniAppResource
             'course' => $resource->course,
             'payload' => $payload,
             'chunks' => $payload === null ? $formatter->format($resource) : [],
-            'showQuizNudge' => $this->shouldShowQuizNudge($resource),
-            'pathNudgeUrl' => $this->pathNudgeUrl($resource),
             'isBookmarked' => $access['isBookmarked'],
             'backUrl' => $resource->course
                 ? route('tg.courses.show', $resource->course)
                 : route('tg.browse'),
-            'nextUrl' => $this->pathNudgeUrl($resource),
-            'nextLabel' => $this->pathNextLabel($access['copy'], $resource),
         ]);
-    }
-
-    protected function pathNextLabel(TelegramCopy $copy, LearningResource $resource): ?string
-    {
-        $user = Auth::user();
-
-        if ($user === null) {
-            return null;
-        }
-
-        $next = app(CoursePathService::class)->nextAfter($user, $resource);
-
-        if ($next === null) {
-            return null;
-        }
-
-        return $copy->get('nav.next_step', ['title' => $next->title]);
-    }
-
-    protected function shouldShowQuizNudge(LearningResource $resource): bool
-    {
-        if ($resource->course_id === null) {
-            return false;
-        }
-
-        $isNotesOrModule = in_array($resource->type, [
-            ResourceType::Notes,
-            ResourceType::Module,
-            ResourceType::Worksheet,
-        ], true);
-
-        if (! $isNotesOrModule) {
-            return false;
-        }
-
-        $next = app(CoursePathService::class)->nextAfter(Auth::user(), $resource);
-
-        return $next !== null && in_array($next->type, [
-            ResourceType::Worksheet,
-            ResourceType::Quiz,
-            ResourceType::Flashcards,
-        ], true);
-    }
-
-    protected function pathNudgeUrl(LearningResource $resource): ?string
-    {
-        $user = Auth::user();
-
-        if ($user === null) {
-            return null;
-        }
-
-        $next = app(CoursePathService::class)->nextAfter($user, $resource);
-
-        return $next?->miniAppUrl();
     }
 }

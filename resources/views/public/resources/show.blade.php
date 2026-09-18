@@ -87,7 +87,7 @@
             <h2 class="text-2xl font-bold text-text-primary">How do I access this resource?</h2>
             <p class="text-text-secondary">
                 Open {{ config('app.name') }} in Telegram to study this {{ strtolower($resource->type->label()) }}.
-                Public pages explain what is covered; the organized study path lives inside Telegram.
+                Public pages explain what is covered; study materials open inside Telegram.
             </p>
             <x-cta.telegram label="Continue in Telegram" :payload="'resource_'.$resource->id" />
         </section>

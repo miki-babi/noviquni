@@ -95,7 +95,7 @@ it('shows published resources and hides unpublished ones', function () {
         ->assertSee('Physics Notes Pack')
         ->assertSee('Mechanics')
         ->assertSee('https://t.me/noviquni_bot?start=resource_'.$published->id, false)
-        ->assertSee('organized study path lives inside Telegram', false);
+        ->assertSee('study materials open inside Telegram', false);
 
     $this->get(route('resources.show', $unpublished))
         ->assertNotFound();

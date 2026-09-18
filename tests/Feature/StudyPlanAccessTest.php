@@ -7,8 +7,8 @@ use App\Models\Stream;
 use App\Models\StudyPlan;
 use App\Models\StudyPlanItem;
 use App\Models\User;
-use App\Services\CoursePathService;
 use App\Services\SettingsService;
+use App\Services\StudyPlanService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -44,7 +44,7 @@ it('shows bait checklists to free students and hides week plans', function () {
         'is_premium' => true,
     ]);
 
-    $plans = app(CoursePathService::class)->plansForUser($user, $course);
+    $plans = app(StudyPlanService::class)->plansForUser($user, $course);
 
     expect($plans)->toHaveCount(1)
         ->and($plans->first()->title)->toBe('Week-1 checklist');
@@ -81,7 +81,7 @@ it('shows week and exam-sprint plans to premium students', function () {
         'title' => 'Final sprint',
     ]);
 
-    $plans = app(CoursePathService::class)->plansForUser($user, $course);
+    $plans = app(StudyPlanService::class)->plansForUser($user, $course);
 
     expect($plans->pluck('title')->all())->toBe([
         'Week-1 checklist',
