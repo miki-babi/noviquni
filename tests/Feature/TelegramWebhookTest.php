@@ -274,7 +274,7 @@ it('restores the main reply keyboard when Back is tapped from courses', function
     });
 });
 
-it('shows available resources in a reply keyboard when Resources is tapped', function () {
+it('shows available resource types in a reply keyboard when Resources is tapped', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
     $user = User::factory()->student()->create([
@@ -302,8 +302,36 @@ it('shows available resources in a reply keyboard when Resources is tapped', fun
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📄 Motion notes · Physics'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Notes'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+    });
+});
+
+it('opens the selected resource type in the mini app', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555026',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Notes'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/sendMessage')
+            && str_contains((string) ($data['text'] ?? ''), 'Open Notes in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library.hub', 'notes');
     });
 });
 

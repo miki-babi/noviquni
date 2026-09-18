@@ -123,10 +123,10 @@ class TelegramBotHandler
             return;
         }
 
-        $resource = $this->telegram->resourceForKeyboardLabel($user, $text);
+        $resourceHub = $this->telegram->resourceHubForKeyboardLabel($user, $text);
 
-        if ($resource !== null) {
-            $this->openResource($user, $chatId, $resource->id);
+        if ($resourceHub !== null) {
+            $this->sendResourceHubMiniAppOpen($user, $chatId, $resourceHub);
 
             return;
         }
@@ -524,7 +524,20 @@ class TelegramBotHandler
         }
 
         $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('library.title'), [
-            'reply_markup' => $this->telegram->resourceKeyboard($user),
+            'reply_markup' => $this->telegram->resourceTypeKeyboard($user),
+        ]);
+    }
+
+    protected function sendResourceHubMiniAppOpen(User $user, int|string $chatId, ResourceHub $hub): void
+    {
+        $this->telegram->sendMessage($chatId, 'Open '.$hub->label().' in the study app:', [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => '📚 Open '.$hub->label(),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.library.hub', ['hub' => $hub->value])],
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ]]),
         ]);
     }
 
