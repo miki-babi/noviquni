@@ -517,17 +517,17 @@ class LearningForm
                     'single' => 'One file',
                     'multiple' => 'Multiple files',
                 ])
-                ->default('single')
+                ->default('multiple')
                 ->required()
                 ->live()
                 ->grouped()
                 ->dehydrated(false)
                 ->afterStateHydrated(function (ToggleButtons $component, mixed $state, ?LearningResource $record): void {
                     $files = $record?->files ?? [];
-                    $component->state(count($files) > 1 ? 'multiple' : 'single');
+                    $component->state(count($files) === 1 ? 'single' : 'multiple');
                 }),
             FileUpload::make('files')
-                ->label(fn (Get $get): string => $get('file_mode') === 'multiple' ? 'Study files' : 'Study file')
+                ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Study file' : 'Study files')
                 ->disk(config('filesystems.default'))
                 ->directory('learning-resources')
                 ->multiple()
