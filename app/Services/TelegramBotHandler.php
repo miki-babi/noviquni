@@ -23,6 +23,7 @@ use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -80,6 +81,8 @@ class TelegramBotHandler
         }
 
         if (str_starts_with($text, '/start')) {
+            Context::add('telegram_command', 'start');
+
             $parts = explode(' ', $text, 2);
             $payload = filled($parts[1] ?? null) ? trim((string) $parts[1]) : null;
 
@@ -363,6 +366,7 @@ class TelegramBotHandler
         }
 
         if (str_starts_with($data, '/start')) {
+            Context::add('telegram_command', 'start');
             $this->sendHome($user, $chatId);
 
             return null;

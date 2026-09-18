@@ -7,6 +7,7 @@ use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\User;
 use App\Support\TelegramCopy;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -309,15 +310,20 @@ class TelegramService
             : Http::timeout(15)->post($url, $params);
 
         if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+            $body = $response->json();
             Log::error('Telegram API error', [
                 'method' => $method,
-                'body' => $response->json(),
+                'body' => $body,
             ]);
+            $this->logStartOutbound($method, $params, false, is_array($body) ? $body : null);
 
             return null;
         }
 
-        return $response->json('result');
+        $result = $response->json('result');
+        $this->logStartOutbound($method, $params, true, is_array($result) ? $result : null);
+
+        return is_array($result) ? $result : null;
     }
 
     /**
@@ -352,15 +358,60 @@ class TelegramService
             ->post("https://api.telegram.org/bot{$this->token()}/{$method}", $params);
 
         if (! $response->successful() || ! ($response->json('ok') ?? false)) {
+            $body = $response->json();
             Log::error('Telegram API error', [
                 'method' => $method,
-                'body' => $response->json(),
+                'body' => $body,
             ]);
+            $this->logStartOutbound($method, $params, false, is_array($body) ? $body : null, basename($filePath));
 
             return null;
         }
 
-        return $response->json('result');
+        $result = $response->json('result');
+        $this->logStartOutbound($method, $params, true, is_array($result) ? $result : null, basename($filePath));
+
+        return is_array($result) ? $result : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>|null  $telegramResult
+     */
+    protected function logStartOutbound(string $method, array $params, bool $ok, ?array $telegramResult = null, ?string $fileName = null): void
+    {
+        if (Context::get('telegram_command') !== 'start') {
+            return;
+        }
+
+        if (! in_array($method, ['sendMessage', 'sendPhoto', 'sendDocument', 'editMessageText'], true)) {
+            return;
+        }
+
+        $replyMarkup = $params['reply_markup'] ?? null;
+
+        if (is_string($replyMarkup)) {
+            $decoded = json_decode($replyMarkup, true);
+            $replyMarkup = is_array($decoded) ? $decoded : $replyMarkup;
+        }
+
+        $context = [
+            'method' => $method,
+            'chat_id' => $params['chat_id'] ?? null,
+            'text' => $params['text'] ?? null,
+            'caption' => $params['caption'] ?? null,
+            'parse_mode' => $params['parse_mode'] ?? null,
+            'reply_markup' => $replyMarkup,
+            'file_name' => $fileName,
+            'ok' => $ok,
+            'telegram_message_id' => is_array($telegramResult) ? ($telegramResult['message_id'] ?? null) : null,
+        ];
+
+        if (! $ok) {
+            $context['error'] = $telegramResult;
+        }
+
+        Log::info('Telegram start message sent', $context);
     }
 
     protected function isLocalFilesystemPath(string $value): bool
