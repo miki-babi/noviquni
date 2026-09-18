@@ -274,6 +274,39 @@ it('restores the main reply keyboard when Back is tapped from courses', function
     });
 });
 
+it('shows available resources in a reply keyboard when Resources is tapped', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555025',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Motion notes',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555025, '📖 Resources'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📄 Motion notes · Physics'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+    });
+});
+
 it('shows course setup for the legacy Browse label when no courses are enrolled', function () {
     User::factory()->student()->create([
         'telegram_id' => '555014',

@@ -123,6 +123,14 @@ class TelegramBotHandler
             return;
         }
 
+        $resource = $this->telegram->resourceForKeyboardLabel($user, $text);
+
+        if ($resource !== null) {
+            $this->openResource($user, $chatId, $resource->id);
+
+            return;
+        }
+
         $course = $user->courses()
             ->active()
             ->where('courses.name', $this->courseNameFromKeyboardLabel($text))
@@ -476,7 +484,7 @@ class TelegramBotHandler
     {
         match ($action) {
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
-            'resources' => $this->sendMiniAppOpen($user, $chatId, 'resources', 'tg.library'),
+            'resources' => $this->showResourceKeyboard($user, $chatId),
             'saved' => $this->showSaved($user, $chatId),
             'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
             'continue' => $this->showContinue($user, $chatId),
@@ -499,6 +507,24 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('browse.has_content'), [
             'reply_markup' => $this->telegram->courseKeyboard($user),
+        ]);
+    }
+
+    protected function showResourceKeyboard(User $user, int|string $chatId): void
+    {
+        $hasResources = LearningResource::query()
+            ->published()
+            ->whereIn('course_id', $user->courses()->active()->select('courses.id'))
+            ->exists();
+
+        if (! $hasResources) {
+            $this->showResourceLibrary($user, $chatId);
+
+            return;
+        }
+
+        $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('library.title'), [
+            'reply_markup' => $this->telegram->resourceKeyboard($user),
         ]);
     }
 

@@ -6,11 +6,14 @@ use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\Course;
+use App\Models\LearningResource;
 use App\Models\User;
 use App\Support\TelegramCopy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class TelegramService
 {
@@ -181,6 +184,61 @@ class TelegramService
     public function courseKeyboardBackLabel(): string
     {
         return '← Back';
+    }
+
+    /**
+     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
+     */
+    public function resourceKeyboard(User $user): array
+    {
+        $resources = $this->resourcesForKeyboard($user)->get();
+
+        $rows = $resources
+            ->map(fn (LearningResource $resource): array => [
+                'text' => $this->resourceKeyboardLabel($resource),
+                'style' => TelegramButtonStyle::Primary->value,
+            ])
+            ->chunk(2)
+            ->map(fn ($row): array => $row->values()->all())
+            ->all();
+
+        $rows[] = [[
+            'text' => $this->courseKeyboardBackLabel(),
+            'style' => TelegramButtonStyle::Primary->value,
+        ]];
+
+        return [
+            'keyboard' => $rows,
+            'resize_keyboard' => true,
+        ];
+    }
+
+    public function resourceForKeyboardLabel(User $user, string $label): ?LearningResource
+    {
+        return $this->resourcesForKeyboard($user)
+            ->get()
+            ->first(fn (LearningResource $resource): bool => $this->resourceKeyboardLabel($resource) === $label);
+    }
+
+    public function resourceKeyboardLabel(LearningResource $resource): string
+    {
+        $courseName = $resource->course?->name;
+        $label = $courseName === null ? $resource->title : $resource->title.' · '.$courseName;
+
+        return '📄 '.Str::limit($label, 60, '…');
+    }
+
+    /**
+     * @return Builder<LearningResource>
+     */
+    protected function resourcesForKeyboard(User $user): Builder
+    {
+        return LearningResource::query()
+            ->published()
+            ->with('course')
+            ->whereIn('course_id', $user->courses()->active()->select('courses.id'))
+            ->orderBy('sort_order')
+            ->orderBy('title');
     }
 
     /**
