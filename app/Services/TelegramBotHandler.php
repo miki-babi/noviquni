@@ -985,6 +985,8 @@ class TelegramBotHandler
         ?int $messageId = null,
     ): void {
         $copy = TelegramCopy::for($user);
+        $course = Course::query()->find($courseId);
+        $heading = $this->resourceListHeading($copy, $course?->name, $hub?->label());
 
         $query = LearningResource::query()
             ->published()
@@ -1001,6 +1003,7 @@ class TelegramBotHandler
             $query->get(),
             $hub !== null ? "course:{$courseId}" : 'back:courses',
             $messageId,
+            $heading,
         );
     }
 
@@ -1012,6 +1015,8 @@ class TelegramBotHandler
         ?int $messageId = null,
     ): void {
         $copy = TelegramCopy::for($user);
+        $course = Course::query()->find($courseId);
+        $heading = $this->resourceListHeading($copy, $course?->name, $type->label());
 
         $resources = LearningResource::query()
             ->published()
@@ -1026,7 +1031,20 @@ class TelegramBotHandler
             $resources,
             "course:{$courseId}",
             $messageId,
+            $heading,
         );
+    }
+
+    protected function resourceListHeading(TelegramCopy $copy, ?string $courseName, ?string $typeLabel): string
+    {
+        if (filled($courseName) && filled($typeLabel)) {
+            return $copy->get('hub.resources_for', [
+                'course' => $courseName,
+                'type' => $typeLabel,
+            ]);
+        }
+
+        return $copy->get('hub.resources');
     }
 
     /**
@@ -1038,6 +1056,7 @@ class TelegramBotHandler
         Collection $resources,
         string $backCallback,
         ?int $messageId = null,
+        ?string $heading = null,
     ): void {
         if ($resources->isEmpty()) {
             $this->telegram->replyOrEdit($chatId, $copy->get('hub.no_resources'), [
@@ -1058,7 +1077,7 @@ class TelegramBotHandler
             'callback_data' => $backCallback,
         ]];
 
-        $this->telegram->replyOrEdit($chatId, $copy->get('hub.resources'), [
+        $this->telegram->replyOrEdit($chatId, $heading ?? $copy->get('hub.resources'), [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
     }

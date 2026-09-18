@@ -102,7 +102,9 @@ it('lists generated quiz resources as direct mini app buttons', function () {
         return ($button['text'] ?? null) === 'Anthropology Quiz'
             && ($button['style'] ?? null) === 'success'
             && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource)
-            && ! array_key_exists('callback_data', $button);
+            && ! array_key_exists('callback_data', $button)
+            && str_contains((string) ($data['text'] ?? ''), (string) $resource->course?->name)
+            && str_contains((string) ($data['text'] ?? ''), 'Quiz');
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));

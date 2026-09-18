@@ -61,6 +61,7 @@ return [
         'quiz' => '🎮 ፈተና',
         'back' => '« Back',
         'resources' => 'Resources:',
+        'resources_for' => '<b>:course</b> — :type',
         'no_resources' => 'No published resources for this course yet.',
     ],
     'profile' => [
