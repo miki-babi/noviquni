@@ -1049,11 +1049,9 @@ class TelegramBotHandler
             return;
         }
 
-        $rows = $resources->map(fn (LearningResource $resource) => [[
-            'text' => ($resource->is_premium ? '🔒 ' : '').$resource->title,
-            'callback_data' => "open_resource:{$resource->id}",
-            'style' => TelegramButtonStyle::Primary->value,
-        ]])->values()->all();
+        $rows = $resources->map(fn (LearningResource $resource) => [
+            $this->resourceInlineButton($resource),
+        ])->values()->all();
 
         $rows[] = [[
             'text' => $copy->get('hub.back'),
@@ -1065,6 +1063,32 @@ class TelegramBotHandler
         ], $messageId);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resourceInlineButton(LearningResource $resource, ?string $label = null): array
+    {
+        $text = $label ?? (($resource->is_premium ? '🔒 ' : '').$resource->title);
+
+        if ($resource->hasFiles()) {
+            return [
+                'text' => $text,
+                'callback_data' => "open_resource:{$resource->id}",
+                'style' => TelegramButtonStyle::Primary->value,
+            ];
+        }
+
+        return [
+            'text' => $text,
+            'web_app' => [
+                'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
+                    'resource' => $resource,
+                ]),
+            ],
+            'style' => TelegramButtonStyle::Success->value,
+        ];
+    }
+
     protected function openResource(User $user, int|string $chatId, int $resourceId): void
     {
         $copy = TelegramCopy::for($user);
@@ -1072,6 +1096,16 @@ class TelegramBotHandler
 
         if ($resource === null) {
             $this->telegram->sendMessage($chatId, $copy->get('resource.not_found'));
+
+            return;
+        }
+
+        if (! $resource->hasFiles()) {
+            $this->telegram->sendMessage($chatId, '<b>'.e($resource->title).'</b>', [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [$this->resourceInlineButton($resource)],
+                ]),
+            ]);
 
             return;
         }
@@ -1086,32 +1120,7 @@ class TelegramBotHandler
         }
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
-
-        if ($resource->hasFiles()) {
-            $this->sendResourceFiles($chatId, $resource);
-
-            return;
-        }
-
-        $text = '<b>'.e($resource->title).'</b>';
-
-        if (filled($resource->description)) {
-            $text .= "\n\n".e($resource->description);
-        }
-
-        $this->telegram->sendMessage($chatId, $text, [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                [
-                    'text' => $copy->get('resource.open_in_app'),
-                    'web_app' => [
-                        'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
-                            'resource' => $resource,
-                        ]),
-                    ],
-                    'style' => TelegramButtonStyle::Success->value,
-                ],
-            ]]),
-        ]);
+        $this->sendResourceFiles($chatId, $resource);
     }
 
     protected function sendResourceFiles(int|string $chatId, LearningResource $resource): void
@@ -1286,12 +1295,9 @@ class TelegramBotHandler
         $rows = $resources->map(function (LearningResource $resource) {
             $locked = $resource->is_premium || ! $resource->is_bait;
             $courseName = $resource->course?->name;
+            $label = ($locked ? '🔒 ' : '').$resource->title.($courseName ? " · {$courseName}" : '');
 
-            return [[
-                'text' => ($locked ? '🔒 ' : '').$resource->title.($courseName ? " · {$courseName}" : ''),
-                'callback_data' => "open_resource:{$resource->id}",
-                'style' => TelegramButtonStyle::Primary->value,
-            ]];
+            return [$this->resourceInlineButton($resource, $label)];
         })->values()->all();
 
         $rows[] = [[
@@ -1342,11 +1348,7 @@ class TelegramBotHandler
                     : '';
                 $label = trim($typeLabel.' · '.$resource->title, ' ·');
 
-                return [[
-                    'text' => Str::limit($label, 64, '…'),
-                    'callback_data' => 'open_resource:'.$resource->id,
-                    'style' => TelegramButtonStyle::Primary->value,
-                ]];
+                return [$this->resourceInlineButton($resource, Str::limit($label, 64, '…'))];
             })
             ->values()
             ->all();

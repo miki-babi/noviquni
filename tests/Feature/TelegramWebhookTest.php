@@ -1007,11 +1007,13 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         $buttons = $rows->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
-            && data_get($rows, '0.0.callback_data') === "open_resource:{$newer->id}"
-            && data_get($rows, '1.0.callback_data') === "open_resource:{$older->id}"
+            && data_get($rows, '0.0.web_app.url') === route('tg.play.worksheet', $newer)
+            && data_get($rows, '0.0.style') === 'success'
+            && data_get($rows, '1.0.web_app.url') === route('tg.play.notes', $older)
+            && data_get($rows, '1.0.style') === 'success'
             && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Worksheet · Newer worksheet'))
             && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Notes · Older notes'))
-            && $buttons->every(fn (array $button) => ! isset($button['web_app']));
+            && $buttons->every(fn (array $button) => ! isset($button['callback_data']) || str_starts_with((string) $button['callback_data'], 'saved:page:'));
     });
 });
 
