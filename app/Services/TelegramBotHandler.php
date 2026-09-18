@@ -117,6 +117,23 @@ class TelegramBotHandler
             return;
         }
 
+        if ($text === $this->telegram->courseKeyboardBackLabel()) {
+            $this->sendReplyKeyboard($user, $chatId);
+
+            return;
+        }
+
+        $course = $user->courses()
+            ->active()
+            ->where('courses.name', $this->courseNameFromKeyboardLabel($text))
+            ->first();
+
+        if ($course !== null) {
+            $this->showCourseHub($user, $chatId, $course->id);
+
+            return;
+        }
+
         $action = $this->resolveMenuAction($user, $text);
 
         if ($action === null) {
@@ -458,7 +475,7 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
-            'courses', 'browse' => $this->sendMiniAppOpen($user, $chatId, 'courses', 'tg.browse'),
+            'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->sendMiniAppOpen($user, $chatId, 'resources', 'tg.library'),
             'saved' => $this->showSaved($user, $chatId),
             'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
@@ -468,6 +485,28 @@ class TelegramBotHandler
             'notify' => $this->toggleNotifications($user, $chatId),
             default => null,
         };
+    }
+
+    protected function showCourseKeyboard(User $user, int|string $chatId): void
+    {
+        $courses = $user->courses()->active()->exists();
+
+        if (! $courses) {
+            $this->showBrowse($user, $chatId);
+
+            return;
+        }
+
+        $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('browse.has_content'), [
+            'reply_markup' => $this->telegram->courseKeyboard($user),
+        ]);
+    }
+
+    protected function courseNameFromKeyboardLabel(string $text): string
+    {
+        return str_starts_with($text, '📗 ')
+            ? substr($text, strlen('📗 '))
+            : '';
     }
 
     protected function sendMiniAppOpen(User $user, int|string $chatId, string $destination, string $routeName): void

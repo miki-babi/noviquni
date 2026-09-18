@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
+use App\Models\Course;
 use App\Models\User;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Facades\Context;
@@ -103,10 +104,6 @@ class TelegramService
     }
 
     /**
-     * Reply-keyboard Web App buttons do not receive Telegram initData. These
-     * text buttons are handled by TelegramBotHandler, which replies with an
-     * inline Web App button that does receive signed initData.
-     *
      * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
      */
     public function mainKeyboard(?User $user = null): array
@@ -144,6 +141,46 @@ class TelegramService
             ],
             'resize_keyboard' => true,
         ];
+    }
+
+    /**
+     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
+     */
+    public function courseKeyboard(User $user): array
+    {
+        $courses = $user->courses()
+            ->active()
+            ->orderBy('courses.name')
+            ->get();
+
+        $rows = $courses
+            ->map(fn (Course $course): array => [
+                'text' => $this->courseKeyboardLabel($course),
+                'style' => TelegramButtonStyle::Primary->value,
+            ])
+            ->chunk(2)
+            ->map(fn ($row): array => $row->values()->all())
+            ->all();
+
+        $rows[] = [[
+            'text' => $this->courseKeyboardBackLabel(),
+            'style' => TelegramButtonStyle::Primary->value,
+        ]];
+
+        return [
+            'keyboard' => $rows,
+            'resize_keyboard' => true,
+        ];
+    }
+
+    public function courseKeyboardLabel(Course $course): string
+    {
+        return '📗 '.$course->name;
+    }
+
+    public function courseKeyboardBackLabel(): string
+    {
+        return '← Back';
     }
 
     /**

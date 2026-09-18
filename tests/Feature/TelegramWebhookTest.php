@@ -220,7 +220,7 @@ it('shows continue studying CTA on start when user has courses', function () {
     });
 });
 
-it('sends an inline Mini App opener when Courses is tapped', function () {
+it('shows enrolled courses in a reply keyboard when Courses is tapped', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -245,13 +245,36 @@ it('sends an inline Mini App opener when Courses is tapped', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📚 Open Courses';
+        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Physics'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back'
+            && data_get($data, 'reply_markup.inline_keyboard') === null;
     });
 });
 
-it('sends an inline Mini App opener for legacy Browse label', function () {
+it('restores the main reply keyboard when Back is tapped from courses', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555024',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555024, '← Back'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Courses'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === '📖 Resources';
+    });
+});
+
+it('shows course setup for the legacy Browse label when no courses are enrolled', function () {
     User::factory()->student()->create([
         'telegram_id' => '555014',
         'onboarding_step' => OnboardingStep::Complete,
@@ -268,7 +291,7 @@ it('sends an inline Mini App opener for legacy Browse label', function () {
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+        return data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'setup:courses';
     });
 });
 
@@ -297,8 +320,9 @@ it('shows coming soon browse state without counts when enrolled but empty', func
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Mathematics'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
     });
 });
 
@@ -437,7 +461,7 @@ it('switches language and refreshes keyboard labels', function () {
     });
 });
 
-it('still routes legacy my courses label to browse', function () {
+it('still routes the legacy My Courses label to the course reply keyboard', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Chemistry']);
 
@@ -464,7 +488,8 @@ it('still routes legacy my courses label to browse', function () {
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Chemistry'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
     });
 });
 
