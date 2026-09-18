@@ -17,7 +17,7 @@
         @else
             <p id="tg-bootstrap-status" class="text-sm tg-hint">Opening your study space…</p>
         @endif
-        <form id="tg-session-form" method="POST" action="{{ route('tg.session.store') }}" class="hidden">
+        <form id="tg-session-form" method="POST" action="{{ route('tg.session.store', [], false) }}" class="hidden">
             @csrf
             <input type="hidden" name="init_data" id="init_data" value="">
             <input type="hidden" name="redirect" value="{{ $intended }}">
@@ -28,9 +28,9 @@
             const form = document.getElementById('tg-session-form');
             const input = document.getElementById('init_data');
             const status = document.getElementById('tg-bootstrap-status');
-            const diagnoseUrl = @json(route('tg.session.diagnose'));
+            const diagnoseUrl = @json(route('tg.session.diagnose', [], false));
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            const maxWaitMs = 1500;
+            const maxWaitMs = 5000;
             const pollMs = 50;
             const startedAt = Date.now();
 

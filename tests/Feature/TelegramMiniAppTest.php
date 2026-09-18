@@ -30,10 +30,10 @@ it('builds main keyboard buttons with courses resources saved profile and refer'
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
     expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('📚 Courses')
-        ->and(data_get($keyboard, 'keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
+        ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('📖 Resources')
-        ->and(data_get($keyboard, 'keyboard.0.1.web_app.url'))->toBe(route('tg.library'))
+        ->and(data_get($keyboard, 'keyboard.0.1.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.1.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('🔖 Quick saved')
         ->and(data_get($keyboard, 'keyboard.1.0.web_app'))->toBeNull()
@@ -50,6 +50,13 @@ it('shows the bootstrap page for guests on mini app routes', function () {
     $this->get(route('tg.browse'))
         ->assertOk()
         ->assertSee('tg-session-form', false);
+});
+
+it('uses same-host session endpoints from the mini app bootstrap', function () {
+    $this->get(route('tg.browse'))
+        ->assertOk()
+        ->assertSee('action="/tg/session"', false)
+        ->assertSee('const diagnoseUrl = "\/tg\/session\/diagnose"', false);
 });
 
 it('shows browse courses for an authenticated student', function () {

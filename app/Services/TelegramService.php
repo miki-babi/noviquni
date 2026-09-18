@@ -103,6 +103,10 @@ class TelegramService
     }
 
     /**
+     * Reply-keyboard Web App buttons do not receive Telegram initData. These
+     * text buttons are handled by TelegramBotHandler, which replies with an
+     * inline Web App button that does receive signed initData.
+     *
      * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
      */
     public function mainKeyboard(?User $user = null): array
@@ -114,12 +118,10 @@ class TelegramService
                 [
                     [
                         'text' => $copy->get('keyboard.courses'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.browse')],
                         'style' => TelegramButtonStyle::Success->value,
                     ],
                     [
                         'text' => $copy->get('keyboard.resources'),
-                        'web_app' => ['url' => $this->miniAppUrl('tg.library')],
                         'style' => TelegramButtonStyle::Success->value,
                     ],
                 ],

@@ -16,7 +16,7 @@ class SessionController extends Controller
     public function create(Request $request): View
     {
         return view('telegram.mini-app.bootstrap', [
-            'intended' => $request->string('redirect')->toString() ?: route('tg.home'),
+            'intended' => $request->string('redirect')->toString() ?: route('tg.home', [], false),
         ]);
     }
 
@@ -45,16 +45,18 @@ class SessionController extends Controller
             ]);
 
             return redirect()
-                ->route('tg.session.create', ['redirect' => $validated['redirect'] ?? route('tg.home')])
+                ->to(route('tg.session.create', [
+                    'redirect' => $validated['redirect'] ?? route('tg.home', [], false),
+                ], false))
                 ->with('error', $exception->getMessage());
         }
 
-        $redirect = $validated['redirect'] ?? route('tg.home');
+        $redirect = $validated['redirect'] ?? route('tg.home', [], false);
         $redirectWasRewritten = false;
 
         if (! $this->isSafeMiniAppRedirect($redirect)) {
             $redirectWasRewritten = true;
-            $redirect = route('tg.home');
+            $redirect = route('tg.home', [], false);
         }
 
         Log::info('Telegram mini-app session.store succeeded', [
