@@ -1311,13 +1311,9 @@ class TelegramBotHandler
             return;
         }
 
-        $rows = $resources->map(function (LearningResource $resource) {
-            $locked = $resource->is_premium || ! $resource->is_bait;
-            $courseName = $resource->course?->name;
-            $label = ($locked ? '🔒 ' : '').$resource->title.($courseName ? " · {$courseName}" : '');
-
-            return [$this->resourceInlineButton($resource, $label)];
-        })->values()->all();
+        $rows = $resources->map(fn (LearningResource $resource) => [
+            $this->resourceInlineButton($resource),
+        ])->values()->all();
 
         $rows[] = [[
             'text' => $copy->get('library.back'),
@@ -1360,15 +1356,9 @@ class TelegramBotHandler
 
         $rows = $bookmarks
             ->slice($page * $perPage, $perPage)
-            ->map(function ($bookmark) {
-                $resource = $bookmark->learningResource;
-                $typeLabel = $resource->type instanceof ResourceType
-                    ? $resource->type->label()
-                    : '';
-                $label = trim($typeLabel.' · '.$resource->title, ' ·');
-
-                return [$this->resourceInlineButton($resource, Str::limit($label, 64, '…'))];
-            })
+            ->map(fn ($bookmark) => [
+                $this->resourceInlineButton($bookmark->learningResource),
+            ])
             ->values()
             ->all();
 

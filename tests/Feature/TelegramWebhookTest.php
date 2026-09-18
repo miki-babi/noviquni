@@ -1011,8 +1011,8 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
             && data_get($rows, '0.0.style') === 'success'
             && data_get($rows, '1.0.web_app.url') === route('tg.play.notes', $older)
             && data_get($rows, '1.0.style') === 'success'
-            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Worksheet · Newer worksheet'))
-            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Notes · Older notes'))
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Newer worksheet')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Older notes')
             && $buttons->every(fn (array $button) => ! isset($button['callback_data']) || str_starts_with((string) $button['callback_data'], 'saved:page:'));
     });
 });
