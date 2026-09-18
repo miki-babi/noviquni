@@ -50,8 +50,6 @@ return [
         'has_content' => 'ኮርሶችዎ — ለመማር አንዱን ይጫኑ፦',
         'course_coming_soon' => 'ለ<b>:course</b> መርጃዎች በቅርቡ ይመጣሉ — ሲወጡ ማሳወቂያ ይፈልጋሉ?',
         'course_hubs' => '<b>:course</b> — ዓይነት ይምረጡ፦',
-        'type_coming_soon' => 'ለ<b>:course</b> የ<b>:type</b> በቅርቡ ይመጣሉ።',
-        'type_coming_soon_button' => ':type — በቅርቡ',
         'open_course_mini_app' => 'ኮርሱን በ Mini App ክፈት',
         'hubs' => 'ሃቦች',
         'plans' => 'እቅዶች',

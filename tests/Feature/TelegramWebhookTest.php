@@ -457,22 +457,21 @@ it('shows course resource types after course tap', function () {
 
         $notesButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:notes:{$course->id}");
         $moduleButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:module:{$course->id}");
-        $quizSoonButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype_soon:quiz:{$course->id}");
 
         return str_contains((string) ($data['text'] ?? ''), 'Physics')
             && str_contains((string) ($data['text'] ?? ''), 'choose a type')
             && is_array($notesButton)
+            && ($notesButton['text'] ?? null) === 'Notes'
             && ($notesButton['style'] ?? null) === 'success'
             && is_array($moduleButton)
+            && ($moduleButton['text'] ?? null) === 'Module'
             && ($moduleButton['style'] ?? null) === 'success'
-            && is_array($quizSoonButton)
-            && str_contains((string) ($quizSoonButton['text'] ?? ''), 'coming soon')
-            && ! array_key_exists('style', $quizSoonButton)
+            && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype_soon:'))
             && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.courses.show', $course));
     });
 });
 
-it('replies coming soon when an empty resource type is tapped', function () {
+it('shows course coming soon when no published resource types exist', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -487,16 +486,10 @@ it('replies coming soon when an empty resource type is tapped', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Week-1 notes',
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555035, "rtype_soon:quiz:{$course->id}", 31, 4031))
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555035, "course:{$course->id}", 31, 4031))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/editMessageText')) {
             return false;
         }
@@ -504,10 +497,10 @@ it('replies coming soon when an empty resource type is tapped', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quiz')
-            && str_contains((string) ($data['text'] ?? ''), 'Physics')
+        return str_contains((string) ($data['text'] ?? ''), 'Physics')
             && str_contains((string) ($data['text'] ?? ''), 'coming soon')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "course:{$course->id}");
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'notify:on')
+            && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype:'));
     });
 });
 

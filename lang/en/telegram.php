@@ -51,8 +51,6 @@ return [
         'has_content' => 'Your courses — tap one to study:',
         'course_coming_soon' => 'Resources for <b>:course</b> are coming soon — want a ping when they drop?',
         'course_hubs' => '<b>:course</b> — choose a type:',
-        'type_coming_soon' => '<b>:type</b> for <b>:course</b> are coming soon.',
-        'type_coming_soon_button' => ':type — coming soon',
         'open_course_mini_app' => 'Open course in Mini App',
         'hubs' => 'Hubs',
         'plans' => 'Plans',
