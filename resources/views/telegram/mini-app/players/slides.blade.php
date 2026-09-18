@@ -4,11 +4,6 @@
             <p class="text-sm text-text-secondary">{{ $course->name }}</p>
         @endif
 
-        <x-telegram.mini-app.player-reader
-            :chunks="$chunks"
-            :show-quiz-nudge="$showQuizNudge"
-            :course="$course"
-            :copy="$copy"
-        />
+        <x-telegram.mini-app.player-reader :chunks="$chunks" :copy="$copy" />
     </div>
 </x-telegram.mini-app.player-layout>

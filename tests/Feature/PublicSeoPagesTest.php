@@ -79,7 +79,7 @@ it('shows published resources and hides unpublished ones', function () {
         'slug' => 'physics-notes-pack',
         'description' => 'Core freshman physics notes.',
         'topics' => ['Mechanics', 'Waves'],
-        'type' => ResourceType::LectureNotes,
+        'type' => ResourceType::Notes,
         'content' => null,
         'generation_kind' => null,
     ]);
@@ -110,19 +110,19 @@ it('renders resource hubs and course-filtered hubs', function () {
     LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $course->stream_id,
-        'type' => ResourceType::PastExam,
+        'type' => ResourceType::MidExam,
         'title' => 'Chemistry Mid Exam',
         'slug' => 'chemistry-mid-exam',
     ]);
 
     $this->get(route('hubs.show', 'exams'))
         ->assertOk()
-        ->assertSee('Freshman Past Exams')
+        ->assertSee('Freshman Exams')
         ->assertSee('Chemistry Mid Exam');
 
     $this->get(route('hubs.course', ['exams', $course]))
         ->assertOk()
-        ->assertSee('Freshman Chemistry Past Exams')
+        ->assertSee('Freshman Chemistry Exams')
         ->assertSee('Chemistry Mid Exam');
 });
 

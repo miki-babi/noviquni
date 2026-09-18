@@ -62,9 +62,12 @@ trait OpensMiniAppResource
         ];
     }
 
+    /**
+     * @param  ResourceType|list<ResourceType>  $expectedTypes
+     */
     protected function openCatalogPlayer(
         LearningResource $resource,
-        ResourceType $expectedType,
+        ResourceType|array $expectedTypes,
         string $view,
         PremiumService $premium,
         SettingsService $settings,
@@ -72,7 +75,9 @@ trait OpensMiniAppResource
         TelegramResourceFormatter $formatter,
         ?CollegeResourceKind $interactiveKind = null,
     ): View|RedirectResponse {
-        abort_unless($resource->type === $expectedType, 404);
+        $types = is_array($expectedTypes) ? $expectedTypes : [$expectedTypes];
+
+        abort_unless(in_array($resource->type, $types, true), 404);
 
         $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
 
@@ -130,8 +135,7 @@ trait OpensMiniAppResource
         }
 
         $isNotesOrModule = in_array($resource->type, [
-            ResourceType::LectureNotes,
-            ResourceType::Summary,
+            ResourceType::Notes,
             ResourceType::Module,
             ResourceType::Worksheet,
         ], true);
@@ -144,7 +148,7 @@ trait OpensMiniAppResource
 
         return $next !== null && in_array($next->type, [
             ResourceType::Worksheet,
-            ResourceType::PracticeQuestion,
+            ResourceType::Quiz,
             ResourceType::Flashcards,
         ], true);
     }

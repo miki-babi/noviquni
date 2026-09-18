@@ -27,7 +27,11 @@ class ExamPlayerController extends Controller
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
             $resource,
-            ResourceType::PastExam,
+            [
+                ResourceType::PracticeExams,
+                ResourceType::MidExam,
+                ResourceType::FinalExam,
+            ],
             'telegram.mini-app.players.exam',
             $premium,
             $settings,

@@ -51,10 +51,15 @@ class HomeController extends PublicController
             'resources' => LearningResource::query()->published()->count(),
             'modules' => LearningResource::query()->published()->where('type', ResourceType::Module)->count(),
             'notes' => LearningResource::query()->published()->whereIn('type', [
-                ResourceType::LectureNotes,
-                ResourceType::Summary,
+                ResourceType::Notes,
+                ResourceType::Worksheet,
+                ResourceType::ReferenceBooks,
             ])->count(),
-            'exams' => LearningResource::query()->published()->where('type', ResourceType::PastExam)->count(),
+            'exams' => LearningResource::query()->published()->whereIn('type', [
+                ResourceType::MidExam,
+                ResourceType::FinalExam,
+                ResourceType::PracticeExams,
+            ])->count(),
         ];
 
         $title = 'Freshman resources for Ethiopian university students';

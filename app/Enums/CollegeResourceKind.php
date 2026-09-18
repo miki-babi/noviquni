@@ -22,9 +22,9 @@ enum CollegeResourceKind: string
     public function resourceType(): ResourceType
     {
         return match ($this) {
-            self::Notes => ResourceType::LectureNotes,
-            self::Quiz => ResourceType::PracticeQuestion,
-            self::Exam => ResourceType::PastExam,
+            self::Notes => ResourceType::Notes,
+            self::Quiz => ResourceType::Quiz,
+            self::Exam => ResourceType::PracticeExams,
             self::Flashcards => ResourceType::Flashcards,
         };
     }

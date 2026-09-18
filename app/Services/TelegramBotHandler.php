@@ -1049,8 +1049,7 @@ class TelegramBotHandler
         }
 
         $isNotesOrModule = in_array($resource->type, [
-            ResourceType::LectureNotes,
-            ResourceType::Summary,
+            ResourceType::Notes,
             ResourceType::Module,
         ], true);
 

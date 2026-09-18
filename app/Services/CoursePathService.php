@@ -39,10 +39,9 @@ class CoursePathService
                 ->where('course_id', $course->id)
                 ->where('module_id', $module->id)
                 ->whereIn('type', [
-                    ResourceType::LectureNotes,
-                    ResourceType::Summary,
+                    ResourceType::Notes,
                     ResourceType::Worksheet,
-                    ResourceType::PracticeQuestion,
+                    ResourceType::Quiz,
                     ResourceType::Flashcards,
                 ])
                 ->get()
@@ -61,7 +60,11 @@ class CoursePathService
         $exams = LearningResource::query()
             ->published()
             ->where('course_id', $course->id)
-            ->where('type', ResourceType::PastExam)
+            ->whereIn('type', [
+                ResourceType::PracticeExams,
+                ResourceType::MidExam,
+                ResourceType::FinalExam,
+            ])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
@@ -76,9 +79,14 @@ class CoursePathService
             ->where('course_id', $course->id)
             ->whereNull('module_id')
             ->where('type', '!=', ResourceType::Module)
-            ->where('type', '!=', ResourceType::PastExam)
-            ->where('type', '!=', ResourceType::Assignment)
-            ->where('type', '!=', ResourceType::Other)
+            ->whereNotIn('type', [
+                ResourceType::PracticeExams,
+                ResourceType::MidExam,
+                ResourceType::FinalExam,
+                ResourceType::Assignment,
+                ResourceType::Slides,
+                ResourceType::ReferenceBooks,
+            ])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get()

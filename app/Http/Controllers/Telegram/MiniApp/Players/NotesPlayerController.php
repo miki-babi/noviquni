@@ -27,7 +27,7 @@ class NotesPlayerController extends Controller
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
             $resource,
-            ResourceType::LectureNotes,
+            ResourceType::Notes,
             'telegram.mini-app.players.notes',
             $premium,
             $settings,

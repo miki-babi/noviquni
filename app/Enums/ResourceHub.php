@@ -14,7 +14,7 @@ enum ResourceHub: string
         return match ($this) {
             self::Modules => 'Modules',
             self::Notes => 'Notes',
-            self::Exams => 'Past Exams',
+            self::Exams => 'Exams',
             self::Practice => 'Practice',
         };
     }
@@ -24,7 +24,7 @@ enum ResourceHub: string
         return match ($this) {
             self::Modules => 'module',
             self::Notes => 'note',
-            self::Exams => 'past exam',
+            self::Exams => 'exam',
             self::Practice => 'practice set',
         };
     }
@@ -35,10 +35,19 @@ enum ResourceHub: string
     public function types(): array
     {
         return match ($this) {
-            self::Modules => [ResourceType::Module],
-            self::Notes => [ResourceType::LectureNotes, ResourceType::Summary, ResourceType::Worksheet],
-            self::Exams => [ResourceType::PastExam],
-            self::Practice => [ResourceType::PracticeQuestion, ResourceType::Flashcards],
+            self::Modules => [ResourceType::Module, ResourceType::Slides],
+            self::Notes => [
+                ResourceType::Notes,
+                ResourceType::Worksheet,
+                ResourceType::ReferenceBooks,
+                ResourceType::Assignment,
+            ],
+            self::Exams => [ResourceType::MidExam, ResourceType::FinalExam],
+            self::Practice => [
+                ResourceType::Quiz,
+                ResourceType::Flashcards,
+                ResourceType::PracticeExams,
+            ],
         };
     }
 

@@ -161,14 +161,16 @@ it('renders reader shells for every catalog type without interactive payload', f
         ->assertSee('Catalog body for '.$type->value, false);
 })->with([
     'module' => [ResourceType::Module, 'tg.play.module'],
-    'summary' => [ResourceType::Summary, 'tg.play.summary'],
+    'notes' => [ResourceType::Notes, 'tg.play.notes'],
     'worksheet' => [ResourceType::Worksheet, 'tg.play.worksheet'],
     'assignment' => [ResourceType::Assignment, 'tg.play.assignment'],
-    'other' => [ResourceType::Other, 'tg.play.other'],
-    'lecture notes fallback' => [ResourceType::LectureNotes, 'tg.play.notes'],
-    'practice fallback' => [ResourceType::PracticeQuestion, 'tg.play.quiz'],
-    'past exam fallback' => [ResourceType::PastExam, 'tg.play.exam'],
-    'flashcards fallback' => [ResourceType::Flashcards, 'tg.play.flashcards'],
+    'quiz' => [ResourceType::Quiz, 'tg.play.quiz'],
+    'practice exams' => [ResourceType::PracticeExams, 'tg.play.exam'],
+    'mid exam' => [ResourceType::MidExam, 'tg.play.exam'],
+    'final exam' => [ResourceType::FinalExam, 'tg.play.exam'],
+    'slides' => [ResourceType::Slides, 'tg.play.slides'],
+    'reference books' => [ResourceType::ReferenceBooks, 'tg.play.reference-books'],
+    'flashcards' => [ResourceType::Flashcards, 'tg.play.flashcards'],
 ]);
 
 it('returns 404 when the player type does not match the resource', function () {

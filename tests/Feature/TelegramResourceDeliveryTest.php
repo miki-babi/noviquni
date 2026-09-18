@@ -42,7 +42,7 @@ it('sends generated quiz content as telegram messages instead of a document', fu
         'title' => 'Anthropology Quiz',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::PracticeQuestion,
+        'type' => ResourceType::Quiz,
         'generation_kind' => CollegeResourceKind::Quiz,
         'is_premium' => false,
         'is_bait' => true,

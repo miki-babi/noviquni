@@ -27,7 +27,7 @@ class QuizPlayerController extends Controller
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
             $resource,
-            ResourceType::PracticeQuestion,
+            ResourceType::Quiz,
             'telegram.mini-app.players.quiz',
             $premium,
             $settings,

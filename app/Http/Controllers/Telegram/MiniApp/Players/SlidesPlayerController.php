@@ -13,7 +13,7 @@ use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
-class SummaryPlayerController extends Controller
+class SlidesPlayerController extends Controller
 {
     use OpensMiniAppResource;
 
@@ -26,8 +26,8 @@ class SummaryPlayerController extends Controller
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
             $resource,
-            ResourceType::Summary,
-            'telegram.mini-app.players.summary',
+            ResourceType::Slides,
+            'telegram.mini-app.players.slides',
             $premium,
             $settings,
             $referrals,

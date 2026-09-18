@@ -13,7 +13,7 @@ use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
-class OtherPlayerController extends Controller
+class ReferenceBooksPlayerController extends Controller
 {
     use OpensMiniAppResource;
 
@@ -26,8 +26,8 @@ class OtherPlayerController extends Controller
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
             $resource,
-            ResourceType::Other,
-            'telegram.mini-app.players.other',
+            ResourceType::ReferenceBooks,
+            'telegram.mini-app.players.reference-books',
             $premium,
             $settings,
             $referrals,

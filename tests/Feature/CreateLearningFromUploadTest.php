@@ -29,7 +29,7 @@ it('creates a learning resource from a single uploaded file', function () {
         ->fillForm([
             'creation_mode' => 'upload',
             'file_mode' => 'single',
-            'type' => ResourceType::LectureNotes->value,
+            'type' => ResourceType::Notes->value,
             'title' => 'Week 1 Lecture Notes',
             'slug' => 'week-1-lecture-notes',
             'description' => 'Uploaded short notes for week 1.',
@@ -52,7 +52,7 @@ it('creates a learning resource from a single uploaded file', function () {
 
     expect($resource)->not->toBeNull()
         ->and($resource->title)->toBe('Week 1 Lecture Notes')
-        ->and($resource->type)->toBe(ResourceType::LectureNotes)
+        ->and($resource->type)->toBe(ResourceType::Notes)
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->content)->toBeNull()
         ->and($resource->course_id)->toBe($course->id)
@@ -83,7 +83,7 @@ it('creates a learning resource from multiple uploaded files', function () {
         ->fillForm([
             'creation_mode' => 'upload',
             'file_mode' => 'multiple',
-            'type' => ResourceType::PastExam->value,
+            'type' => ResourceType::PracticeExams->value,
             'title' => 'Past Exam Pack',
             'slug' => 'past-exam-pack',
             'description' => 'Midterm and final samples.',
@@ -105,7 +105,7 @@ it('creates a learning resource from multiple uploaded files', function () {
     $resource = LearningResource::query()->first();
 
     expect($resource)->not->toBeNull()
-        ->and($resource->type)->toBe(ResourceType::PastExam)
+        ->and($resource->type)->toBe(ResourceType::PracticeExams)
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->is_premium)->toBeTrue()
         ->and($resource->files)->toHaveCount(2);

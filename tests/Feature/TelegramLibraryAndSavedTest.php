@@ -136,7 +136,7 @@ it('shows save control on the notes player', function () {
     $resource = LearningResource::factory()->bait()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::LectureNotes,
+        'type' => ResourceType::Notes,
         'title' => 'Player notes',
     ]);
 

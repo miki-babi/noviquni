@@ -5,27 +5,31 @@ namespace App\Enums;
 enum ResourceType: string
 {
     case Module = 'module';
-    case LectureNotes = 'lecture_notes';
-    case Summary = 'summary';
-    case Worksheet = 'worksheet';
-    case PastExam = 'past_exam';
-    case Assignment = 'assignment';
-    case PracticeQuestion = 'practice_question';
+    case Notes = 'notes';
     case Flashcards = 'flashcards';
-    case Other = 'other';
+    case Quiz = 'quiz';
+    case PracticeExams = 'practice_exams';
+    case Slides = 'slides';
+    case Worksheet = 'worksheet';
+    case Assignment = 'assignment';
+    case MidExam = 'mid_exam';
+    case FinalExam = 'final_exam';
+    case ReferenceBooks = 'reference_books';
 
     public function label(): string
     {
         return match ($this) {
             self::Module => 'Module',
-            self::LectureNotes => 'Lecture notes',
-            self::Summary => 'Summary',
-            self::Worksheet => 'Worksheet',
-            self::PastExam => 'Past exam',
-            self::Assignment => 'Assignment',
-            self::PracticeQuestion => 'Practice questions',
+            self::Notes => 'Notes',
             self::Flashcards => 'Flashcards',
-            self::Other => 'Other',
+            self::Quiz => 'Quiz',
+            self::PracticeExams => 'Practice exams',
+            self::Slides => 'Slides (PPT)',
+            self::Worksheet => 'Worksheet',
+            self::Assignment => 'Assignment',
+            self::MidExam => 'Mid exam',
+            self::FinalExam => 'Final exam',
+            self::ReferenceBooks => 'Reference books',
         };
     }
 
@@ -33,14 +37,14 @@ enum ResourceType: string
     {
         return match ($this) {
             self::Module => 'tg.play.module',
-            self::LectureNotes => 'tg.play.notes',
-            self::Summary => 'tg.play.summary',
-            self::Worksheet => 'tg.play.worksheet',
-            self::PastExam => 'tg.play.exam',
-            self::Assignment => 'tg.play.assignment',
-            self::PracticeQuestion => 'tg.play.quiz',
+            self::Notes => 'tg.play.notes',
             self::Flashcards => 'tg.play.flashcards',
-            self::Other => 'tg.play.other',
+            self::Quiz => 'tg.play.quiz',
+            self::PracticeExams, self::MidExam, self::FinalExam => 'tg.play.exam',
+            self::Slides => 'tg.play.slides',
+            self::Worksheet => 'tg.play.worksheet',
+            self::Assignment => 'tg.play.assignment',
+            self::ReferenceBooks => 'tg.play.reference-books',
         };
     }
 
@@ -53,13 +57,16 @@ enum ResourceType: string
     {
         return [
             self::Module,
-            self::LectureNotes,
-            self::Summary,
-            self::Worksheet,
-            self::PastExam,
-            self::PracticeQuestion,
+            self::Notes,
             self::Flashcards,
-            self::Other,
+            self::Quiz,
+            self::PracticeExams,
+            self::Slides,
+            self::Worksheet,
+            self::Assignment,
+            self::MidExam,
+            self::FinalExam,
+            self::ReferenceBooks,
         ];
     }
 
@@ -70,11 +77,11 @@ enum ResourceType: string
     {
         return match ($this) {
             self::Module => 0,
-            self::LectureNotes, self::Summary => 1,
+            self::Notes => 1,
             self::Worksheet => 2,
-            self::PracticeQuestion => 3,
+            self::Quiz => 3,
             self::Flashcards => 4,
-            self::PastExam => 5,
+            self::PracticeExams, self::MidExam, self::FinalExam => 5,
             default => 99,
         };
     }

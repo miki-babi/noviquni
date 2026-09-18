@@ -37,7 +37,7 @@ it('maps a quiz API response into learning resource attributes', function () {
         ['scope_label' => 'Section 1: Definition'],
     );
 
-    expect($mapped['type'])->toBe(ResourceType::PracticeQuestion)
+    expect($mapped['type'])->toBe(ResourceType::Quiz)
         ->and($mapped['generation_kind'])->toBe(CollegeResourceKind::Quiz)
         ->and($mapped['title'])->toContain('Quiz')
         ->and($mapped['content']['kind'])->toBe('quiz')
@@ -161,7 +161,7 @@ it('creates a learning resource from college API generated content via the creat
     $resource = LearningResource::query()->first();
 
     expect($resource)->not->toBeNull()
-        ->and($resource->type)->toBe(ResourceType::PracticeQuestion)
+        ->and($resource->type)->toBe(ResourceType::Quiz)
         ->and($resource->generation_kind)->toBe(CollegeResourceKind::Quiz)
         ->and($resource->content['kind'])->toBe('quiz')
         ->and($resource->content['payload']['questions'][0]['question'])->toBe('What is anthropology?')

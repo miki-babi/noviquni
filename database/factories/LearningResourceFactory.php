@@ -98,7 +98,7 @@ class LearningResourceFactory extends Factory
     public function notes(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::LectureNotes,
+            'type' => ResourceType::Notes,
             'generation_kind' => CollegeResourceKind::Notes,
             'content' => [
                 'kind' => CollegeResourceKind::Notes->value,
@@ -130,7 +130,7 @@ class LearningResourceFactory extends Factory
     public function quiz(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::PracticeQuestion,
+            'type' => ResourceType::Quiz,
             'generation_kind' => CollegeResourceKind::Quiz,
             'content' => [
                 'kind' => CollegeResourceKind::Quiz->value,
@@ -161,7 +161,7 @@ class LearningResourceFactory extends Factory
     public function exam(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::PastExam,
+            'type' => ResourceType::PracticeExams,
             'generation_kind' => CollegeResourceKind::Exam,
             'content' => [
                 'kind' => CollegeResourceKind::Exam->value,

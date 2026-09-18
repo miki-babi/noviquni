@@ -930,7 +930,7 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Older notes',
-        'type' => ResourceType::LectureNotes,
+        'type' => ResourceType::Notes,
     ]);
     $newer = LearningResource::factory()->bait()->worksheet()->create([
         'course_id' => $course->id,
