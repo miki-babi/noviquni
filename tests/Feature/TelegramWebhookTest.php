@@ -418,7 +418,7 @@ it('shows coming soon browse state without counts when enrolled but empty', func
     });
 });
 
-it('shows course hubs after course tap', function () {
+it('shows course resource types after course tap', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -455,11 +455,59 @@ it('shows course hubs after course tap', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
+        $notesButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:notes:{$course->id}");
+        $moduleButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:module:{$course->id}");
+        $quizSoonButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype_soon:quiz:{$course->id}");
+
         return str_contains((string) ($data['text'] ?? ''), 'Physics')
-            && str_contains((string) ($data['text'] ?? ''), 'choose a hub')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}")
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:modules:{$course->id}")
+            && str_contains((string) ($data['text'] ?? ''), 'choose a type')
+            && is_array($notesButton)
+            && ($notesButton['style'] ?? null) === 'success'
+            && is_array($moduleButton)
+            && ($moduleButton['style'] ?? null) === 'success'
+            && is_array($quizSoonButton)
+            && str_contains((string) ($quizSoonButton['text'] ?? ''), 'coming soon')
+            && ! array_key_exists('style', $quizSoonButton)
             && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.courses.show', $course));
+    });
+});
+
+it('replies coming soon when an empty resource type is tapped', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555035',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->bait()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Week-1 notes',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555035, "rtype_soon:quiz:{$course->id}", 31, 4031))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Quiz')
+            && str_contains((string) ($data['text'] ?? ''), 'Physics')
+            && str_contains((string) ($data['text'] ?? ''), 'coming soon')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "course:{$course->id}");
     });
 });
 
@@ -788,8 +836,9 @@ it('opens a bait course path from /start bait', function () {
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Chemistry')
-            && str_contains((string) ($data['text'] ?? ''), 'choose a hub')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "hub:notes:{$course->id}");
+            && str_contains((string) ($data['text'] ?? ''), 'choose a type')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:notes:{$course->id}"
+                && ($button['style'] ?? null) === 'success');
     });
 });
 
@@ -856,7 +905,7 @@ it('opens a course from /start course deep link', function () {
 
         $text = (string) data_get($request->data(), 'text');
 
-        return str_contains($text, 'English') && str_contains($text, 'choose a hub');
+        return str_contains($text, 'English') && str_contains($text, 'choose a type');
     });
 });
 

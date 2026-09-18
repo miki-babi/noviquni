@@ -229,6 +229,8 @@ class TelegramBotHandler
             str_starts_with($data, 'course_resources:') => $this->handleCourseTap($user, $chatId, (int) Str::after($data, 'course_resources:'), $messageId),
             str_starts_with($data, 'hub:') => $this->handleHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
+            str_starts_with($data, 'rtype_soon:') => $this->handleResourceTypeSoonCallback($user, $chatId, $data, $messageId),
+            str_starts_with($data, 'rtype:') => $this->handleResourceTypeCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
             str_starts_with($data, 'saved:page:') => $this->guardComplete(
                 $user,
@@ -331,6 +333,72 @@ class TelegramBotHandler
         }
 
         $this->listResources($user, $chatId, $courseId, $hub, $messageId);
+
+        return null;
+    }
+
+    protected function handleResourceTypeCallback(User $user, int|string $chatId, string $data, ?int $messageId): ?string
+    {
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            return TelegramCopy::for($user)->get('menu.finish_onboarding');
+        }
+
+        $parts = explode(':', $data);
+
+        if (count($parts) !== 3) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $type = ResourceType::tryFrom($parts[1]);
+        $courseId = (int) $parts[2];
+
+        if ($type === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listResourcesByType($user, $chatId, $courseId, $type, $messageId);
+
+        return null;
+    }
+
+    protected function handleResourceTypeSoonCallback(User $user, int|string $chatId, string $data, ?int $messageId): ?string
+    {
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            return TelegramCopy::for($user)->get('menu.finish_onboarding');
+        }
+
+        $parts = explode(':', $data);
+
+        if (count($parts) !== 3) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $type = ResourceType::tryFrom($parts[1]);
+        $courseId = (int) $parts[2];
+        $course = Course::query()->find($courseId);
+
+        if ($type === null || $course === null || ! $user->courses()->where('courses.id', $courseId)->exists()) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $copy = TelegramCopy::for($user);
+
+        $this->telegram->replyOrEdit(
+            $chatId,
+            $copy->get('browse.type_coming_soon', [
+                'type' => $type->label(),
+                'course' => $course->name,
+            ]),
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [[
+                        'text' => $copy->get('hub.back'),
+                        'callback_data' => "course:{$courseId}",
+                    ]],
+                ]),
+            ],
+            $messageId,
+        );
 
         return null;
     }
@@ -818,47 +886,33 @@ class TelegramBotHandler
             return;
         }
 
+        $countsByType = LearningResource::query()
+            ->published()
+            ->where('course_id', $courseId)
+            ->toBase()
+            ->selectRaw('type, count(*) as aggregate')
+            ->groupBy('type')
+            ->pluck('aggregate', 'type');
+
         $rows = [];
 
-        foreach ([ResourceHub::Modules, ResourceHub::Notes, ResourceHub::Practice, ResourceHub::Exams] as $hub) {
-            $count = LearningResource::query()
-                ->published()
-                ->where('course_id', $courseId)
-                ->whereIn('type', $hub->typeValues())
-                ->count();
+        foreach (ResourceType::creatableCases() as $type) {
+            $count = (int) ($countsByType[$type->value] ?? 0);
 
-            if ($count === 0) {
+            if ($count > 0) {
+                $rows[] = [[
+                    'text' => $type->label().' ('.$count.')',
+                    'callback_data' => "rtype:{$type->value}:{$courseId}",
+                    'style' => TelegramButtonStyle::Success->value,
+                ]];
+
                 continue;
             }
 
             $rows[] = [[
-                'text' => $hub->label().' ('.$count.')',
-                'callback_data' => "hub:{$hub->value}:{$courseId}",
-                'style' => TelegramButtonStyle::Primary->value,
+                'text' => $copy->get('browse.type_coming_soon_button', ['type' => $type->label()]),
+                'callback_data' => "rtype_soon:{$type->value}:{$courseId}",
             ]];
-        }
-
-        if ($rows === []) {
-            $this->telegram->replyOrEdit(
-                $chatId,
-                $copy->get('browse.course_coming_soon', ['course' => $course->name]),
-                [
-                    'reply_markup' => $this->telegram->inlineKeyboard([
-                        [[
-                            'text' => $copy->get('browse.notify'),
-                            'callback_data' => 'notify:on',
-                            'style' => TelegramButtonStyle::Success->value,
-                        ]],
-                        [[
-                            'text' => $copy->get('hub.back'),
-                            'callback_data' => 'back:courses',
-                        ]],
-                    ]),
-                ],
-                $messageId,
-            );
-
-            return;
         }
 
         $rows[] = [[
@@ -969,12 +1023,55 @@ class TelegramBotHandler
             $query->whereIn('type', $hub->typeValues());
         }
 
-        $resources = $query->get();
+        $this->replyWithResourceList(
+            $copy,
+            $chatId,
+            $query->get(),
+            $hub !== null ? "course:{$courseId}" : 'back:courses',
+            $messageId,
+        );
+    }
 
+    protected function listResourcesByType(
+        User $user,
+        int|string $chatId,
+        int $courseId,
+        ResourceType $type,
+        ?int $messageId = null,
+    ): void {
+        $copy = TelegramCopy::for($user);
+
+        $resources = LearningResource::query()
+            ->published()
+            ->where('course_id', $courseId)
+            ->where('type', $type)
+            ->orderBy('title')
+            ->get();
+
+        $this->replyWithResourceList(
+            $copy,
+            $chatId,
+            $resources,
+            "course:{$courseId}",
+            $messageId,
+        );
+    }
+
+    /**
+     * @param  Collection<int, LearningResource>  $resources
+     */
+    protected function replyWithResourceList(
+        TelegramCopy $copy,
+        int|string $chatId,
+        Collection $resources,
+        string $backCallback,
+        ?int $messageId = null,
+    ): void {
         if ($resources->isEmpty()) {
-            $rows = [[['text' => $copy->get('hub.back'), 'callback_data' => $hub !== null ? "course:{$courseId}" : 'back:courses']]];
             $this->telegram->replyOrEdit($chatId, $copy->get('hub.no_resources'), [
-                'reply_markup' => $this->telegram->inlineKeyboard($rows),
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [['text' => $copy->get('hub.back'), 'callback_data' => $backCallback]],
+                ]),
             ], $messageId);
 
             return;
@@ -988,7 +1085,7 @@ class TelegramBotHandler
 
         $rows[] = [[
             'text' => $copy->get('hub.back'),
-            'callback_data' => $hub !== null ? "course:{$courseId}" : 'back:courses',
+            'callback_data' => $backCallback,
         ]];
 
         $this->telegram->replyOrEdit($chatId, $copy->get('hub.resources'), [
