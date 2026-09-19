@@ -67,7 +67,7 @@
     >
         {{-- Hint + progress --}}
         <div class="space-y-2 px-2">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <template x-if="card.hint">
                         <button
@@ -94,8 +94,7 @@
                     <p class="text-sm font-medium text-text-muted tabular-nums">
                         <span x-text="current + 1"></span> / <span x-text="total"></span>
                     </p>
-                </div>
-                <span class="h-4 w-px bg-border-light" aria-hidden="true"></span>
+                    <span class="h-4 w-px bg-border-light" aria-hidden="true"></span>
 
             @if ($resource)
                 <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="contents">
@@ -118,6 +117,8 @@
                     </button>
                 </form>
             @endif
+                </div>
+                
             </div>
 
             <template x-if="card.hint">
