@@ -6,7 +6,7 @@
     :is-bookmarked="$isBookmarked ?? false"
     :show-bookmark="false"
     :show-bot-footer="true"
-    menu-icon="dots"
+    :show-menu="false"
 >
     @if ($payload)
         <x-study.flashcards

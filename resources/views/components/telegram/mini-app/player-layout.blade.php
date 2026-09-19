@@ -8,6 +8,7 @@
     'isBookmarked' => false,
     'showBookmark' => true,
     'showBotFooter' => false,
+    'showMenu' => true,
     'menuIcon' => 'hamburger',
     'activeNav' => null,
     'user' => null,
@@ -71,12 +72,14 @@
                         </button>
                     </form>
                 @endif
-                <x-telegram.mini-app.menu
-                    :copy="$copy"
-                    :active-nav="$activeNav"
-                    :user="$resolvedUser"
-                    :icon="$menuIcon"
-                />
+                @if ($showMenu)
+                    <x-telegram.mini-app.menu
+                        :copy="$copy"
+                        :active-nav="$activeNav"
+                        :user="$resolvedUser"
+                        :icon="$menuIcon"
+                    />
+                @endif
             </div>
         </header>
 
