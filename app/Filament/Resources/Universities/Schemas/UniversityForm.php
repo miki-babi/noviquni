@@ -36,6 +36,7 @@ class UniversityForm
                     ->image()
                     ->disk(config('filesystems.default'))
                     ->directory('universities/logos')
+                    ->preserveFilenames()
                     ->columnSpanFull(),
                 TextInput::make('sort_order')
                     ->numeric()

@@ -38,6 +38,7 @@ class SeoFields
                         ->image()
                         ->disk(config('filesystems.default'))
                         ->directory('seo/og')
+                        ->preserveFilenames()
                         ->columnSpanFull(),
                     Toggle::make('is_indexable')
                         ->label('Indexable')

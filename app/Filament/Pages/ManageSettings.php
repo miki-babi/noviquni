@@ -117,6 +117,7 @@ class ManageSettings extends Page
                             ->disk('public')
                             ->directory('telegram/start')
                             ->visibility('public')
+                            ->preserveFilenames()
                             ->helperText('Optional. Sent as a Telegram photo with the caption below.')
                             ->columnSpanFull(),
                         RichEditor::make('telegram_start_caption')

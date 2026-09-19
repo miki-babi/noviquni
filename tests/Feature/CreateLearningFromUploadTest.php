@@ -59,6 +59,7 @@ it('creates a learning resource from a single uploaded file', function () {
         ->and($resource->is_bait)->toBeTrue()
         ->and($resource->files)->toBeArray()
         ->and($resource->files)->toHaveCount(1)
+        ->and($resource->files[0])->toBe('learning-resources/week-1-notes.pdf')
         ->and($resource->hasFiles())->toBeTrue();
 
     Storage::disk($disk)->assertExists($resource->files[0]);
@@ -108,7 +109,11 @@ it('creates a learning resource from multiple uploaded files', function () {
         ->and($resource->type)->toBe(ResourceType::PracticeExams)
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->is_premium)->toBeTrue()
-        ->and($resource->files)->toHaveCount(2);
+        ->and($resource->files)->toHaveCount(2)
+        ->and($resource->files)->toEqualCanonicalizing([
+            'learning-resources/midterm.pdf',
+            'learning-resources/final.pdf',
+        ]);
 
     foreach ($resource->files as $path) {
         Storage::disk($disk)->assertExists($path);

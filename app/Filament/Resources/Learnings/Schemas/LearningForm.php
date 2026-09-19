@@ -553,6 +553,7 @@ class LearningForm
                 ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Study file' : 'Study files')
                 ->disk(config('filesystems.default'))
                 ->directory('learning-resources')
+                ->preserveFilenames()
                 ->multiple()
                 ->maxFiles(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
                 ->acceptedFileTypes([
