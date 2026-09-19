@@ -81,12 +81,7 @@
                     <span x-text="current + 1"></span> / <span x-text="total"></span>
                 </p>
             </div>
-            <div class="h-1.5 overflow-hidden rounded-pill bg-surface-gray" role="progressbar" :aria-valuenow="current + 1" :aria-valuemax="total">
-                <div
-                    class="h-full rounded-pill bg-primary-200 transition-all duration-300 ease-out"
-                    :style="`width: ${progress}%`"
-                ></div>
-            </div>
+            
         </div>
         {{-- Hint --}}
         <template x-if="card.hint">
