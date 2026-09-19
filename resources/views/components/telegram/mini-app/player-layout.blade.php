@@ -92,12 +92,6 @@
 
             {{ $slot }}
         </main>
-
-        @if ($showBotFooter)
-            <footer class="px-4 py-5 text-center text-xs font-medium text-text-muted">
-                {{ '@'.$botUsername }}
-            </footer>
-        @endif
     </div>
 
     <x-telegram.mini-app.back-button-script :back-url="$backUrl" />
