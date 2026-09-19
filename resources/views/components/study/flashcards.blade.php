@@ -65,46 +65,49 @@
             },
         }"
     >
-        {{-- Study header + progress --}}
-        <div class="space-y-3">
-            <div class="flex items-center justify-end gap-3">
-                
-                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-200" aria-hidden="true">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h11.25a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-9a1.5 1.5 0 0 1 1.5-1.5Z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5h11.25a1.5 1.5 0 0 1 1.5 1.5V15" />
-                    </svg>
-                </span>
-                <p class="shrink-0 text-sm font-medium text-text-muted tabular-nums">
-                    <span x-text="current + 1"></span> / <span x-text="total"></span>
-                </p>
+        {{-- Hint + progress --}}
+        <div class="space-y-2">
+            <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <template x-if="card.hint">
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-200 transition-opacity hover:opacity-80"
+                            @click="showHint = ! showHint"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-1.5m0 0a4.5 4.5 0 0 0 4.5-4.5c0-2.485-1.79-4.5-4.5-4.5s-4.5 2.015-4.5 4.5A4.5 4.5 0 0 0 12 16.5Zm-2.25 4.5h4.5" />
+                            </svg>
+                            <span x-text="showHint ? 'Hide hint' : 'Hint'"></span>
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3.5 w-3.5 transition-transform" :class="{ 'rotate-90': showHint }" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                        </button>
+                    </template>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-3">
+                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-200" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h11.25a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-9a1.5 1.5 0 0 1 1.5-1.5Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5h11.25a1.5 1.5 0 0 1 1.5 1.5V15" />
+                        </svg>
+                    </span>
+                    <p class="text-sm font-medium text-text-muted tabular-nums">
+                        <span x-text="current + 1"></span> / <span x-text="total"></span>
+                    </p>
+                </div>
             </div>
-            {{-- Hint --}}
-        <template x-if="card.hint">
-            <div class="flex flex-col items-center gap-2">
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-200 transition-opacity hover:opacity-80"
-                    @click="showHint = ! showHint"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-1.5m0 0a4.5 4.5 0 0 0 4.5-4.5c0-2.485-1.79-4.5-4.5-4.5s-4.5 2.015-4.5 4.5A4.5 4.5 0 0 0 12 16.5Zm-2.25 4.5h4.5" />
-                    </svg>
-                    <span x-text="showHint ? 'Hide hint' : 'Hint'"></span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-3.5 w-3.5 transition-transform" :class="{ 'rotate-90': showHint }" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                    </svg>
-                </button>
+
+            <template x-if="card.hint">
                 <p
-                    class="max-w-sm text-center text-sm text-text-secondary"
+                    class="text-sm text-text-secondary"
                     x-show="showHint"
                     x-cloak
                     x-text="card.hint"
                 ></p>
-            </div>
-        </template>
+            </template>
         </div>
-        
 
         {{-- Flashcard --}}
         <button
