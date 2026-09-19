@@ -11,6 +11,9 @@ use App\Services\College\CollegeApiClient;
 use App\Services\College\CollegeApiException;
 use App\Services\College\CollegeCurriculumOptions;
 use App\Services\College\LearningResourceMapper;
+use Closure;
+use Filament\Forms\Components\CodeEditor;
+use Filament\Forms\Components\CodeEditor\Enums\Language;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
@@ -134,21 +137,7 @@ class LearningForm
                         || (bool) $get('is_premium')),
                 Toggle::make('is_published')->default(false),
                 ...static::fileFields(required: false),
-                Textarea::make('content_preview')
-                    ->label('Generated content')
-                    ->rows(12)
-                    ->disabled()
-                    ->dehydrated(false)
-                    ->visible(fn (?LearningResource $record): bool => filled($record?->content))
-                    ->afterStateHydrated(function (Textarea $component, mixed $state, ?LearningResource $record): void {
-                        $content = $record?->content;
-                        $component->state(
-                            is_array($content)
-                                ? (json_encode($content, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '')
-                                : ''
-                        );
-                    })
-                    ->columnSpanFull(),
+                static::contentJsonField(required: false),
                 ...SeoFields::make(),
             ]);
     }
@@ -484,21 +473,59 @@ class LearningForm
                         ->disabled()
                         ->dehydrated()
                         ->required(),
-                    Hidden::make('content')
-                        ->required()
-                        ->dehydrateStateUsing(fn ($state) => is_string($state)
-                            ? (json_decode($state, true) ?: null)
-                            : $state),
                     Hidden::make('generation_kind'),
-                    Textarea::make('content_preview')
-                        ->label('Generated content preview')
-                        ->rows(10)
-                        ->disabled()
-                        ->dehydrated(false)
-                        ->columnSpanFull(),
+                    static::contentJsonField(required: true),
                     ...SeoFields::make(),
                 ]),
         ];
+    }
+
+    protected static function contentJsonField(bool $required = false): CodeEditor
+    {
+        $field = CodeEditor::make('content')
+            ->label('Content JSON')
+            ->language(Language::Json)
+            ->helperText('Edit the stored College API payload. Exams should use a single payload.questions MCQ list.')
+            ->columnSpanFull()
+            ->formatStateUsing(function (mixed $state): string {
+                if (is_array($state)) {
+                    return json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '';
+                }
+
+                if (is_string($state)) {
+                    return $state;
+                }
+
+                return '';
+            })
+            ->dehydrateStateUsing(function (mixed $state): ?array {
+                if (! is_string($state) || blank($state)) {
+                    return null;
+                }
+
+                $decoded = json_decode($state, true);
+
+                return is_array($decoded) ? $decoded : null;
+            })
+            ->rules([
+                fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! is_string($value) || blank($value)) {
+                        return;
+                    }
+
+                    json_decode($value, true);
+
+                    if (json_last_error() !== JSON_ERROR_NONE) {
+                        $fail('Content must be valid JSON.');
+                    }
+                },
+            ]);
+
+        if ($required) {
+            $field->required();
+        }
+
+        return $field;
     }
 
     /**
@@ -626,7 +653,6 @@ class LearningForm
         $set('type', $mapped['type']->value);
         $set('generation_kind', $mapped['generation_kind']->value);
         $set('content', $encoded);
-        $set('content_preview', $encoded);
 
         if ($kind === CollegeResourceKind::Flashcards) {
             $set('is_premium', true);

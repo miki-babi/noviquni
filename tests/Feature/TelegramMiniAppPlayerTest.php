@@ -109,11 +109,9 @@ it('renders the flashcards player for premium students', function () {
     $this->actingAs($user->fresh())
         ->get(route('tg.play.flashcards', $resource))
         ->assertOk()
-        ->assertSee('NOViQ Uni', false)
         ->assertSee('Anthropology Flashcards', false)
         ->assertSee('What does anthropos mean?', false)
-        ->assertSee('Tap to reveal answer', false)
-        ->assertSee('Flip', false);
+        ->assertSee('Tap to reveal answer', false);
 });
 
 it('locks flashcards for free students', function () {

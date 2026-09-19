@@ -233,7 +233,79 @@ class LearningResource extends Model
             return $cards === [] ? null : ['cards' => $cards];
         }
 
+        if ($this->studyKind() === CollegeResourceKind::Exam) {
+            $exam = $this->normalizeExam($payload);
+
+            return ($exam['questions'] ?? []) === [] ? null : $exam;
+        }
+
         return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{instructions: ?string, questions: list<array<string, mixed>>}
+     */
+    public function normalizeExam(array $payload): array
+    {
+        $instructions = filled($payload['instructions'] ?? null)
+            ? (string) $payload['instructions']
+            : null;
+
+        $rawQuestions = $payload['questions'] ?? null;
+
+        if (! is_array($rawQuestions) || $rawQuestions === []) {
+            $rawQuestions = $this->unwrapExamPart($payload['partA'] ?? null);
+        }
+
+        $questions = [];
+
+        foreach (array_values(is_array($rawQuestions) ? $rawQuestions : []) as $question) {
+            if (! is_array($question)) {
+                continue;
+            }
+
+            $options = $question['options'] ?? null;
+
+            if (! is_array($options) || $options === [] || blank($question['question'] ?? null)) {
+                continue;
+            }
+
+            $questions[] = [
+                'question' => (string) $question['question'],
+                'options' => array_values($options),
+                'answerIndex' => (int) ($question['answerIndex'] ?? 0),
+                'explanation' => filled($question['explanation'] ?? null)
+                    ? (string) $question['explanation']
+                    : (filled($question['rationale'] ?? null) ? (string) $question['rationale'] : null),
+                'difficulty' => filled($question['difficulty'] ?? null)
+                    ? (string) $question['difficulty']
+                    : null,
+            ];
+        }
+
+        return [
+            'instructions' => $instructions,
+            'questions' => $questions,
+        ];
+    }
+
+    /**
+     * @return list<mixed>
+     */
+    protected function unwrapExamPart(mixed $part): array
+    {
+        if (! is_array($part) || $part === []) {
+            return [];
+        }
+
+        if (array_is_list($part)) {
+            return $part;
+        }
+
+        $questions = $part['questions'] ?? null;
+
+        return is_array($questions) ? array_values($questions) : [];
     }
 
     /**

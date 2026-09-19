@@ -170,7 +170,8 @@ class LearningResourceFactory extends Factory
                 'from_cache' => false,
                 'generated_at' => now()->toIso8601String(),
                 'payload' => [
-                    'partA' => [
+                    'instructions' => 'Answer every question. Choose the best option.',
+                    'questions' => [
                         [
                             'question' => 'Which statement best describes anthropology?',
                             'options' => [
@@ -182,14 +183,6 @@ class LearningResourceFactory extends Factory
                             'answerIndex' => 1,
                             'explanation' => 'Anthropology aims for an integrated picture of humankind.',
                             'difficulty' => 'medium',
-                        ],
-                    ],
-                    'partB' => [
-                        [
-                            'question' => 'Explain the scope of anthropology in your own words.',
-                            'points' => 10,
-                            'modelAnswer' => 'Anthropology studies all humans across time and space.',
-                            'gradingRubric' => 'Award points for breadth across biological and cultural dimensions.',
                         ],
                     ],
                 ],

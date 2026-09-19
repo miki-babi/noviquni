@@ -25,6 +25,11 @@ class EditLearning extends EditRecord
     {
         unset($data['file_mode']);
 
+        if (is_string($data['content'] ?? null)) {
+            $decoded = json_decode($data['content'], true);
+            $data['content'] = is_array($decoded) ? $decoded : null;
+        }
+
         if (array_key_exists('files', $data)) {
             $files = $data['files'];
 

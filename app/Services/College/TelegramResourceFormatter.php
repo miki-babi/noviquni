@@ -34,7 +34,10 @@ class TelegramResourceFormatter
         $body = match ($kind) {
             CollegeResourceKind::Notes => $this->formatNotes($resource->title, $content['payload']),
             CollegeResourceKind::Quiz => $this->formatQuiz($resource->title, $content['payload']),
-            CollegeResourceKind::Exam => $this->formatExam($resource->title, $content['payload']),
+            CollegeResourceKind::Exam => $this->formatExam(
+                $resource->title,
+                $resource->playerPayload() ?? ['questions' => []],
+            ),
             CollegeResourceKind::Flashcards => $this->formatFlashcards($resource->title, $content['payload']),
         };
 
@@ -144,42 +147,27 @@ class TelegramResourceFormatter
     {
         $lines = ['<b>'.e($title).'</b>', ''];
 
-        $partA = $payload['partA'] ?? [];
-        if (is_array($partA) && $partA !== []) {
-            $lines[] = '<b>Part A</b>';
-            foreach (array_values($partA) as $index => $question) {
-                if (! is_array($question)) {
-                    continue;
-                }
-                $lines[] = '<b>'.($index + 1).'.</b> '.e((string) ($question['question'] ?? ''));
-                $options = $question['options'] ?? [];
-                if (is_array($options)) {
-                    foreach (array_values($options) as $optionIndex => $option) {
-                        $lines[] = chr(65 + $optionIndex).') '.e((string) $option);
-                    }
-                }
-                $lines[] = '';
-            }
+        if (filled($payload['instructions'] ?? null)) {
+            $lines[] = e((string) $payload['instructions']);
+            $lines[] = '';
         }
 
-        $partB = $payload['partB'] ?? [];
-        if (is_array($partB) && $partB !== []) {
-            $lines[] = '<b>Part B</b>';
-            foreach (array_values($partB) as $index => $question) {
-                if (! is_array($question)) {
-                    continue;
-                }
-                $points = $question['points'] ?? null;
-                $label = ($index + 1).'.';
-                if ($points !== null) {
-                    $label .= ' ('.$points.' pts)';
-                }
-                $lines[] = '<b>'.$label.'</b> '.e((string) ($question['question'] ?? ''));
-                if (filled($question['modelAnswer'] ?? null)) {
-                    $lines[] = '<i>Model answer:</i> '.e((string) $question['modelAnswer']);
-                }
-                $lines[] = '';
+        foreach (array_values($payload['questions'] ?? []) as $index => $question) {
+            if (! is_array($question)) {
+                continue;
             }
+
+            $options = $question['options'] ?? [];
+
+            if (! is_array($options) || $options === [] || blank($question['question'] ?? null)) {
+                continue;
+            }
+
+            $lines[] = '<b>'.($index + 1).'.</b> '.e((string) $question['question']);
+            foreach (array_values($options) as $optionIndex => $option) {
+                $lines[] = chr(65 + $optionIndex).') '.e((string) $option);
+            }
+            $lines[] = '';
         }
 
         return trim(implode("\n", $lines));
