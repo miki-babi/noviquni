@@ -1,0 +1,138 @@
+<?php
+
+namespace App\Filament\Pages;
+
+use App\Models\Course;
+use App\Support\LearningResourceFiles;
+use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\Form;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
+use UnitEnum;
+
+/**
+ * @property-read Schema $form
+ */
+class ManageCourseFiles extends Page
+{
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
+
+    protected static string|UnitEnum|null $navigationGroup = 'Content';
+
+    protected static ?int $navigationSort = 2;
+
+    protected static ?string $navigationLabel = 'Course files';
+
+    protected static ?string $title = 'Course files';
+
+    protected string $view = 'filament.pages.manage-course-files';
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $data = [];
+
+    public function mount(): void
+    {
+        $this->form->fill([
+            'course_id' => null,
+            'files' => [],
+        ]);
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Form::make([EmbeddedSchema::make('form')])
+                    ->id('form')
+                    ->livewireSubmitHandler('save')
+                    ->footer([
+                        Actions::make([
+                            Action::make('save')
+                                ->label('Upload files')
+                                ->submit('save'),
+                        ]),
+                    ]),
+            ]);
+    }
+
+    public function defaultForm(Schema $schema): Schema
+    {
+        return $schema->statePath('data');
+    }
+
+    public function form(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+                Section::make('Batch upload')
+                    ->description('Upload study files into a course library. When creating a learning resource for that course, you can choose from these files.')
+                    ->schema([
+                        Select::make('course_id')
+                            ->label('Course')
+                            ->options(fn (): array => Course::query()
+                                ->active()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->required()
+                            ->live()
+                            ->searchable()
+                            ->helperText(fn (Get $get): string => filled($get('course_id'))
+                                ? LearningResourceFiles::countForCourse($get('course_id')).' file(s) already in this course library.'
+                                : 'Select a course to upload into its library.')
+                            ->columnSpanFull(),
+                        FileUpload::make('files')
+                            ->label('Study files')
+                            ->disk(LearningResourceFiles::diskName())
+                            ->directory(fn (Get $get): string => filled($get('course_id'))
+                                ? LearningResourceFiles::directoryForCourse($get('course_id'))
+                                : LearningResourceFiles::DirectoryPrefix)
+                            ->preserveFilenames()
+                            ->multiple()
+                            ->maxFiles(50)
+                            ->acceptedFileTypes(LearningResourceFiles::acceptedMimeTypes())
+                            ->required()
+                            ->disabled(fn (Get $get): bool => blank($get('course_id')))
+                            ->helperText('PDF, Word, PowerPoint, or images. Original filenames are kept.')
+                            ->columnSpanFull(),
+                    ]),
+            ]);
+    }
+
+    public function save(): void
+    {
+        $data = $this->form->getState();
+        $files = $data['files'] ?? [];
+
+        if (is_string($files) && filled($files)) {
+            $files = [$files];
+        }
+
+        if (! is_array($files)) {
+            $files = [];
+        }
+
+        $count = count(array_values(array_filter($files, fn ($path): bool => filled($path))));
+
+        Notification::make()
+            ->title($count === 1 ? '1 file uploaded' : "{$count} files uploaded")
+            ->success()
+            ->send();
+
+        $this->form->fill([
+            'course_id' => $data['course_id'] ?? null,
+            'files' => [],
+        ]);
+    }
+}

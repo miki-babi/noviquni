@@ -11,6 +11,7 @@ use App\Services\College\CollegeApiClient;
 use App\Services\College\CollegeApiException;
 use App\Services\College\CollegeCurriculumOptions;
 use App\Services\College\LearningResourceMapper;
+use App\Support\LearningResourceFiles;
 use Closure;
 use Filament\Forms\Components\CodeEditor;
 use Filament\Forms\Components\CodeEditor\Enums\Language;
@@ -71,7 +72,10 @@ class LearningForm
                 Select::make('stream_id')
                     ->relationship('stream', 'name')
                     ->live()
-                    ->afterStateUpdated(fn (Set $set) => $set('course_id', null))
+                    ->afterStateUpdated(function (Set $set): void {
+                        $set('course_id', null);
+                        $set('existing_files', null);
+                    })
                     ->searchable()
                     ->preload()
                     ->helperText('Optional. Leave blank to browse all courses; stream is set from the selected course.'),
@@ -86,6 +90,8 @@ class LearningForm
                     ->live()
                     ->searchable()
                     ->afterStateUpdated(function (Set $set, ?string $state): void {
+                        $set('existing_files', null);
+
                         if (! filled($state)) {
                             return;
                         }
@@ -322,21 +328,26 @@ class LearningForm
                     Select::make('stream_id')
                         ->relationship('stream', 'name')
                         ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('course_id', null))
+                        ->afterStateUpdated(function (Set $set): void {
+                            $set('course_id', null);
+                            $set('existing_files', null);
+                        })
                         ->searchable()
                         ->preload()
                         ->helperText('Optional. Leave blank to browse all local courses.'),
                     Select::make('course_id')
                         ->label('Local course')
                         ->options(fn (Get $get): array => Course::query()
-                            ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
+                                ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
                         ->required()
                         ->live()
                         ->searchable()
                         ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            $set('existing_files', null);
+
                             if (! filled($state)) {
                                 return;
                             }
@@ -396,21 +407,26 @@ class LearningForm
                     Select::make('stream_id')
                         ->relationship('stream', 'name')
                         ->live()
-                        ->afterStateUpdated(fn (Set $set) => $set('course_id', null))
+                        ->afterStateUpdated(function (Set $set): void {
+                            $set('course_id', null);
+                            $set('existing_files', null);
+                        })
                         ->searchable()
                         ->preload()
                         ->helperText('Optional. Leave blank to browse all local courses.'),
                     Select::make('course_id')
                         ->label('Local course')
                         ->options(fn (Get $get): array => Course::query()
-                            ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
-                            ->orderBy('name')
-                            ->pluck('name', 'id')
-                            ->all())
+                                ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
                         ->required()
                         ->live()
                         ->searchable()
                         ->afterStateUpdated(function (Set $set, ?string $state): void {
+                            $set('existing_files', null);
+
                             if (! filled($state)) {
                                 return;
                             }
@@ -534,8 +550,19 @@ class LearningForm
     protected static function fileFields(bool $required = false): array
     {
         return [
+            ToggleButtons::make('file_source')
+                ->label('File source')
+                ->options([
+                    'upload' => 'Upload',
+                    'existing' => 'Choose existing',
+                ])
+                ->default('upload')
+                ->required()
+                ->live()
+                ->grouped()
+                ->dehydrated(false),
             ToggleButtons::make('file_mode')
-                ->label('File upload')
+                ->label('File count')
                 ->options([
                     'single' => 'One file',
                     'multiple' => 'Multiple files',
@@ -551,23 +578,42 @@ class LearningForm
                 }),
             FileUpload::make('files')
                 ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Study file' : 'Study files')
-                ->disk(config('filesystems.default'))
-                ->directory('learning-resources')
+                ->disk(LearningResourceFiles::diskName())
+                ->directory(fn (Get $get): string => filled($get('course_id'))
+                    ? LearningResourceFiles::directoryForCourse($get('course_id'))
+                    : LearningResourceFiles::DirectoryPrefix)
                 ->preserveFilenames()
                 ->multiple()
                 ->maxFiles(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
-                ->acceptedFileTypes([
-                    'application/pdf',
-                    'application/msword',
-                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                    'application/vnd.ms-powerpoint',
-                    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-                    'image/jpeg',
-                    'image/png',
-                    'image/webp',
-                ])
-                ->required($required)
-                ->helperText('Stored for admin use now. Student players will use these files in a later stage.')
+                ->acceptedFileTypes(LearningResourceFiles::acceptedMimeTypes())
+                ->required(fn (Get $get): bool => $required && ($get('file_source') ?? 'upload') === 'upload')
+                ->visible(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'upload')
+                ->dehydrated(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'upload')
+                ->disabled(fn (Get $get): bool => blank($get('course_id')))
+                ->helperText(fn (Get $get): string => filled($get('course_id'))
+                    ? 'Uploads into this course’s file library.'
+                    : 'Select a course before uploading study files.')
+                ->columnSpanFull(),
+            Select::make('existing_files')
+                ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Study file' : 'Study files')
+                ->options(fn (Get $get): array => LearningResourceFiles::optionsForCourse($get('course_id')))
+                ->searchable()
+                ->multiple()
+                ->maxItems(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
+                ->required(fn (Get $get): bool => $required && ($get('file_source') ?? 'upload') === 'existing')
+                ->visible(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'existing')
+                ->dehydrated(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'existing')
+                ->disabled(fn (Get $get): bool => blank($get('course_id')))
+                ->helperText(fn (Get $get): string => filled($get('course_id'))
+                    ? (LearningResourceFiles::countForCourse($get('course_id')) > 0
+                        ? 'Pick from files already uploaded for this course (Course files page).'
+                        : 'No files in this course library yet. Upload some on Course files, or switch to Upload.')
+                    : 'Select a course to choose from its file library.')
+                ->afterStateHydrated(function (Select $component, mixed $state, ?LearningResource $record): void {
+                    if ($record?->files) {
+                        $component->state($record->files);
+                    }
+                })
                 ->columnSpanFull(),
         ];
     }

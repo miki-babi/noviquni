@@ -170,6 +170,64 @@ it('completes button-only onboarding through skip and confirm', function () {
     });
 });
 
+it('lists every active stream course during onboarding course selection', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $otherStream = Stream::factory()->create(['name' => 'Social']);
+
+    $activeCourses = collect(range(1, 9))->map(fn (int $i) => Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => "Course {$i}",
+        'is_active' => true,
+    ]));
+
+    $inactive = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Inactive Course',
+        'is_active' => false,
+    ]);
+
+    $otherStreamCourse = Course::factory()->create([
+        'stream_id' => $otherStream->id,
+        'name' => 'Other Stream Course',
+        'is_active' => true,
+    ]);
+
+    $telegramId = 555050;
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload($telegramId, '/start'))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, "ob:stream:{$stream->id}", 20, 2))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:uni:skip', 20, 3))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:sem:skip', 20, 4))->assertOk();
+
+    Http::assertSent(function ($request) use ($activeCourses, $inactive, $otherStreamCourse) {
+        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        if (! str_contains((string) ($data['text'] ?? ''), 'Tap courses to select or deselect')) {
+            return false;
+        }
+
+        $callbackData = collect(data_get($data, 'reply_markup.inline_keyboard', []))
+            ->flatten(1)
+            ->pluck('callback_data')
+            ->filter()
+            ->values();
+
+        $expectedToggles = $activeCourses
+            ->map(fn (Course $course) => "ob:course:toggle:{$course->id}")
+            ->all();
+
+        return collect($expectedToggles)->every(fn (string $toggle) => $callbackData->contains($toggle))
+            && $callbackData->contains('ob:course:confirm')
+            && ! $callbackData->contains("ob:course:toggle:{$inactive->id}")
+            && ! $callbackData->contains("ob:course:toggle:{$otherStreamCourse->id}")
+            && $callbackData->filter(fn (string $data) => str_starts_with($data, 'ob:course:toggle:'))->count() === 9;
+    });
+});
+
 it('shows setup CTA on start when enrolled user has no courses', function () {
     User::factory()->student()->create([
         'telegram_id' => '555020',

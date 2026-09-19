@@ -26,7 +26,7 @@ class OnboardingService
             ->orderByDesc('users_count')
             ->orderBy('name');
 
-        return $query->limit(8)->get();
+        return $query->get();
     }
 
     /**

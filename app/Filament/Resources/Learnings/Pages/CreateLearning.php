@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Learnings\Pages;
 
 use App\Filament\Resources\Learnings\LearningResource;
 use App\Filament\Resources\Learnings\Schemas\LearningForm;
+use App\Support\LearningResourceFiles;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Schemas\Components\Wizard\Step;
 
@@ -27,24 +28,14 @@ class CreateLearning extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        unset($data['creation_mode'], $data['file_mode']);
+        unset($data['creation_mode']);
 
         if (is_string($data['content'] ?? null)) {
             $decoded = json_decode($data['content'], true);
             $data['content'] = is_array($decoded) ? $decoded : null;
         }
 
-        if (array_key_exists('files', $data)) {
-            $files = $data['files'];
-
-            if (is_string($files) && filled($files)) {
-                $data['files'] = [$files];
-            } elseif (! is_array($files) || $files === []) {
-                $data['files'] = null;
-            } else {
-                $data['files'] = array_values(array_filter($files, fn ($path): bool => filled($path)));
-            }
-        }
+        $data = LearningResourceFiles::normalizeFormFiles($data);
 
         if (blank($data['content'] ?? null) && filled($data['files'] ?? null)) {
             $data['generation_kind'] = null;
