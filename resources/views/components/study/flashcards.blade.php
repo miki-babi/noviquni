@@ -66,7 +66,7 @@
         }"
     >
         {{-- Hint + progress --}}
-        <div class="space-y-2">
+        <div class="space-y-2 px-2">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
                     <template x-if="card.hint">
