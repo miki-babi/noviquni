@@ -1,6 +1,6 @@
 <x-telegram.mini-app.player-layout
     :copy="$copy"
-    title="$resource->title"
+    :title="$resource->title"
     :back-url="$backUrl"
     :resource="$resource"
     :is-bookmarked="$isBookmarked ?? false"
