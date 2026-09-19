@@ -244,7 +244,7 @@ class LearningResource extends Model
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array{instructions: ?string, questions: list<array<string, mixed>>}
+     * @return array{title: ?string, instructions: ?string, questions: list<array<string, mixed>>}
      */
     public function normalizeExam(array $payload): array
     {
@@ -252,10 +252,19 @@ class LearningResource extends Model
             ? (string) $payload['instructions']
             : null;
 
+        $title = filled($payload['title'] ?? null)
+            ? (string) $payload['title']
+            : null;
+
         $rawQuestions = $payload['questions'] ?? null;
+        $partA = $payload['partA'] ?? null;
 
         if (! is_array($rawQuestions) || $rawQuestions === []) {
-            $rawQuestions = $this->unwrapExamPart($payload['partA'] ?? null);
+            $rawQuestions = $this->unwrapExamPart($partA);
+
+            if ($title === null && is_array($partA) && ! array_is_list($partA) && filled($partA['title'] ?? null)) {
+                $title = (string) $partA['title'];
+            }
         }
 
         $questions = [];
@@ -285,6 +294,7 @@ class LearningResource extends Model
         }
 
         return [
+            'title' => $title,
             'instructions' => $instructions,
             'questions' => $questions,
         ];

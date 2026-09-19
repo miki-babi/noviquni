@@ -147,6 +147,10 @@ class TelegramResourceFormatter
     {
         $lines = ['<b>'.e($title).'</b>', ''];
 
+        if (filled($payload['title'] ?? null)) {
+            $lines[] = '<b>'.e((string) $payload['title']).'</b>';
+        }
+
         if (filled($payload['instructions'] ?? null)) {
             $lines[] = e((string) $payload['instructions']);
             $lines[] = '';

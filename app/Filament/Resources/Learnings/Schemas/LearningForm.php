@@ -485,7 +485,7 @@ class LearningForm
         $field = CodeEditor::make('content')
             ->label('Content JSON')
             ->language(Language::Json)
-            ->helperText('Edit the stored College API payload. Exams should use a single payload.questions MCQ list.')
+            ->helperText('Edit the stored College API payload. Exams use payload.title, payload.instructions, and a single payload.questions MCQ list.')
             ->columnSpanFull()
             ->formatStateUsing(function (mixed $state): string {
                 if (is_array($state)) {

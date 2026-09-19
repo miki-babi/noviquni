@@ -170,6 +170,7 @@ class LearningResourceFactory extends Factory
                 'from_cache' => false,
                 'generated_at' => now()->toIso8601String(),
                 'payload' => [
+                    'title' => 'Multiple Choice',
                     'instructions' => 'Answer every question. Choose the best option.',
                     'questions' => [
                         [

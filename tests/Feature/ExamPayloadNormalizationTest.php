@@ -62,6 +62,7 @@ it('normalizes nested college api exam payloads into a single mcq questions list
     $payload = $resource->playerPayload();
 
     expect($payload)->not->toBeNull()
+        ->and($payload['title'])->toBe('Part A — Multiple Choice')
         ->and($payload['instructions'])->toBe('Attempt all parts.')
         ->and($payload['questions'])->toHaveCount(1)
         ->and($payload['questions'][0]['question'])->toBe('How many face-to-face study hours are allocated for Unit 1?')
@@ -87,8 +88,9 @@ it('renders the exam player from nested college api exam content', function () {
         'content' => [
             'kind' => CollegeResourceKind::Exam->value,
             'payload' => [
+                'instructions' => 'Read all questions carefully. Time allowed: 90 minutes.',
                 'partA' => [
-                    'title' => 'Part A',
+                    'title' => 'Part A — Multiple Choice (20 marks)',
                     'questions' => [
                         [
                             'question' => 'How many face-to-face study hours are officially allocated for Unit 1 according to the course outline?',
@@ -121,9 +123,10 @@ it('renders the exam player from nested college api exam content', function () {
     $this->actingAs($user)
         ->get(route('tg.play.exam', $resource))
         ->assertOk()
+        ->assertSee('Part A — Multiple Choice (20 marks)', false)
+        ->assertSee('Read all questions carefully. Time allowed: 90 minutes.', false)
         ->assertSee('How many face-to-face study hours are officially allocated for Unit 1 according to the course outline?', false)
         ->assertDontSee('Analyze the primary pedagogical objectives.', false)
-        ->assertDontSee('Part A — Multiple choice', false)
         ->assertDontSee('Part B — Short answer', false);
 });
 
