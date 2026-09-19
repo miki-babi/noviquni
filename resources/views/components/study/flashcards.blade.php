@@ -74,9 +74,9 @@
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5h11.25a1.5 1.5 0 0 1 1.5 1.5V15" />
                     </svg>
                 </span>
-                <h2 class="min-w-0 flex-1 truncate text-[15px] font-semibold text-text-primary">
+                <!-- <h2 class="min-w-0 flex-1 truncate text-[15px] font-semibold text-text-primary">
                     {{ $title }}
-                </h2>
+                </h2> -->
                 <p class="shrink-0 text-sm font-medium text-text-muted tabular-nums">
                     <span x-text="current + 1"></span> / <span x-text="total"></span>
                 </p>
