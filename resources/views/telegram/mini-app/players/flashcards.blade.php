@@ -1,13 +1,28 @@
-<x-telegram.mini-app.player-layout :copy="$copy" :title="$resource->title" :back-url="$backUrl" :next-url="$nextUrl ?? null" :next-label="$nextLabel ?? null" :resource="$resource" :is-bookmarked="$isBookmarked ?? false">
-    <div class="space-y-5">
-        <!-- @if ($course)
-            <p class="text-sm text-text-secondary">{{ $course->name }}</p>
-        @endif -->
+<x-telegram.mini-app.player-layout
+    :copy="$copy"
+    title="NOViQ Uni"
+    :back-url="$backUrl"
+    :resource="$resource"
+    :is-bookmarked="$isBookmarked ?? false"
+    :show-bookmark="false"
+    :show-bot-footer="true"
+    menu-icon="dots"
+>
+    @if ($payload)
+        <x-study.flashcards
+            :payload="$payload"
+            :title="$resource->title"
+            :resource="$resource"
+            :is-bookmarked="$isBookmarked ?? false"
+            :copy="$copy"
+        />
+    @else
+        <div class="space-y-5 px-4">
+            @if ($course)
+                <p class="text-sm text-text-secondary">{{ $course->name }}</p>
+            @endif
 
-        @if ($payload)
-            <x-study.flashcards :payload="$payload" />
-        @else
             <x-telegram.mini-app.player-reader :chunks="$chunks" :copy="$copy" />
-        @endif
-    </div>
+        </div>
+    @endif
 </x-telegram.mini-app.player-layout>
