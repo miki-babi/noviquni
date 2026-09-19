@@ -1,6 +1,6 @@
 <x-telegram.mini-app.player-layout
     :copy="$copy"
-    title="NOViQ Uni"
+    title="$resource->title"
     :back-url="$backUrl"
     :resource="$resource"
     :is-bookmarked="$isBookmarked ?? false"
