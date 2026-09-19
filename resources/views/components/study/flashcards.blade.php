@@ -216,16 +216,7 @@
                 <span>Previous</span>
             </button>
 
-            <button
-                type="button"
-                class="inline-flex flex-[1.25] items-center justify-center gap-2 rounded-pill bg-primary-200 px-4 py-3.5 text-sm font-semibold text-white shadow-soft transition hover:bg-primary-300 active:scale-[0.98]"
-                @click="flip()"
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-9L21 12m0 0L16.5 16.5M21 12H7.5" />
-                </svg>
-                <span>Flip</span>
-            </button>
+            
 
             <button
                 type="button"
