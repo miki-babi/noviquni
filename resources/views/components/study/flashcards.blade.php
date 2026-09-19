@@ -85,12 +85,7 @@
                 </div>
 
                 <div class="flex shrink-0 items-center gap-3">
-                    <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 text-primary-200" aria-hidden="true">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h11.25a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-9a1.5 1.5 0 0 1 1.5-1.5Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 4.5h11.25a1.5 1.5 0 0 1 1.5 1.5V15" />
-                        </svg>
-                    </span>
+                    
                     <p class="text-sm font-medium text-text-muted tabular-nums">
                         <span x-text="current + 1"></span> / <span x-text="total"></span>
                     </p>
