@@ -162,12 +162,7 @@
                             <template x-if="! card.category">
                                 <span></span>
                             </template>
-                            <span class="text-text-muted" aria-hidden="true">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.438 60.438 0 0 0-.491 6.347A48.628 48.628 0 0 1 12 15.753a48.628 48.628 0 0 1 8.232.74 60.46 60.46 0 0 0-.491-6.347C18.303 9.287 15.356 8.25 12 8.25c-3.357 0-6.303 1.037-7.74 1.897Z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75V21m0-5.25a48.667 48.667 0 0 0-4.506-.585M12 15.75c1.538 0 3.05.2 4.506.585M6.75 7.5A2.25 2.25 0 0 1 9 5.25h6A2.25 2.25 0 0 1 17.25 7.5v.75" />
-                                </svg>
-                            </span>
+                            
                         </div>
 
                         <div class="flex flex-1 items-center justify-center py-6">
