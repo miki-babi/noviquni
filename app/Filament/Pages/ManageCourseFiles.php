@@ -100,6 +100,7 @@ class ManageCourseFiles extends Page
                                 : LearningResourceFiles::DirectoryPrefix)
                             ->preserveFilenames()
                             ->multiple()
+                            ->maxSize(LearningResourceFiles::MaxSizeKilobytes)
                             ->acceptedFileTypes(LearningResourceFiles::acceptedMimeTypes())
                             ->required()
                             ->disabled(fn (Get $get): bool => blank($get('course_id')))

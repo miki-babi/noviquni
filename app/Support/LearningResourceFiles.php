@@ -9,6 +9,8 @@ class LearningResourceFiles
 {
     public const string DirectoryPrefix = 'learning-resources';
 
+    public const int MaxSizeKilobytes = 102400; // 100MB
+
     /**
      * @return list<string>
      */
