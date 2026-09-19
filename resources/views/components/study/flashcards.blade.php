@@ -216,11 +216,11 @@
                 <span>Previous</span>
             </button>
 
-            
+           
 
             <button
                 type="button"
-                class="inline-flex flex-1 items-center justify-center gap-1.5 rounded-pill bg-surface-gray px-3 py-3 text-sm font-semibold text-text-secondary transition active:scale-[0.98] disabled:opacity-40"
+                class="inline-flex flex-[1.25] items-center justify-center gap-2 rounded-pill bg-primary-200 px-4 py-3.5 text-sm font-semibold text-white shadow-soft transition hover:bg-primary-300 active:scale-[0.98]"
                 @click="next()"
                 :disabled="current === total - 1"
             >
