@@ -85,6 +85,60 @@ it('prefills course library files from existing_files query', function () {
         ]);
 });
 
+it('keeps prefilled study files when course is re-hydrated to the same value', function () {
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+
+    $admin = User::factory()->admin()->create();
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/slides.pdf';
+
+    Storage::disk($disk)->put($path, 'slides');
+
+    $this->actingAs($admin);
+
+    Livewire::withQueryParams([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'existing_files' => $path,
+    ])
+        ->test(CreateLearning::class)
+        ->set('data.course_id', $course->id)
+        ->set('data.stream_id', $stream->id)
+        ->assertSchemaStateSet([
+            'course_id' => $course->id,
+            'file_source' => 'existing',
+            'existing_files' => [$path],
+        ]);
+});
+
+it('clears library study files when the course changes', function () {
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+
+    $admin = User::factory()->admin()->create();
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $otherCourse = Course::factory()->create(['stream_id' => $stream->id]);
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/slides.pdf';
+
+    Storage::disk($disk)->put($path, 'slides');
+
+    $this->actingAs($admin);
+
+    Livewire::withQueryParams([
+        'course_id' => $course->id,
+        'existing_files' => $path,
+    ])
+        ->test(CreateLearning::class)
+        ->set('data.course_id', $otherCourse->id)
+        ->assertSchemaStateSet([
+            'course_id' => $otherCourse->id,
+            'existing_files' => [],
+        ]);
+});
+
 it('ignores invalid course and telegram ids without breaking the page', function () {
     $admin = User::factory()->admin()->create();
 

@@ -32,6 +32,55 @@ use Illuminate\Support\Str;
 
 class LearningForm
 {
+    /**
+     * Clear dependent fields only when the stream actually changes, so query-param
+     * prefill of course / study files is not wiped on first hydration.
+     */
+    protected static function onStreamUpdated(): Closure
+    {
+        return function (Set $set, mixed $state, mixed $old): void {
+            if ((string) ($state ?? '') === (string) ($old ?? '')) {
+                return;
+            }
+
+            if (! filled($old)) {
+                return;
+            }
+
+            $set('course_id', null);
+            $set('existing_files', null);
+            $set('module_id', null);
+        };
+    }
+
+    /**
+     * Sync stream from the course, but only clear library files when the course
+     * changes from a previously selected value (not on initial prefill).
+     */
+    protected static function onCourseUpdated(): Closure
+    {
+        return function (Set $set, mixed $state, mixed $old): void {
+            if ((string) ($state ?? '') === (string) ($old ?? '')) {
+                return;
+            }
+
+            if (filled($old)) {
+                $set('existing_files', null);
+                $set('module_id', null);
+            }
+
+            if (! filled($state)) {
+                return;
+            }
+
+            $streamId = Course::query()->whereKey($state)->value('stream_id');
+
+            if ($streamId !== null) {
+                $set('stream_id', $streamId);
+            }
+        };
+    }
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
@@ -70,10 +119,7 @@ class LearningForm
                 Select::make('stream_id')
                     ->relationship('stream', 'name')
                     ->live()
-                    ->afterStateUpdated(function (Set $set): void {
-                        $set('course_id', null);
-                        $set('existing_files', null);
-                    })
+                    ->afterStateUpdated(static::onStreamUpdated())
                     ->searchable()
                     ->preload()
                     ->helperText('Optional. Leave blank to browse all courses; stream is set from the selected course.'),
@@ -87,20 +133,7 @@ class LearningForm
                     ->required()
                     ->live()
                     ->searchable()
-                    ->afterStateUpdated(function (Set $set, ?string $state): void {
-                        $set('existing_files', null);
-
-                        if (! filled($state)) {
-                            return;
-                        }
-
-                        $streamId = Course::query()->whereKey($state)->value('stream_id');
-                        if ($streamId !== null) {
-                            $set('stream_id', $streamId);
-                        }
-
-                        $set('module_id', null);
-                    }),
+                    ->afterStateUpdated(static::onCourseUpdated()),
                 Select::make('module_id')
                     ->label('Parent module')
                     ->options(fn (Get $get): array => filled($get('course_id'))
@@ -176,10 +209,7 @@ class LearningForm
                     Select::make('stream_id')
                         ->relationship('stream', 'name')
                         ->live()
-                        ->afterStateUpdated(function (Set $set): void {
-                            $set('course_id', null);
-                            $set('existing_files', null);
-                        })
+                        ->afterStateUpdated(static::onStreamUpdated())
                         ->searchable()
                         ->preload()
                         ->helperText('Optional. Leave blank to browse all local courses.'),
@@ -193,20 +223,7 @@ class LearningForm
                         ->required()
                         ->live()
                         ->searchable()
-                        ->afterStateUpdated(function (Set $set, ?string $state): void {
-                            $set('existing_files', null);
-
-                            if (! filled($state)) {
-                                return;
-                            }
-
-                            $streamId = Course::query()->whereKey($state)->value('stream_id');
-                            if ($streamId !== null) {
-                                $set('stream_id', $streamId);
-                            }
-
-                            $set('module_id', null);
-                        }),
+                        ->afterStateUpdated(static::onCourseUpdated()),
                     Select::make('module_id')
                         ->label('Parent module')
                         ->options(fn (Get $get): array => filled($get('course_id'))
@@ -375,6 +392,10 @@ class LearningForm
                     Select::make('existing_files')
                         ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Study file' : 'Study files')
                         ->options(fn (Get $get): array => LearningResourceFiles::optionsForCourse($get('course_id')))
+                        ->getOptionLabelsUsing(fn (array $values): array => collect($values)
+                            ->filter(fn ($path): bool => is_string($path) && filled($path))
+                            ->mapWithKeys(fn (string $path): array => [$path => basename($path)])
+                            ->all())
                         ->searchable()
                         ->multiple()
                         ->maxItems(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
