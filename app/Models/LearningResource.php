@@ -118,6 +118,41 @@ class LearningResource extends Model
         return filled($this->files) || filled($this->telegram_files);
     }
 
+    /**
+     * How the Telegram bot delivers this resource to students.
+     */
+    public function deliveryMethod(): string
+    {
+        if (filled($this->telegram_files)) {
+            return 'telegram';
+        }
+
+        if (filled($this->files)) {
+            return 'disk';
+        }
+
+        return 'mini_app';
+    }
+
+    public function deliveryMethodLabel(): string
+    {
+        return match ($this->deliveryMethod()) {
+            'telegram' => 'Telegram file_id',
+            'disk' => 'Disk upload',
+            default => 'Mini App',
+        };
+    }
+
+    public function telegramFileCount(): int
+    {
+        return is_array($this->telegram_files) ? count($this->telegram_files) : 0;
+    }
+
+    public function diskFileCount(): int
+    {
+        return is_array($this->files) ? count($this->files) : 0;
+    }
+
     public function studyKind(): ?CollegeResourceKind
     {
         if ($this->generation_kind instanceof CollegeResourceKind) {

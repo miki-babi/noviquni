@@ -29,6 +29,13 @@ class TelegramFileAssetResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'file_name';
 
+    public static function getNavigationBadge(): ?string
+    {
+        $count = TelegramFileAsset::query()->count();
+
+        return $count > 0 ? (string) $count : null;
+    }
+
     public static function canCreate(): bool
     {
         return false;

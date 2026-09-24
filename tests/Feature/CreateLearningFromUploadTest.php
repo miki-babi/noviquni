@@ -29,7 +29,6 @@ it('creates a learning resource from a single uploaded file', function () {
 
     Livewire::test(CreateLearning::class)
         ->fillForm([
-            'creation_mode' => 'upload',
             'file_source' => 'upload',
             'file_mode' => 'single',
             'type' => ResourceType::Notes->value,
@@ -86,7 +85,6 @@ it('creates a learning resource from multiple uploaded files', function () {
 
     Livewire::test(CreateLearning::class)
         ->fillForm([
-            'creation_mode' => 'upload',
             'file_source' => 'upload',
             'file_mode' => 'multiple',
             'type' => ResourceType::PracticeExams->value,
@@ -141,7 +139,6 @@ it('creates a learning resource from an existing course library file', function 
 
     Livewire::test(CreateLearning::class)
         ->fillForm([
-            'creation_mode' => 'upload',
             'file_source' => 'existing',
             'file_mode' => 'single',
             'type' => ResourceType::Notes->value,

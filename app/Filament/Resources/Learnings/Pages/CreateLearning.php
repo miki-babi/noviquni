@@ -28,8 +28,6 @@ class CreateLearning extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        unset($data['creation_mode']);
-
         if (is_string($data['content'] ?? null)) {
             $decoded = json_decode($data['content'], true);
             $data['content'] = is_array($decoded) ? $decoded : null;
@@ -37,10 +35,8 @@ class CreateLearning extends CreateRecord
 
         $data = LearningResourceFiles::normalizeFormFiles($data);
 
-        if (blank($data['content'] ?? null) && (filled($data['files'] ?? null) || filled($data['telegram_files'] ?? null))) {
-            $data['generation_kind'] = null;
-            $data['content'] = null;
-        }
+        $data['generation_kind'] = null;
+        $data['content'] = null;
 
         return $data;
     }
