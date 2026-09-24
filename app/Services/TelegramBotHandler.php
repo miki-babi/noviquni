@@ -15,6 +15,7 @@ use App\Models\ReferralReward;
 use App\Models\ResourceDownload;
 use App\Models\Semester;
 use App\Models\Stream;
+use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\University;
 use App\Models\User;
@@ -117,6 +118,10 @@ class TelegramBotHandler
         if ($user->onboarding_step !== OnboardingStep::Complete && $user->onboarding_step !== null) {
             $this->repromptOnboarding($user, $chatId);
 
+            return;
+        }
+
+        if ($this->tryHandleCustomCommand($user, $chatId, $text)) {
             return;
         }
 
@@ -1215,6 +1220,72 @@ class TelegramBotHandler
                 $chatId,
                 '<b>'.e($resource->title).'</b>',
             );
+        }
+    }
+
+    protected function tryHandleCustomCommand(User $user, int|string $chatId, string $text): bool
+    {
+        if (! str_starts_with($text, '/')) {
+            return false;
+        }
+
+        $commandName = $this->parseSlashCommandName($text);
+
+        if ($commandName === null || TelegramCommand::isReservedCommand($commandName)) {
+            return false;
+        }
+
+        $command = TelegramCommand::query()
+            ->active()
+            ->where('command', $commandName)
+            ->with(['fileAssets'])
+            ->first();
+
+        if ($command === null) {
+            return false;
+        }
+
+        Context::add('telegram_command', $command->command);
+        $this->sendCustomCommandResponse($user, $chatId, $command);
+
+        return true;
+    }
+
+    protected function parseSlashCommandName(string $text): ?string
+    {
+        $firstToken = explode(' ', trim($text), 2)[0] ?? '';
+        $withoutSlash = ltrim($firstToken, '/');
+
+        if ($withoutSlash === '') {
+            return null;
+        }
+
+        $withoutBotMention = explode('@', $withoutSlash, 2)[0] ?? '';
+        $normalized = TelegramCommand::normalizeCommand($withoutBotMention);
+
+        if ($normalized === '' || ! preg_match('/^[a-z0-9_]{1,32}$/', $normalized)) {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    protected function sendCustomCommandResponse(User $user, int|string $chatId, TelegramCommand $command): void
+    {
+        if (filled($command->message)) {
+            $this->telegram->sendMessage($chatId, (string) $command->message);
+        }
+
+        foreach ($command->fileAssets as $asset) {
+            if (blank($asset->file_id)) {
+                continue;
+            }
+
+            $this->telegram->sendDocument($chatId, (string) $asset->file_id);
+        }
+
+        if ($command->learning_resource_id !== null) {
+            $this->openResource($user, $chatId, (int) $command->learning_resource_id);
         }
     }
 
