@@ -38,6 +38,7 @@ class LearningResourceFactory extends Factory
             'content' => null,
             'generation_kind' => null,
             'files' => null,
+            'telegram_files' => null,
         ];
     }
 
@@ -45,6 +46,19 @@ class LearningResourceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'files' => $paths,
+            'telegram_files' => null,
+            'generation_kind' => null,
+            'content' => null,
+        ]);
+    }
+
+    /**
+     * @param  list<array{file_id: string, file_name?: string|null}>  $files
+     */
+    public function withTelegramFiles(array $files): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'telegram_files' => $files,
             'generation_kind' => null,
             'content' => null,
         ]);

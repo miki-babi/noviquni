@@ -39,6 +39,8 @@ return [
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'bot_username' => env('TELEGRAM_BOT_USERNAME', 'noviquni_bot'),
         'mini_app_url' => env('TELEGRAM_MINI_APP_URL'),
+        // Comma-separated Telegram usernames (without @) allowed to ingest file_ids via DM.
+        'file_admin_username' => env('TELEGRAM_FILE_ADMIN_USERNAME'),
     ],
 
     'noviq_college' => [

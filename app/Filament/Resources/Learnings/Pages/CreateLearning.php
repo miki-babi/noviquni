@@ -37,7 +37,7 @@ class CreateLearning extends CreateRecord
 
         $data = LearningResourceFiles::normalizeFormFiles($data);
 
-        if (blank($data['content'] ?? null) && filled($data['files'] ?? null)) {
+        if (blank($data['content'] ?? null) && (filled($data['files'] ?? null) || filled($data['telegram_files'] ?? null))) {
             $data['generation_kind'] = null;
             $data['content'] = null;
         }

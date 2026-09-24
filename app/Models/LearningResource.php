@@ -33,6 +33,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'content',
     'generation_kind',
     'files',
+    'telegram_files',
     'seo_title',
     'seo_description',
     'seo_content',
@@ -114,7 +115,7 @@ class LearningResource extends Model
 
     public function hasFiles(): bool
     {
-        return filled($this->files);
+        return filled($this->files) || filled($this->telegram_files);
     }
 
     public function studyKind(): ?CollegeResourceKind
@@ -347,6 +348,7 @@ class LearningResource extends Model
             'topics' => 'array',
             'content' => 'array',
             'files' => 'array',
+            'telegram_files' => 'array',
             'is_premium' => 'boolean',
             'is_bait' => 'boolean',
             'is_published' => 'boolean',

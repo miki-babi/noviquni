@@ -15,6 +15,7 @@ use App\Models\ReferralReward;
 use App\Models\ResourceDownload;
 use App\Models\Semester;
 use App\Models\Stream;
+use App\Models\TelegramFileAsset;
 use App\Models\University;
 use App\Models\User;
 use App\Models\Withdrawal;
@@ -56,6 +57,10 @@ class TelegramBotHandler
         $message = $update['message'] ?? null;
 
         if ($message === null) {
+            return;
+        }
+
+        if ($this->tryHandleAdminDocument($message)) {
             return;
         }
 
@@ -1144,9 +1149,33 @@ class TelegramBotHandler
 
     protected function sendResourceFiles(int|string $chatId, LearningResource $resource): void
     {
-        $disk = Storage::disk(config('filesystems.default'));
         $caption = $resource->title;
         $sent = false;
+
+        foreach ($resource->telegram_files ?? [] as $telegramFile) {
+            if (! is_array($telegramFile)) {
+                continue;
+            }
+
+            $fileId = $telegramFile['file_id'] ?? null;
+
+            if (! is_string($fileId) || blank($fileId)) {
+                continue;
+            }
+
+            $this->telegram->sendDocument(
+                $chatId,
+                $fileId,
+                $sent ? '' : $caption,
+            );
+            $sent = true;
+        }
+
+        if ($sent) {
+            return;
+        }
+
+        $disk = Storage::disk(config('filesystems.default'));
 
         foreach ($resource->files ?? [] as $path) {
             if (! is_string($path) || blank($path)) {
@@ -1187,6 +1216,53 @@ class TelegramBotHandler
                 '<b>'.e($resource->title).'</b>',
             );
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    protected function tryHandleAdminDocument(array $message): bool
+    {
+        $document = $message['document'] ?? null;
+
+        if (! is_array($document) || blank($document['file_id'] ?? null)) {
+            return false;
+        }
+
+        $username = $message['from']['username'] ?? null;
+
+        if (! $this->telegram->isFileVaultAdmin(is_string($username) ? $username : null)) {
+            return false;
+        }
+
+        $fileId = (string) $document['file_id'];
+        $fileUniqueId = filled($document['file_unique_id'] ?? null)
+            ? (string) $document['file_unique_id']
+            : $fileId;
+
+        $asset = TelegramFileAsset::query()->updateOrCreate(
+            ['file_unique_id' => $fileUniqueId],
+            [
+                'file_id' => $fileId,
+                'file_name' => filled($document['file_name'] ?? null) ? (string) $document['file_name'] : null,
+                'mime_type' => filled($document['mime_type'] ?? null) ? (string) $document['mime_type'] : null,
+                'file_size' => isset($document['file_size']) ? (int) $document['file_size'] : null,
+                'uploaded_by_username' => ltrim((string) $username, '@'),
+            ],
+        );
+
+        $chatId = $message['chat']['id'];
+        $displayName = filled($asset->file_name) ? $asset->file_name : 'document';
+
+        $this->telegram->sendMessage(
+            $chatId,
+            '<b>File stored</b>'."\n"
+            .'Name: '.e($displayName)."\n"
+            .'file_id: <code>'.e($asset->file_id).'</code>'."\n"
+            .'Attach this file_id on a learning resource in the admin panel.',
+        );
+
+        return true;
     }
 
     protected function showPremium(User $user, int|string $chatId): void

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\TelegramFileAsset;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -115,7 +116,21 @@ class LearningResourceFiles
             $data['files'] = $data['existing_files'];
         }
 
-        unset($data['existing_files'], $data['file_source'], $data['file_mode']);
+        $fileSource = $data['file_source'] ?? null;
+
+        if (array_key_exists('telegram_file_ids', $data) || $fileSource === 'telegram') {
+            $data['telegram_files'] = self::normalizeTelegramFileIds(
+                $data['telegram_file_ids'] ?? [],
+            );
+        }
+
+        unset($data['existing_files'], $data['file_source'], $data['file_mode'], $data['telegram_file_ids']);
+
+        if ($fileSource === 'telegram') {
+            $data['files'] = null;
+        } elseif (in_array($fileSource, ['upload', 'existing'], true)) {
+            $data['telegram_files'] = null;
+        }
 
         if (! array_key_exists('files', $data)) {
             return $data;
@@ -136,6 +151,44 @@ class LearningResourceFiles
         }
 
         return $data;
+    }
+
+    /**
+     * @return list<array{file_id: string, file_name: string|null}>|null
+     */
+    public static function normalizeTelegramFileIds(mixed $fileIds): ?array
+    {
+        if (is_string($fileIds) && filled($fileIds)) {
+            $fileIds = [$fileIds];
+        }
+
+        if (! is_array($fileIds) || $fileIds === []) {
+            return null;
+        }
+
+        $ids = array_values(array_filter($fileIds, fn ($id): bool => is_string($id) && filled($id)));
+
+        if ($ids === []) {
+            return null;
+        }
+
+        $assets = TelegramFileAsset::query()
+            ->whereIn('file_id', $ids)
+            ->get()
+            ->keyBy('file_id');
+
+        $normalized = [];
+
+        foreach ($ids as $id) {
+            $asset = $assets->get($id);
+
+            $normalized[] = [
+                'file_id' => $id,
+                'file_name' => $asset?->file_name,
+            ];
+        }
+
+        return $normalized;
     }
 
     /**

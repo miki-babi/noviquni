@@ -7,6 +7,7 @@ use App\Enums\ResourceType;
 use App\Filament\Forms\Components\SeoFields;
 use App\Models\Course;
 use App\Models\LearningResource;
+use App\Models\TelegramFileAsset;
 use App\Services\College\CollegeApiClient;
 use App\Services\College\CollegeApiException;
 use App\Services\College\CollegeCurriculumOptions;
@@ -555,12 +556,24 @@ class LearningForm
                 ->options([
                     'upload' => 'Upload',
                     'existing' => 'Choose existing',
+                    'telegram' => 'Telegram',
                 ])
                 ->default('upload')
                 ->required()
                 ->live()
                 ->grouped()
-                ->dehydrated(false),
+                ->dehydrated()
+                ->afterStateHydrated(function (ToggleButtons $component, mixed $state, ?LearningResource $record): void {
+                    if ($record === null) {
+                        return;
+                    }
+
+                    if (filled($record->telegram_files)) {
+                        $component->state('telegram');
+                    } elseif (filled($record->files)) {
+                        $component->state('existing');
+                    }
+                }),
             ToggleButtons::make('file_mode')
                 ->label('File count')
                 ->options([
@@ -572,8 +585,11 @@ class LearningForm
                 ->live()
                 ->grouped()
                 ->dehydrated(false)
+                ->visible(fn (Get $get): bool => in_array($get('file_source') ?? 'upload', ['upload', 'existing', 'telegram'], true))
                 ->afterStateHydrated(function (ToggleButtons $component, mixed $state, ?LearningResource $record): void {
-                    $files = $record?->files ?? [];
+                    $files = filled($record?->telegram_files)
+                        ? ($record->telegram_files ?? [])
+                        : ($record?->files ?? []);
                     $component->state(count($files) === 1 ? 'single' : 'multiple');
                 }),
             FileUpload::make('files')
@@ -614,6 +630,28 @@ class LearningForm
                     if ($record?->files) {
                         $component->state($record->files);
                     }
+                })
+                ->columnSpanFull(),
+            Select::make('telegram_file_ids')
+                ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Telegram file' : 'Telegram files')
+                ->options(fn (): array => TelegramFileAsset::optionsForSelect())
+                ->searchable()
+                ->multiple()
+                ->maxItems(fn (Get $get): int => $get('file_mode') === 'single' ? 1 : 10)
+                ->required(fn (Get $get): bool => $required && ($get('file_source') ?? 'upload') === 'telegram')
+                ->visible(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'telegram')
+                ->dehydrated(fn (Get $get): bool => ($get('file_source') ?? 'upload') === 'telegram')
+                ->helperText('DM a document to the bot as a configured file admin to add files here. Delivery uses Telegram file_id (no re-upload).')
+                ->afterStateHydrated(function (Select $component, mixed $state, ?LearningResource $record): void {
+                    if (! is_array($record?->telegram_files) || $record->telegram_files === []) {
+                        return;
+                    }
+
+                    $component->state(collect($record->telegram_files)
+                        ->pluck('file_id')
+                        ->filter()
+                        ->values()
+                        ->all());
                 })
                 ->columnSpanFull(),
         ];
