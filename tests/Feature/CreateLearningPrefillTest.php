@@ -5,7 +5,9 @@ use App\Models\Course;
 use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
+use App\Support\LearningResourceFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Livewire;
 
@@ -47,6 +49,37 @@ it('prefills telegram vault files from telegram_file_ids query', function () {
             'file_source' => 'telegram',
             'file_mode' => 'single',
             'telegram_file_ids' => [$asset->file_id],
+            'title' => 'week-1-notes',
+            'slug' => Str::slug('week-1-notes'),
+        ]);
+});
+
+it('prefills course library files from existing_files query', function () {
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+
+    $admin = User::factory()->admin()->create();
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/week-1-notes.pdf';
+
+    Storage::disk($disk)->put($path, 'notes');
+
+    $this->actingAs($admin);
+
+    Livewire::withQueryParams([
+        'course_id' => $course->id,
+        'existing_files' => $path,
+        'title' => 'week-1-notes',
+    ])
+        ->test(CreateLearning::class)
+        ->assertOk()
+        ->assertSchemaStateSet([
+            'course_id' => $course->id,
+            'stream_id' => $stream->id,
+            'file_source' => 'existing',
+            'file_mode' => 'single',
+            'existing_files' => [$path],
             'title' => 'week-1-notes',
             'slug' => Str::slug('week-1-notes'),
         ]);

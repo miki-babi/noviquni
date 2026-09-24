@@ -23,6 +23,7 @@ class CreateLearning extends CreateRecord
      *     course_id?: int|string|null,
      *     stream_id?: int|string|null,
      *     telegram_file_ids?: list<string>|string|null,
+     *     existing_files?: list<string>|string|null,
      *     title?: string|null,
      * }  $parameters
      */
@@ -46,6 +47,16 @@ class CreateLearning extends CreateRecord
 
         if (filled($fileIds)) {
             $query['telegram_file_ids'] = $fileIds;
+        }
+
+        $existingFiles = $parameters['existing_files'] ?? null;
+
+        if (is_array($existingFiles)) {
+            $existingFiles = implode(',', array_values(array_filter($existingFiles)));
+        }
+
+        if (filled($existingFiles)) {
+            $query['existing_files'] = $existingFiles;
         }
 
         if (filled($parameters['title'] ?? null)) {
@@ -126,6 +137,30 @@ class CreateLearning extends CreateRecord
                     $data['file_mode'] = count($orderedValid) === 1 ? 'single' : 'multiple';
                     $data['telegram_file_ids'] = $orderedValid;
                 }
+            }
+        }
+
+        $rawExistingFiles = request()->query('existing_files');
+        $courseIdForFiles = $data['course_id'] ?? null;
+
+        if (is_string($rawExistingFiles) && filled($rawExistingFiles) && filled($courseIdForFiles)) {
+            $requestedPaths = collect(explode(',', $rawExistingFiles))
+                ->map(fn (string $path): string => trim($path))
+                ->filter()
+                ->unique()
+                ->take(10)
+                ->values()
+                ->all();
+
+            $validPaths = array_values(array_filter(
+                $requestedPaths,
+                fn (string $path): bool => LearningResourceFiles::isValidPathForCourse($path, $courseIdForFiles),
+            ));
+
+            if ($validPaths !== []) {
+                $data['file_source'] = 'existing';
+                $data['file_mode'] = count($validPaths) === 1 ? 'single' : 'multiple';
+                $data['existing_files'] = $validPaths;
             }
         }
 

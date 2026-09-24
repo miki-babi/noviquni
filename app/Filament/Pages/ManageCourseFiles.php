@@ -2,10 +2,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Models\Course;
 use App\Support\LearningResourceFiles;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
@@ -22,6 +25,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
@@ -137,6 +142,27 @@ class ManageCourseFiles extends Page implements HasTable
                     ->copyable(),
             ])
             ->recordActions([
+                Action::make('createResource')
+                    ->label('Create resource')
+                    ->icon(Heroicon::OutlinedDocumentPlus)
+                    ->url(function (array $record): ?string {
+                        $courseId = $this->data['course_id'] ?? null;
+                        $path = $record['path'] ?? null;
+
+                        if (! filled($courseId) || ! is_string($path)) {
+                            return null;
+                        }
+
+                        $course = Course::query()->find($courseId);
+                        $title = pathinfo((string) ($record['name'] ?? ''), PATHINFO_FILENAME);
+
+                        return CreateLearning::getCreateUrl([
+                            'course_id' => $courseId,
+                            'stream_id' => $course?->stream_id,
+                            'existing_files' => [$path],
+                            'title' => filled($title) ? $title : null,
+                        ]);
+                    }),
                 Action::make('delete')
                     ->label('Delete')
                     ->icon(Heroicon::OutlinedTrash)
@@ -162,6 +188,41 @@ class ManageCourseFiles extends Page implements HasTable
                             ->success()
                             ->send();
                     }),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    BulkAction::make('createResource')
+                        ->label('Create resource')
+                        ->icon(Heroicon::OutlinedDocumentPlus)
+                        ->action(function (Collection $records) {
+                            $courseId = $this->data['course_id'] ?? null;
+
+                            if (! filled($courseId)) {
+                                return null;
+                            }
+
+                            $paths = $records
+                                ->pluck('path')
+                                ->filter(fn ($path): bool => is_string($path) && filled($path))
+                                ->unique()
+                                ->take(10)
+                                ->values()
+                                ->all();
+
+                            if ($paths === []) {
+                                return null;
+                            }
+
+                            $course = Course::query()->find($courseId);
+
+                            return Redirect::to(CreateLearning::getCreateUrl([
+                                'course_id' => $courseId,
+                                'stream_id' => $course?->stream_id,
+                                'existing_files' => $paths,
+                            ]));
+                        })
+                        ->deselectRecordsAfterCompletion(),
+                ]),
             ])
             ->paginated(false)
             ->emptyStateHeading(fn (): string => filled($this->data['course_id'] ?? null)
