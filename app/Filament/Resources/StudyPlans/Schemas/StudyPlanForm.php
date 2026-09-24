@@ -11,7 +11,6 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class StudyPlanForm
@@ -32,16 +31,7 @@ class StudyPlanForm
                     )->all())
                     ->required()
                     ->live()
-                    ->native(false)
-                    ->afterStateUpdated(function (Set $set, ?string $state): void {
-                        $type = StudyPlanType::tryFrom((string) $state);
-
-                        if ($type === StudyPlanType::BaitChecklist) {
-                            $set('is_premium', false);
-                        } elseif ($type !== null) {
-                            $set('is_premium', true);
-                        }
-                    }),
+                    ->native(false),
                 TextInput::make('title')->required()->columnSpanFull(),
                 TextInput::make('week_number')
                     ->numeric()
@@ -52,9 +42,8 @@ class StudyPlanForm
                     ], true)),
                 Toggle::make('is_published')->default(false),
                 Toggle::make('is_premium')
-                    ->default(true)
-                    ->disabled(fn (Get $get): bool => $get('type') === StudyPlanType::BaitChecklist->value)
-                    ->dehydrated(),
+                    ->default(false)
+                    ->helperText('Free students can open any published plan that is not premium.'),
                 Textarea::make('description')->rows(3)->columnSpanFull(),
                 Repeater::make('items')
                     ->relationship()

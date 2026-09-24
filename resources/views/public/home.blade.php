@@ -14,7 +14,7 @@
                 </p>
 
                 <div class="flex flex-wrap items-center gap-4">
-                    <x-cta.telegram label="Grab free Week-1 / course bait" payload="bait" />
+                    <x-cta.telegram label="Start studying in Telegram" payload="web" />
                     <a href="{{ route('courses.index') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-text-primary hover:text-primary-200">
                         <span class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary-50 text-primary-300">▶</span>
                         Browse courses

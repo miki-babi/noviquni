@@ -59,7 +59,6 @@ class LearningForm
                     ->afterStateUpdated(function (Set $set, ?string $state): void {
                         if ($state === ResourceType::Flashcards->value) {
                             $set('is_premium', true);
-                            $set('is_bait', false);
                         }
                     }),
                 Select::make('generation_kind')
@@ -133,13 +132,8 @@ class LearningForm
                     ->default(false)
                     ->live()
                     ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
-                    ->dehydrated(),
-                Toggle::make('is_bait')
-                    ->label('Free Week-1 bait')
-                    ->default(false)
-                    ->helperText('Free students only open bait resources (notes / sample quiz / sample exam).')
-                    ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value
-                        || (bool) $get('is_premium')),
+                    ->dehydrated()
+                    ->helperText('Free students can open any published resource that is not premium.'),
                 Toggle::make('is_published')->default(false),
                 ...static::fileFields(required: false),
                 static::contentJsonField(required: false),
@@ -166,7 +160,6 @@ class LearningForm
                         ->afterStateUpdated(function (Set $set, ?string $state): void {
                             if ($state === ResourceType::Flashcards->value) {
                                 $set('is_premium', true);
-                                $set('is_bait', false);
                             }
                         }),
                     TextInput::make('title')
@@ -245,12 +238,8 @@ class LearningForm
                         ->default(false)
                         ->live()
                         ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
-                        ->dehydrated(),
-                    Toggle::make('is_bait')
-                        ->label('Free Week-1 bait')
-                        ->default(false)
-                        ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value
-                            || (bool) $get('is_premium')),
+                        ->dehydrated()
+                        ->helperText('Free students can open any published resource that is not premium.'),
                     Toggle::make('is_published')->default(false),
                     ...static::fileFields(required: true),
                     ...SeoFields::make(),
@@ -355,9 +344,13 @@ class LearningForm
                         ->dehydrated(false)
                         ->visible(fn (Get $get): bool => in_array($get('file_source') ?? 'upload', ['upload', 'existing', 'telegram'], true))
                         ->afterStateHydrated(function (ToggleButtons $component, mixed $state, ?LearningResource $record): void {
-                            $files = filled($record?->telegram_files)
+                            if ($record === null) {
+                                return;
+                            }
+
+                            $files = filled($record->telegram_files)
                                 ? ($record->telegram_files ?? [])
-                                : ($record?->files ?? []);
+                                : ($record->files ?? []);
                             $component->state(count($files) === 1 ? 'single' : 'multiple');
                         }),
                     FileUpload::make('files')

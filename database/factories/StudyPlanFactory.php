@@ -23,7 +23,7 @@ class StudyPlanFactory extends Factory
             'title' => fake()->sentence(3),
             'week_number' => 1,
             'is_published' => false,
-            'is_premium' => true,
+            'is_premium' => false,
             'description' => fake()->paragraph(),
         ];
     }

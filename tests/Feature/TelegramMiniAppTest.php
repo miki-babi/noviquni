@@ -74,7 +74,7 @@ it('shows browse courses for an authenticated student', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
@@ -156,7 +156,7 @@ it('shows course hubs for enrolled students', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Chapter notes',
@@ -211,7 +211,7 @@ it('opens course hubs inside the mini app', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',

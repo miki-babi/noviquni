@@ -46,7 +46,6 @@ it('lists generated quiz resources as direct mini app buttons', function () {
         'type' => ResourceType::Quiz,
         'generation_kind' => CollegeResourceKind::Quiz,
         'is_premium' => false,
-        'is_bait' => true,
         'files' => null,
         'content' => [
             'kind' => 'quiz',
@@ -132,7 +131,6 @@ it('opens a non-file resource deep link with a mini app title button', function 
         'stream_id' => $stream->id,
         'course_id' => $course->id,
         'is_premium' => false,
-        'is_bait' => true,
         'files' => null,
     ]);
 
@@ -200,7 +198,6 @@ it('sends uploaded resource files as telegram documents', function () {
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,
-        'is_bait' => true,
         'files' => [$relativePath],
     ]);
 

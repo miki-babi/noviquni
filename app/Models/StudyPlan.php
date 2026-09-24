@@ -31,19 +31,8 @@ class StudyPlan extends Model
      */
     protected $attributes = [
         'is_published' => false,
-        'is_premium' => true,
+        'is_premium' => false,
     ];
-
-    protected static function booted(): void
-    {
-        static::saving(function (StudyPlan $plan): void {
-            if ($plan->type === StudyPlanType::BaitChecklist) {
-                $plan->is_premium = false;
-            } else {
-                $plan->is_premium = true;
-            }
-        });
-    }
 
     public function course(): BelongsTo
     {
@@ -65,7 +54,7 @@ class StudyPlan extends Model
             return true;
         }
 
-        return $this->type === StudyPlanType::BaitChecklist && ! $this->is_premium;
+        return ! $this->is_premium;
     }
 
     /**

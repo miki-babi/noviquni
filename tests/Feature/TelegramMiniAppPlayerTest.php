@@ -44,7 +44,7 @@ function miniAppPlayerContext(): array
 it('renders the notes player for enrolled students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Anthropology Notes',
@@ -61,7 +61,7 @@ it('renders the notes player for enrolled students', function () {
 it('renders the quiz player for enrolled students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $resource = LearningResource::factory()->bait()->quiz()->create([
+    $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Anthropology Quiz',
@@ -77,7 +77,7 @@ it('renders the quiz player for enrolled students', function () {
 it('renders the exam player for enrolled students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $resource = LearningResource::factory()->bait()->exam()->create([
+    $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Anthropology Exam',
@@ -148,7 +148,6 @@ it('renders reader shells for every catalog type without interactive payload', f
         'description' => 'Catalog body for '.$type->value,
         'content' => null,
         'generation_kind' => null,
-        'is_bait' => false,
         'is_premium' => $type === ResourceType::Flashcards,
     ]);
 
@@ -244,7 +243,7 @@ it('redirects unenrolled students to browse', function () {
         'is_active' => true,
     ]);
 
-    $resource = LearningResource::factory()->bait()->quiz()->create([
+    $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -257,12 +256,12 @@ it('redirects unenrolled students to browse', function () {
 it('redirects the resource dispatcher to the matching catalog player', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $quiz = LearningResource::factory()->bait()->quiz()->create([
+    $quiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
 
-    $module = LearningResource::factory()->bait()->create([
+    $module = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'type' => ResourceType::Module,

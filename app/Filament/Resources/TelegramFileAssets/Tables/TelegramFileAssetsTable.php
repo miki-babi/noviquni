@@ -2,11 +2,18 @@
 
 namespace App\Filament\Resources\TelegramFileAssets\Tables;
 
+use App\Filament\Resources\Learnings\Pages\CreateLearning;
+use App\Models\TelegramFileAsset;
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Redirect;
 
 class TelegramFileAssetsTable
 {
@@ -52,10 +59,40 @@ class TelegramFileAssetsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
+                Action::make('createResource')
+                    ->label('Create resource')
+                    ->icon(Heroicon::OutlinedDocumentPlus)
+                    ->url(function (TelegramFileAsset $record): string {
+                        $title = filled($record->file_name)
+                            ? pathinfo($record->file_name, PATHINFO_FILENAME)
+                            : null;
+
+                        return CreateLearning::getCreateUrl([
+                            'telegram_file_ids' => [$record->file_id],
+                            'title' => filled($title) ? $title : null,
+                        ]);
+                    }),
                 DeleteAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('createResource')
+                        ->label('Create resource')
+                        ->icon(Heroicon::OutlinedDocumentPlus)
+                        ->action(function (Collection $records) {
+                            $fileIds = $records
+                                ->pluck('file_id')
+                                ->filter()
+                                ->unique()
+                                ->take(10)
+                                ->values()
+                                ->all();
+
+                            return Redirect::to(CreateLearning::getCreateUrl([
+                                'telegram_file_ids' => $fileIds,
+                            ]));
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     DeleteBulkAction::make(),
                 ]),
             ]);

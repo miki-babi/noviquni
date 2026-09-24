@@ -126,7 +126,6 @@ it('sends telegram_files by file_id without uploading from disk', function () {
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,
-        'is_bait' => true,
         'files' => null,
         'telegram_files' => [
             ['file_id' => $fileId, 'file_name' => 'vault-notes.pdf'],
@@ -194,7 +193,6 @@ it('still sends disk files when telegram_files is empty', function () {
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,
-        'is_bait' => true,
         'files' => [$relativePath],
         'telegram_files' => null,
     ]);

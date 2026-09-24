@@ -28,7 +28,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'module_id',
     'sort_order',
     'is_premium',
-    'is_bait',
     'is_published',
     'content',
     'generation_kind',
@@ -50,7 +49,6 @@ class LearningResource extends Model
      */
     protected $attributes = [
         'is_premium' => false,
-        'is_bait' => false,
         'is_published' => false,
         'is_indexable' => true,
         'sort_order' => 0,
@@ -61,11 +59,6 @@ class LearningResource extends Model
         static::saving(function (LearningResource $resource): void {
             if ($resource->type === ResourceType::Flashcards) {
                 $resource->is_premium = true;
-                $resource->is_bait = false;
-            }
-
-            if ($resource->is_bait) {
-                $resource->is_premium = false;
             }
         });
     }
@@ -231,16 +224,6 @@ class LearningResource extends Model
      * @return Builder<LearningResource>
      */
     #[Scope]
-    protected function bait(Builder $query): Builder
-    {
-        return $query->where('is_bait', true);
-    }
-
-    /**
-     * @param  Builder<LearningResource>  $query
-     * @return Builder<LearningResource>
-     */
-    #[Scope]
     protected function modules(Builder $query): Builder
     {
         return $query->where('type', ResourceType::Module);
@@ -385,7 +368,6 @@ class LearningResource extends Model
             'files' => 'array',
             'telegram_files' => 'array',
             'is_premium' => 'boolean',
-            'is_bait' => 'boolean',
             'is_published' => 'boolean',
             'is_indexable' => 'boolean',
             'sort_order' => 'integer',

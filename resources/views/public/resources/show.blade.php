@@ -11,7 +11,7 @@
                 <p class="max-w-3xl text-lg text-text-secondary">{{ $resource->description }}</p>
             @endif
             <x-cta.telegram
-                :label="$resource->is_bait ? 'Grab free Week-1 bait in Telegram' : 'Open in Telegram to access'"
+                :label="$resource->is_premium ? 'Open premium resource in Telegram' : 'Open free in Telegram'"
                 :payload="'resource_'.$resource->id"
             />
         </header>
@@ -56,12 +56,10 @@
                 <div>
                     <dt class="text-xs font-medium text-text-muted">Access</dt>
                     <dd class="font-semibold text-text-primary">
-                        @if ($resource->is_bait)
-                            Free Week-1 bait via Telegram
-                        @elseif ($resource->is_premium)
+                        @if ($resource->is_premium)
                             Premium via Telegram
                         @else
-                            Available via Telegram
+                            Free via Telegram
                         @endif
                     </dd>
                 </div>

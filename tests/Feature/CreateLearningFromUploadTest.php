@@ -40,7 +40,6 @@ it('creates a learning resource from a single uploaded file', function () {
             'course_id' => $course->id,
             'sort_order' => 1,
             'is_premium' => false,
-            'is_bait' => true,
             'is_published' => false,
             'is_indexable' => true,
             'files' => [$file],
@@ -59,7 +58,7 @@ it('creates a learning resource from a single uploaded file', function () {
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->content)->toBeNull()
         ->and($resource->course_id)->toBe($course->id)
-        ->and($resource->is_bait)->toBeTrue()
+        ->and($resource->is_premium)->toBeFalse()
         ->and($resource->files)->toBeArray()
         ->and($resource->files)->toHaveCount(1)
         ->and($resource->files[0])->toBe($expectedPath)
@@ -96,7 +95,6 @@ it('creates a learning resource from multiple uploaded files', function () {
             'course_id' => $course->id,
             'sort_order' => 0,
             'is_premium' => true,
-            'is_bait' => false,
             'is_published' => true,
             'is_indexable' => true,
             'files' => $files,
@@ -150,7 +148,6 @@ it('creates a learning resource from an existing course library file', function 
             'course_id' => $course->id,
             'sort_order' => 0,
             'is_premium' => false,
-            'is_bait' => false,
             'is_published' => false,
             'is_indexable' => true,
             'existing_files' => [$path],

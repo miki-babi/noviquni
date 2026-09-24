@@ -13,35 +13,33 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
 });
 
-it('allows bait resources for free students', function () {
+it('allows free published non-premium resources for free students', function () {
     $student = User::factory()->student()->create();
-    $resource = LearningResource::factory()->bait()->notes()->create();
+    $resource = LearningResource::factory()->published()->notes()->create([
+        'is_premium' => false,
+    ]);
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });
 
-it('blocks non-bait resources for free students', function () {
+it('blocks premium resources for free students', function () {
     $student = User::factory()->student()->create();
-    $resource = LearningResource::factory()->published()->create([
-        'is_premium' => false,
-        'is_bait' => false,
-    ]);
+    $resource = LearningResource::factory()->published()->premium()->create();
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeFalse();
 });
 
-it('blocks flashcards for free students even if marked bait', function () {
+it('blocks flashcards for free students because they are always premium', function () {
     $student = User::factory()->student()->create();
     $module = LearningResource::factory()->published()->module()->create();
     $resource = LearningResource::factory()->published()->flashcards()->create([
         'module_id' => $module->id,
         'course_id' => $module->course_id,
         'stream_id' => $module->stream_id,
-        'is_bait' => true,
+        'is_premium' => false,
     ]);
 
-    expect($resource->fresh()->is_bait)->toBeFalse()
-        ->and($resource->fresh()->is_premium)->toBeTrue()
+    expect($resource->fresh()->is_premium)->toBeTrue()
         ->and(app(PremiumService::class)->canAccess($student, $resource->fresh()))->toBeFalse();
 });
 

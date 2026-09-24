@@ -343,7 +343,7 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Motion notes',
@@ -376,7 +376,7 @@ it('shows courses with the selected resource type in a reply keyboard', function
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -404,7 +404,7 @@ it('opens the selected course resource type in the mini app', function () {
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -491,7 +491,7 @@ it('shows course resource types after course tap', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
@@ -577,7 +577,7 @@ it('shows continue resume card when a prior download exists', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Chapter notes',
@@ -665,7 +665,7 @@ it('still routes the legacy My Courses label to the course reply keyboard', func
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -815,7 +815,7 @@ it('uses editMessageText for back to courses navigation', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
@@ -869,7 +869,7 @@ it('opens a bait course path from /start bait', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $notes = LearningResource::factory()->bait()->notes()->create([
+    $notes = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Bait notes',
@@ -905,7 +905,7 @@ it('opens a resource from /start resource deep link', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Deep link notes',
@@ -938,7 +938,7 @@ it('opens a course from /start course deep link', function () {
         'is_active' => true,
     ]);
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'English bait',
@@ -994,7 +994,7 @@ it('still opens continue from the legacy continue label', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Legacy continue notes',
@@ -1030,13 +1030,13 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
     ]);
     $user->courses()->sync([$course->id]);
 
-    $older = LearningResource::factory()->bait()->notes()->create([
+    $older = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Older notes',
         'type' => ResourceType::Notes,
     ]);
-    $newer = LearningResource::factory()->bait()->worksheet()->create([
+    $newer = LearningResource::factory()->published()->worksheet()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Newer worksheet',
@@ -1091,7 +1091,7 @@ it('paginates quick saved with next and back callbacks', function () {
     $user->courses()->sync([$course->id]);
 
     foreach (range(1, 6) as $index) {
-        $resource = LearningResource::factory()->bait()->notes()->create([
+        $resource = LearningResource::factory()->published()->notes()->create([
             'course_id' => $course->id,
             'stream_id' => $stream->id,
             'title' => "Saved notes {$index}",

@@ -45,7 +45,7 @@ function libraryContext(): array
 it('lists resource hubs across enrolled courses only', function () {
     [$user, $course, $stream] = libraryContext();
 
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Enrolled notes',
@@ -55,7 +55,7 @@ it('lists resource hubs across enrolled courses only', function () {
         'stream_id' => $stream->id,
         'name' => 'Chemistry',
     ]);
-    LearningResource::factory()->bait()->notes()->create([
+    LearningResource::factory()->published()->notes()->create([
         'course_id' => $otherCourse->id,
         'stream_id' => $stream->id,
         'title' => 'Other course notes',
@@ -87,7 +87,6 @@ it('locks premium resources in the library hub for free users', function () {
         'stream_id' => $stream->id,
         'title' => 'Premium notes',
         'is_premium' => true,
-        'is_bait' => false,
     ]);
 
     $this->actingAs($user)
@@ -100,7 +99,7 @@ it('locks premium resources in the library hub for free users', function () {
 it('shows empty quick saved state and toggles bookmarks', function () {
     [$user, $course, $stream] = libraryContext();
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Savable notes',
@@ -133,7 +132,7 @@ it('shows empty quick saved state and toggles bookmarks', function () {
 it('shows save control on the notes player', function () {
     [$user, $course, $stream] = libraryContext();
 
-    $resource = LearningResource::factory()->bait()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'type' => ResourceType::Notes,

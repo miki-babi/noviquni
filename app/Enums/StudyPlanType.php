@@ -13,12 +13,12 @@ enum StudyPlanType: string
         return match ($this) {
             self::Week => 'Week plan',
             self::ExamSprint => 'Exam sprint',
-            self::BaitChecklist => 'Week-1 bait checklist',
+            self::BaitChecklist => 'Week-1 checklist',
         };
     }
 
     public function requiresPremium(): bool
     {
-        return $this !== self::BaitChecklist;
+        return false;
     }
 }

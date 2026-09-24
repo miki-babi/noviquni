@@ -32,7 +32,6 @@ class LearningResourceFactory extends Factory
             'module_id' => null,
             'sort_order' => 0,
             'is_premium' => false,
-            'is_bait' => false,
             'is_published' => false,
             'is_indexable' => true,
             'content' => null,
@@ -75,16 +74,6 @@ class LearningResourceFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_premium' => true,
-            'is_bait' => false,
-        ]);
-    }
-
-    public function bait(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'is_bait' => true,
-            'is_premium' => false,
-            'is_published' => true,
         ]);
     }
 
@@ -210,7 +199,6 @@ class LearningResourceFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'type' => ResourceType::Flashcards,
             'is_premium' => true,
-            'is_bait' => false,
             'generation_kind' => CollegeResourceKind::Flashcards,
             'content' => [
                 'kind' => CollegeResourceKind::Flashcards->value,

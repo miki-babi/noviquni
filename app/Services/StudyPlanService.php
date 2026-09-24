@@ -23,13 +23,7 @@ class StudyPlanService
             ->orderBy('week_number')
             ->orderBy('id')
             ->get()
-            ->filter(function (StudyPlan $plan) use ($user): bool {
-                if ($plan->type === StudyPlanType::BaitChecklist) {
-                    return true;
-                }
-
-                return $user->hasActivePremium();
-            })
+            ->filter(fn (StudyPlan $plan): bool => $plan->canAccess($user))
             ->values();
     }
 

@@ -17,7 +17,7 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
 });
 
-it('shows bait checklists to free students and hides week plans', function () {
+it('shows free plans to free students and hides premium week plans', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Math']);
     $user = User::factory()->student()->create([
@@ -27,13 +27,13 @@ it('shows bait checklists to free students and hides week plans', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $bait = StudyPlan::factory()->published()->baitChecklist()->create([
+    $checklist = StudyPlan::factory()->published()->baitChecklist()->create([
         'course_id' => $course->id,
         'title' => 'Week-1 checklist',
     ]);
     StudyPlanItem::factory()->create([
-        'study_plan_id' => $bait->id,
-        'label' => 'Read bait notes',
+        'study_plan_id' => $checklist->id,
+        'label' => 'Read week-1 notes',
         'sort_order' => 1,
     ]);
 
@@ -53,7 +53,7 @@ it('shows bait checklists to free students and hides week plans', function () {
         ->get(route('tg.courses.show', $course))
         ->assertOk()
         ->assertSee('Week-1 checklist')
-        ->assertSee('Read bait notes')
+        ->assertSee('Read week-1 notes')
         ->assertDontSee('Week 2 plan');
 });
 
@@ -75,6 +75,7 @@ it('shows week and exam-sprint plans to premium students', function () {
         'course_id' => $course->id,
         'type' => StudyPlanType::Week,
         'title' => 'Week 2 plan',
+        'is_premium' => true,
     ]);
     StudyPlan::factory()->published()->examSprint()->create([
         'course_id' => $course->id,
@@ -90,11 +91,26 @@ it('shows week and exam-sprint plans to premium students', function () {
     ]);
 });
 
-it('forces bait checklists to be non-premium on save', function () {
-    $plan = StudyPlan::factory()->create([
-        'type' => StudyPlanType::BaitChecklist,
+it('respects the is_premium flag on study plans for free students', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $user = User::factory()->student()->create([
+        'stream_id' => $stream->id,
+    ]);
+
+    $freeWeek = StudyPlan::factory()->published()->create([
+        'course_id' => $course->id,
+        'type' => StudyPlanType::Week,
+        'title' => 'Free week plan',
+        'is_premium' => false,
+    ]);
+    $premiumWeek = StudyPlan::factory()->published()->create([
+        'course_id' => $course->id,
+        'type' => StudyPlanType::Week,
+        'title' => 'Premium week plan',
         'is_premium' => true,
     ]);
 
-    expect($plan->fresh()->is_premium)->toBeFalse();
+    expect($freeWeek->canAccess($user))->toBeTrue()
+        ->and($premiumWeek->canAccess($user))->toBeFalse();
 });

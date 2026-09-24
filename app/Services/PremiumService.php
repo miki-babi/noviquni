@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ResourceType;
 use App\Enums\SubscriptionSource;
 use App\Models\LearningResource;
 use App\Models\Subscription;
@@ -42,12 +41,6 @@ class PremiumService
             return true;
         }
 
-        // Flashcards are never free bait.
-        if ($resource->type === ResourceType::Flashcards) {
-            return false;
-        }
-
-        // Free students only open bait resources.
-        return $resource->is_bait;
+        return ! $resource->is_premium;
     }
 }

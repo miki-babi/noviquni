@@ -5,13 +5,13 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('never renders interactive study UIs on public resource pages', function (string $state, string $hiddenText, bool $bait) {
+it('never renders interactive study UIs on public resource pages', function (string $state, string $hiddenText, bool $premium) {
     config(['services.telegram.bot_username' => 'noviquni_bot']);
 
     $resource = LearningResource::factory()->published()->{$state}()->create([
         'title' => 'Anthropology Resource',
         'slug' => 'anthropology-'.str($state)->slug(),
-        'is_bait' => $bait,
+        'is_premium' => $premium,
     ]);
 
     $response = $this->get(route('resources.show', $resource))
@@ -23,16 +23,16 @@ it('never renders interactive study UIs on public resource pages', function (str
         ->assertDontSee('Study on the web', false)
         ->assertDontSee('Also open in Telegram', false);
 
-    if ($bait) {
-        $response->assertSee('Grab free Week-1 bait in Telegram', false);
+    if ($premium) {
+        $response->assertSee('Open premium resource in Telegram', false);
     } else {
-        $response->assertSee('Open in Telegram to access', false);
+        $response->assertSee('Open free in Telegram', false);
     }
 })->with([
-    'notes' => ['notes', 'Anthropology studies humankind across time and space.', true],
-    'quiz' => ['quiz', 'What are the Greek roots of anthropology?', true],
-    'exam' => ['exam', 'Which statement best describes anthropology?', true],
-    'flashcards' => ['flashcards', 'What does anthropos mean?', false],
+    'notes' => ['notes', 'Anthropology studies humankind across time and space.', false],
+    'quiz' => ['quiz', 'What are the Greek roots of anthropology?', false],
+    'exam' => ['exam', 'Which statement best describes anthropology?', false],
+    'flashcards' => ['flashcards', 'What does anthropos mean?', true],
 ]);
 
 it('hides premium quiz payload from the public page and keeps the telegram cta', function () {

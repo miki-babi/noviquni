@@ -80,7 +80,7 @@ it('renders the exam player from nested college api exam content', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $resource = LearningResource::factory()->bait()->exam()->create([
+    $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Unit 1 Exam',

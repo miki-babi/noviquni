@@ -9,15 +9,15 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('renders the public home page with telegram bait cta', function () {
+it('renders the public home page with telegram cta', function () {
     config(['services.telegram.bot_username' => 'noviquni_bot']);
 
     $response = $this->get(route('home'));
 
     $response->assertOk();
     $response->assertSee('digital companion for Ethiopian university students', false);
-    $response->assertSee('https://t.me/noviquni_bot?start=bait', false);
-    $response->assertSee('Grab free Week-1 / course bait', false);
+    $response->assertSee('https://t.me/noviquni_bot?start=web', false);
+    $response->assertSee('Start studying in Telegram', false);
     $response->assertSee('<link rel="canonical"', false);
     $response->assertSee('application/ld+json', false);
     $response->assertSee('organized freshman study system', false);
