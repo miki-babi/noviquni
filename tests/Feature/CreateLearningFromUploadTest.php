@@ -194,3 +194,25 @@ it('batch uploads study files into a course library', function () {
     Storage::disk($disk)->assertExists("{$directory}/chapter-1.pdf");
     Storage::disk($disk)->assertExists("{$directory}/chapter-2.pdf");
 });
+
+it('lists uploaded files for the selected course', function () {
+    $disk = config('filesystems.default');
+    Storage::fake($disk);
+
+    $admin = User::factory()->admin()->create();
+    $course = Course::factory()->create();
+    $directory = LearningResourceFiles::directoryForCourse($course->id);
+
+    Storage::disk($disk)->put("{$directory}/notes.pdf", 'notes');
+    Storage::disk($disk)->put("{$directory}/slides.pptx", 'slides');
+
+    $this->actingAs($admin);
+
+    Livewire::test(ManageCourseFiles::class)
+        ->fillForm([
+            'course_id' => $course->id,
+            'files' => [],
+        ])
+        ->assertSee('notes.pdf')
+        ->assertSee('slides.pptx');
+});

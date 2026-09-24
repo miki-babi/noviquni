@@ -12,18 +12,26 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\EmbeddedSchema;
+use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
 /**
  * @property-read Schema $form
  */
-class ManageCourseFiles extends Page
+class ManageCourseFiles extends Page implements HasTable
 {
+    use InteractsWithTable;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFolderOpen;
 
     protected static string|UnitEnum|null $navigationGroup = 'Content';
@@ -63,6 +71,7 @@ class ManageCourseFiles extends Page
                                 ->submit('save'),
                         ]),
                     ]),
+                EmbeddedTable::make(),
             ]);
     }
 
@@ -108,6 +117,60 @@ class ManageCourseFiles extends Page
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    public function table(Table $table): Table
+    {
+        return $table
+            ->heading('Course library')
+            ->description('Files already uploaded for the selected course.')
+            ->records(fn (): array => LearningResourceFiles::listForCourse($this->data['course_id'] ?? null))
+            ->columns([
+                TextColumn::make('name')
+                    ->label('File')
+                    ->searchable(),
+                TextColumn::make('size_label')
+                    ->label('Size'),
+                TextColumn::make('path')
+                    ->label('Path')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->copyable(),
+            ])
+            ->recordActions([
+                Action::make('delete')
+                    ->label('Delete')
+                    ->icon(Heroicon::OutlinedTrash)
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->action(function (array $record): void {
+                        $courseId = $this->data['course_id'] ?? null;
+                        $path = $record['path'] ?? null;
+
+                        if (! filled($courseId) || ! is_string($path) || ! LearningResourceFiles::isValidPathForCourse($path, $courseId)) {
+                            Notification::make()
+                                ->title('File could not be deleted')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Storage::disk(LearningResourceFiles::diskName())->delete($path);
+
+                        Notification::make()
+                            ->title('File deleted')
+                            ->success()
+                            ->send();
+                    }),
+            ])
+            ->paginated(false)
+            ->emptyStateHeading(fn (): string => filled($this->data['course_id'] ?? null)
+                ? 'No files in this course library'
+                : 'Select a course')
+            ->emptyStateDescription(fn (): string => filled($this->data['course_id'] ?? null)
+                ? 'Upload files above to add them to this course library.'
+                : 'Choose a course to see its uploaded study files.')
+            ->emptyStateIcon(Heroicon::OutlinedFolderOpen);
     }
 
     public function save(): void

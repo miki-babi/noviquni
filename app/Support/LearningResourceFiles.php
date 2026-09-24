@@ -75,6 +75,57 @@ class LearningResourceFiles
         return count(self::optionsForCourse($courseId));
     }
 
+    /**
+     * @return array<string, array{path: string, name: string, size: int|null, size_label: string}>
+     */
+    public static function listForCourse(int|string|null $courseId): array
+    {
+        if (! filled($courseId)) {
+            return [];
+        }
+
+        $disk = Storage::disk(self::diskName());
+        $directory = self::directoryForCourse($courseId);
+
+        if (! $disk->exists($directory)) {
+            return [];
+        }
+
+        return collect($disk->files($directory))
+            ->filter(fn (string $path): bool => self::hasAcceptedExtension($path))
+            ->sort()
+            ->mapWithKeys(function (string $path) use ($disk): array {
+                $size = $disk->size($path);
+
+                return [
+                    $path => [
+                        'path' => $path,
+                        'name' => basename($path),
+                        'size' => $size,
+                        'size_label' => self::formatBytes($size),
+                    ],
+                ];
+            })
+            ->all();
+    }
+
+    public static function formatBytes(?int $bytes): string
+    {
+        if ($bytes === null) {
+            return '—';
+        }
+
+        if ($bytes < 1024) {
+            return $bytes.' B';
+        }
+
+        if ($bytes < 1024 * 1024) {
+            return round($bytes / 1024, 1).' KB';
+        }
+
+        return round($bytes / (1024 * 1024), 1).' MB';
+    }
+
     public static function hasAcceptedExtension(string $path): bool
     {
         $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
