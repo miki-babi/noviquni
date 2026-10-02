@@ -1659,7 +1659,7 @@ class TelegramBotHandler
         }
 
         $rows = $streams->map(fn (Stream $stream) => [[
-            'text' => '🎓 '.$stream->name,
+            'text' => $stream->name,
             'callback_data' => "ob:stream:{$stream->id}",
             'style' => match (Str::lower($stream->name)) {
                 'natural' => TelegramButtonStyle::Success->value,

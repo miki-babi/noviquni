@@ -87,7 +87,7 @@ it('accepts a start update and creates a student immediately without queueing', 
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🎓 Natural'
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === 'Natural'
             && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}"
             && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'success';
     });
@@ -116,9 +116,9 @@ it('styles Natural stream buttons green and Social stream buttons blue', functio
         );
 
         return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
-            && ($naturalButton['text'] ?? null) === '🎓 Natural'
+            && ($naturalButton['text'] ?? null) === 'Natural'
             && ($naturalButton['style'] ?? null) === 'success'
-            && ($socialButton['text'] ?? null) === '🎓 Social'
+            && ($socialButton['text'] ?? null) === 'Social'
             && ($socialButton['style'] ?? null) === 'primary';
     });
 });
