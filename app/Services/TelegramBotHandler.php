@@ -1680,9 +1680,10 @@ class TelegramBotHandler
             'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
+        $rows[] = [['text' => '🌍 Other', 'callback_data' => 'ob:uni:other', 'style' => TelegramButtonStyle::Primary->value]];
         $rows[] = [['text' => '⏭️ Skip', 'callback_data' => 'ob:uni:skip', 'style' => TelegramButtonStyle::Danger->value]];
 
-        $this->sendOnboardingPrompt($user, $chatId, '🏫 Optional: tap your university, or Skip:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, '🏫 Optional: tap your university, Other, or Skip:', $rows, $messageId);
     }
 
     protected function askSemester(User $user, int|string $chatId, ?int $messageId = null): void
@@ -1730,13 +1731,17 @@ class TelegramBotHandler
         }
 
         $rows = $courses->map(function (Course $course) use ($selectedIds) {
-            $prefix = in_array($course->id, $selectedIds, true) ? '✅ ' : '';
-
-            return [[
-                'text' => $prefix.$course->name,
+            $selected = in_array($course->id, $selectedIds, true);
+            $button = [
+                'text' => ($selected ? '✅ ' : '').$course->name,
                 'callback_data' => "ob:course:toggle:{$course->id}",
-                'style' => TelegramButtonStyle::Primary->value,
-            ]];
+            ];
+
+            if ($selected) {
+                $button['style'] = TelegramButtonStyle::Primary->value;
+            }
+
+            return [$button];
         })->values()->all();
 
         $rows[] = [['text' => '✅ Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]];
@@ -1772,7 +1777,7 @@ class TelegramBotHandler
             return $this->selectStream($user, $chatId, (int) Str::after($data, 'ob:stream:'), $messageId);
         }
 
-        if ($data === 'ob:uni:skip') {
+        if ($data === 'ob:uni:skip' || $data === 'ob:uni:other') {
             return $this->selectUniversity($user, $chatId, null, $messageId);
         }
 

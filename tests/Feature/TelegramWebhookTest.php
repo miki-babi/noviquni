@@ -149,8 +149,41 @@ it('advances onboarding when a stream inline button is tapped', function () {
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'university')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:other'
+                && ($button['text'] ?? null) === '🌍 Other'
+                && ($button['style'] ?? null) === 'primary')
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:skip'
                 && ($button['style'] ?? null) === 'danger');
+    });
+});
+
+it('advances onboarding when Other university is tapped', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    University::factory()->create(['name' => 'AAU']);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555012, '/start'))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555012, "ob:stream:{$stream->id}"))
+        ->assertOk();
+
+    $user = User::query()->where('telegram_id', '555012')->firstOrFail();
+    expect($user->onboarding_step)->toBe(OnboardingStep::University);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555012, 'ob:uni:other', 20, 3))
+        ->assertOk();
+
+    $user->refresh();
+
+    expect($user->university_id)->toBeNull()
+        ->and($user->onboarding_step)->toBe(OnboardingStep::Semester);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'semester');
     });
 });
 
@@ -241,11 +274,11 @@ it('lists every active stream course during onboarding course selection', functi
             return false;
         }
 
-        $callbackData = collect(data_get($data, 'reply_markup.inline_keyboard', []))
-            ->flatten(1)
-            ->pluck('callback_data')
-            ->filter()
-            ->values();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $callbackData = $buttons->pluck('callback_data')->filter()->values();
+        $courseButtons = $buttons->filter(
+            fn (array $button): bool => str_starts_with((string) ($button['callback_data'] ?? ''), 'ob:course:toggle:')
+        );
 
         $expectedToggles = $activeCourses
             ->map(fn (Course $course) => "ob:course:toggle:{$course->id}")
@@ -255,7 +288,58 @@ it('lists every active stream course during onboarding course selection', functi
             && $callbackData->contains('ob:course:confirm')
             && ! $callbackData->contains("ob:course:toggle:{$inactive->id}")
             && ! $callbackData->contains("ob:course:toggle:{$otherStreamCourse->id}")
-            && $callbackData->filter(fn (string $data) => str_starts_with($data, 'ob:course:toggle:'))->count() === 9;
+            && $callbackData->filter(fn (string $data) => str_starts_with($data, 'ob:course:toggle:'))->count() === 9
+            && $courseButtons->every(fn (array $button): bool => ($button['style'] ?? null) === 'primary'
+                && str_starts_with((string) ($button['text'] ?? ''), '✅ '));
+    });
+});
+
+it('uses default button style for deselected courses during onboarding', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $kept = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+    $deselected = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+        'is_active' => true,
+    ]);
+
+    $telegramId = 555051;
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload($telegramId, '/start'))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, "ob:stream:{$stream->id}", 20, 2))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:uni:skip', 20, 3))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:sem:skip', 20, 4))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, "ob:course:toggle:{$deselected->id}", 20, 5))->assertOk();
+
+    Http::assertSent(function ($request) use ($kept, $deselected) {
+        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        if (! str_contains((string) ($data['text'] ?? ''), 'Tap courses to select or deselect')) {
+            return false;
+        }
+
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $keptButton = $buttons->first(
+            fn (array $button): bool => ($button['callback_data'] ?? null) === "ob:course:toggle:{$kept->id}"
+        );
+        $deselectedButton = $buttons->first(
+            fn (array $button): bool => ($button['callback_data'] ?? null) === "ob:course:toggle:{$deselected->id}"
+        );
+
+        return $keptButton !== null
+            && ($keptButton['style'] ?? null) === 'primary'
+            && str_starts_with((string) ($keptButton['text'] ?? ''), '✅ ')
+            && $deselectedButton !== null
+            && ($deselectedButton['text'] ?? null) === 'Physics'
+            && ! array_key_exists('style', $deselectedButton);
     });
 });
 
