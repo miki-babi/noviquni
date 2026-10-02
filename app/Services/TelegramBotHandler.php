@@ -2040,6 +2040,16 @@ class TelegramBotHandler
             'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
 
+        $this->telegram->sendMessage($chatId, $copy->get('menu.onboarding_profile_hint'), [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('menu.onboarding_profile_button'),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ]]),
+        ]);
+
         $user = $user->fresh();
 
         if ($user !== null && ! $this->resumeStartPayload($user, $chatId)) {

@@ -293,6 +293,18 @@ it('completes button-only onboarding through skip and confirm', function () {
             && data_get($data, 'reply_markup.keyboard.2.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.2.1.web_app') === null;
     });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'change your stream, university, semester, and courses')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Open Profile';
+    });
 });
 
 it('lists every active stream course during onboarding course selection', function () {

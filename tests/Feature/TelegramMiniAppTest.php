@@ -3,7 +3,9 @@
 use App\Enums\OnboardingStep;
 use App\Models\Course;
 use App\Models\LearningResource;
+use App\Models\Semester;
 use App\Models\Stream;
+use App\Models\University;
 use App\Models\User;
 use App\Services\SettingsService;
 use App\Services\TelegramService;
@@ -189,12 +191,119 @@ it('shows profile and premium screens', function () {
         ->assertSee('@abebe')
         ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
         ->assertSee('Premium')
+        ->assertSee('Edit study profile')
+        ->assertSee(route('tg.profile.edit'), false)
         ->assertSee(route('tg.premium'), false);
 
     $this->actingAs($user)
         ->get(route('tg.premium'))
         ->assertOk()
         ->assertSee('Premium');
+});
+
+it('shows the study profile edit form', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $university = University::factory()->create(['name' => 'AAU']);
+    $semester = Semester::factory()->create(['name' => 'Year 1']);
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'university_id' => $university->id,
+        'semester_id' => $semester->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $this->actingAs($user)
+        ->get(route('tg.profile.edit'))
+        ->assertOk()
+        ->assertSee('Study profile')
+        ->assertSee('Natural')
+        ->assertSee('AAU')
+        ->assertSee('Year 1')
+        ->assertSee('Mathematics')
+        ->assertSee('Save changes');
+});
+
+it('updates academic profile fields from the mini app', function () {
+    $natural = Stream::factory()->create(['name' => 'Natural']);
+    $social = Stream::factory()->create(['name' => 'Social']);
+    $university = University::factory()->create(['name' => 'AAU']);
+    $semester = Semester::factory()->create(['name' => 'Year 1']);
+    $math = Course::factory()->create([
+        'stream_id' => $natural->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+    $civics = Course::factory()->create([
+        'stream_id' => $social->id,
+        'name' => 'Civics',
+        'is_active' => true,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $natural->id,
+        'university_id' => $university->id,
+        'semester_id' => $semester->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$math->id]);
+
+    $this->actingAs($user)
+        ->post(route('tg.profile.academic'), [
+            'stream_id' => $social->id,
+            'university_id' => '',
+            'semester_id' => '',
+            'course_ids' => [$civics->id],
+        ])
+        ->assertRedirect(route('tg.profile'));
+
+    $user->refresh();
+
+    expect($user->stream_id)->toBe($social->id)
+        ->and($user->university_id)->toBeNull()
+        ->and($user->semester_id)->toBeNull()
+        ->and($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
+});
+
+it('rejects courses that do not belong to the selected stream', function () {
+    $natural = Stream::factory()->create(['name' => 'Natural']);
+    $social = Stream::factory()->create(['name' => 'Social']);
+    $math = Course::factory()->create([
+        'stream_id' => $natural->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+    $civics = Course::factory()->create([
+        'stream_id' => $social->id,
+        'name' => 'Civics',
+        'is_active' => true,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $natural->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$math->id]);
+
+    $this->actingAs($user)
+        ->from(route('tg.profile.edit'))
+        ->post(route('tg.profile.academic'), [
+            'stream_id' => $natural->id,
+            'course_ids' => [$civics->id],
+        ])
+        ->assertRedirect(route('tg.profile.edit'))
+        ->assertSessionHasErrors('course_ids.0');
+
+    expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$math->id]);
 });
 
 it('opens course hubs inside the mini app', function () {

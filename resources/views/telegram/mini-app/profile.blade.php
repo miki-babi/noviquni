@@ -71,6 +71,15 @@
             </p>
         </div>
 
+        <a href="{{ route('tg.profile.edit') }}" class="study-card">
+            <div class="study-card-inner">
+                <span class="min-w-0 flex-1">
+                    <span class="study-card-title block">{{ $copy->get('profile.edit_study') }}</span>
+                </span>
+                <span class="tg-cell-chevron" aria-hidden="true">›</span>
+            </div>
+        </a>
+
         <a href="{{ route('tg.premium') }}" class="study-card">
             <div class="study-card-inner">
                 <span class="min-w-0 flex-1">

@@ -74,6 +74,8 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('play/slides/{resource:slug}', SlidesPlayerController::class)->name('play.slides');
         Route::get('play/reference-books/{resource:slug}', ReferenceBooksPlayerController::class)->name('play.reference-books');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+        Route::get('profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::post('profile/academic', [ProfileController::class, 'updateAcademic'])->name('profile.academic');
         Route::post('profile/notifications', [ProfileController::class, 'toggleNotifications'])->name('profile.notifications');
         Route::post('profile/notifications/enable', [ProfileController::class, 'enableNotifications'])->name('profile.notifications.enable');
         Route::post('profile/locale', [ProfileController::class, 'updateLocale'])->name('profile.locale');
