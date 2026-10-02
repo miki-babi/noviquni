@@ -100,6 +100,10 @@ class TelegramBotHandler
                     Cache::put($this->pendingStartCacheKey($user), $payload, now()->addDay());
                 }
 
+                if ($this->settings->hasCustomTelegramStartMessage()) {
+                    $this->sendCustomStartMessage($user, $chatId);
+                }
+
                 $user->update(['onboarding_step' => OnboardingStep::Stream]);
                 $this->askStream($user, $chatId);
 

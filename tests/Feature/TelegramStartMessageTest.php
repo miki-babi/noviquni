@@ -48,6 +48,54 @@ function telegramStartPayload(int $telegramId, int $updateId = 1): array
     ];
 }
 
+it('sends the custom start message to new users before the stream onboarding prompt', function () {
+    Storage::disk('public')->put('telegram/start/welcome.jpg', 'fake-image');
+
+    $settings = app(SettingsService::class);
+    $settings->set(SettingsService::TELEGRAM_START_IMAGE, 'telegram/start/welcome.jpg');
+    $settings->set(SettingsService::TELEGRAM_START_CAPTION, 'Welcome, {{first_name}}!');
+    $settings->set(SettingsService::TELEGRAM_START_BUTTONS, json_encode([
+        [
+            'label' => 'Learn more',
+            'type' => BroadcastButtonType::Url->value,
+            'url' => 'https://noviquni.test/about',
+            'style' => TelegramButtonStyle::Primary->value,
+        ],
+    ], JSON_THROW_ON_ERROR));
+
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+
+    $this->postJson('/telegram/webhook', telegramStartPayload(555910, 9010))->assertOk();
+
+    $user = User::query()->where('telegram_id', '555910')->firstOrFail();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Stream);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendPhoto')) {
+            return false;
+        }
+
+        $fields = collect($request->data())
+            ->mapWithKeys(fn (array $part) => [$part['name'] => $part['contents']]);
+
+        $markup = json_decode((string) $fields->get('reply_markup'), true);
+
+        return str_contains((string) $fields->get('caption'), 'Welcome, Abebe!')
+            && data_get($markup, 'inline_keyboard.0.0.url') === 'https://noviquni.test/about';
+    });
+
+    Http::assertSent(function ($request) use ($stream) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
+    });
+});
+
 it('sends the admin start photo caption and inline buttons on /start', function () {
     Storage::disk('public')->put('telegram/start/welcome.jpg', 'fake-image');
 

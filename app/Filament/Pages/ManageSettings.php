@@ -109,7 +109,7 @@ class ManageSettings extends Page
                     ])
                     ->columns(2),
                 Section::make('Telegram /start message')
-                    ->description('Shown to students who already finished onboarding when they tap /start. Leave empty to use the default welcome copy.')
+                    ->description('Shown when students tap /start, including new users before onboarding (stream picker follows). Leave empty to use the default welcome copy for onboarded students only.')
                     ->schema([
                         FileUpload::make('telegram_start_image')
                             ->label('Image')
