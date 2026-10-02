@@ -1652,19 +1652,22 @@ class TelegramBotHandler
         $streams = Stream::query()->active()->orderBy('name')->get();
 
         if ($streams->isEmpty()) {
-            $result = $this->telegram->replyOrEdit($chatId, 'No streams are available yet. Please try again later.', messageId: $messageId);
+            $result = $this->telegram->replyOrEdit($chatId, '📭 No streams are available yet. Please try again later.', messageId: $messageId);
             $this->telegram->rememberInlineMessage($user->id, $result, $messageId);
 
             return;
         }
 
         $rows = $streams->map(fn (Stream $stream) => [[
-            'text' => $stream->name,
+            'text' => '🎓 '.$stream->name,
             'callback_data' => "ob:stream:{$stream->id}",
-            'style' => TelegramButtonStyle::Primary->value,
+            'style' => match (Str::lower($stream->name)) {
+                'natural' => TelegramButtonStyle::Success->value,
+                default => TelegramButtonStyle::Primary->value,
+            },
         ]])->values()->all();
 
-        $this->sendOnboardingPrompt($user, $chatId, 'Tap your stream:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, '📚 Tap your stream:', $rows, $messageId);
     }
 
     protected function askUniversity(User $user, int|string $chatId, ?int $messageId = null): void
@@ -1677,9 +1680,9 @@ class TelegramBotHandler
             'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
-        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:uni:skip', 'style' => TelegramButtonStyle::Danger->value]];
+        $rows[] = [['text' => '⏭️ Skip', 'callback_data' => 'ob:uni:skip', 'style' => TelegramButtonStyle::Danger->value]];
 
-        $this->sendOnboardingPrompt($user, $chatId, 'Optional: tap your university, or Skip:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, '🏫 Optional: tap your university, or Skip:', $rows, $messageId);
     }
 
     protected function askSemester(User $user, int|string $chatId, ?int $messageId = null): void
@@ -1692,9 +1695,9 @@ class TelegramBotHandler
             'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
-        $rows[] = [['text' => 'Skip', 'callback_data' => 'ob:sem:skip', 'style' => TelegramButtonStyle::Danger->value]];
+        $rows[] = [['text' => '⏭️ Skip', 'callback_data' => 'ob:sem:skip', 'style' => TelegramButtonStyle::Danger->value]];
 
-        $this->sendOnboardingPrompt($user, $chatId, 'Optional: tap your semester, or Skip:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, '📅 Optional: tap your semester, or Skip:', $rows, $messageId);
     }
 
     protected function askCourses(User $user, int|string $chatId, ?int $messageId = null): void
@@ -1719,8 +1722,8 @@ class TelegramBotHandler
         $courses = $this->coursesForOnboarding($user, $selectedIds);
 
         if ($courses->isEmpty()) {
-            $this->sendOnboardingPrompt($user, $chatId, 'No courses are available for your stream yet. Tap Confirm to finish.', [
-                [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]],
+            $this->sendOnboardingPrompt($user, $chatId, '📚 No courses are available for your stream yet. Tap Confirm to finish.', [
+                [['text' => '✅ Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]],
             ], $messageId);
 
             return;
@@ -1736,9 +1739,9 @@ class TelegramBotHandler
             ]];
         })->values()->all();
 
-        $rows[] = [['text' => 'Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]];
+        $rows[] = [['text' => '✅ Confirm', 'callback_data' => 'ob:course:confirm', 'style' => TelegramButtonStyle::Success->value]];
 
-        $this->sendOnboardingPrompt($user, $chatId, 'Tap courses to select or deselect, then Confirm:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, '✅ Tap courses to select or deselect, then Confirm:', $rows, $messageId);
     }
 
     /**

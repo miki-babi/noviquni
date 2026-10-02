@@ -87,8 +87,39 @@ it('accepts a start update and creates a student immediately without queueing', 
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🎓 Natural'
             && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}"
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'primary';
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'success';
+    });
+});
+
+it('styles Natural stream buttons green and Social stream buttons blue', function () {
+    $natural = Stream::factory()->create(['name' => 'Natural']);
+    $social = Stream::factory()->create(['name' => 'Social']);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, '/start', 11))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($natural, $social) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        $naturalButton = $buttons->first(
+            fn (array $button): bool => ($button['callback_data'] ?? null) === "ob:stream:{$natural->id}"
+        );
+        $socialButton = $buttons->first(
+            fn (array $button): bool => ($button['callback_data'] ?? null) === "ob:stream:{$social->id}"
+        );
+
+        return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
+            && ($naturalButton['text'] ?? null) === '🎓 Natural'
+            && ($naturalButton['style'] ?? null) === 'success'
+            && ($socialButton['text'] ?? null) === '🎓 Social'
+            && ($socialButton['style'] ?? null) === 'primary';
     });
 });
 
