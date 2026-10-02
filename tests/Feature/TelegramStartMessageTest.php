@@ -94,6 +94,16 @@ it('sends the custom start message to new users before the stream onboarding pro
         return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
             && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
     });
+
+    Http::assertNotSent(function ($request) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/sendMessage')
+            && (
+                str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+                || filled(data_get($data, 'reply_markup.keyboard'))
+            );
+    });
 });
 
 it('sends the admin start photo caption and inline buttons on /start', function () {

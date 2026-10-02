@@ -731,7 +731,9 @@ class TelegramBotHandler
             $this->telegram->sendMessage($chatId, '‎', $payload);
         }
 
-        $this->sendReplyKeyboard($user, $chatId);
+        if ($user->onboarding_step === OnboardingStep::Complete) {
+            $this->sendReplyKeyboard($user, $chatId);
+        }
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void
