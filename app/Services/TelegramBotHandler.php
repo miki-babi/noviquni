@@ -1681,8 +1681,10 @@ class TelegramBotHandler
         ]])->values()->all();
 
         $rows[] = [['text' => '🌍 Other', 'callback_data' => 'ob:uni:other', 'style' => TelegramButtonStyle::Primary->value]];
-        $rows[] = [['text' => '⏭️ Skip', 'callback_data' => 'ob:uni:skip', 'style' => TelegramButtonStyle::Danger->value]];
-        $rows[] = [['text' => '⬅️ Back', 'callback_data' => 'ob:back']];
+        $rows[] = [
+            ['text' => '⬅️ Back', 'callback_data' => 'ob:back'],
+            ['text' => '⏭️ Skip', 'callback_data' => 'ob:uni:skip'],
+        ];
 
         $this->sendOnboardingPrompt($user, $chatId, '🏫 Optional: tap your university, Other, or Skip:', $rows, $messageId);
     }
@@ -1697,8 +1699,10 @@ class TelegramBotHandler
             'style' => TelegramButtonStyle::Primary->value,
         ]])->values()->all();
 
-        $rows[] = [['text' => '⏭️ Skip', 'callback_data' => 'ob:sem:skip', 'style' => TelegramButtonStyle::Danger->value]];
-        $rows[] = [['text' => '⬅️ Back', 'callback_data' => 'ob:back']];
+        $rows[] = [
+            ['text' => '⬅️ Back', 'callback_data' => 'ob:back'],
+            ['text' => '⏭️ Skip', 'callback_data' => 'ob:sem:skip'],
+        ];
 
         $this->sendOnboardingPrompt($user, $chatId, '📅 Optional: tap your semester, or Skip:', $rows, $messageId);
     }

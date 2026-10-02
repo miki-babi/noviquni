@@ -152,10 +152,10 @@ it('advances onboarding when a stream inline button is tapped', function () {
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:other'
                 && ($button['text'] ?? null) === '🌍 Other'
                 && ($button['style'] ?? null) === 'primary')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:skip'
-                && ($button['style'] ?? null) === 'danger')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:back'
-                && ($button['text'] ?? null) === '⬅️ Back');
+            && collect(data_get($data, 'reply_markup.inline_keyboard', []))->contains(
+                fn (array $row): bool => collect($row)->pluck('callback_data')->all() === ['ob:back', 'ob:uni:skip']
+                    && collect($row)->every(fn (array $button): bool => ! array_key_exists('style', $button))
+            );
     });
 });
 
