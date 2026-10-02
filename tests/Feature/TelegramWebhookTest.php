@@ -153,7 +153,68 @@ it('advances onboarding when a stream inline button is tapped', function () {
                 && ($button['text'] ?? null) === '🌍 Other'
                 && ($button['style'] ?? null) === 'primary')
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:uni:skip'
-                && ($button['style'] ?? null) === 'danger');
+                && ($button['style'] ?? null) === 'danger')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'ob:back'
+                && ($button['text'] ?? null) === '⬅️ Back');
+    });
+});
+
+it('goes back through onboarding steps when Back is tapped', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    University::factory()->create(['name' => 'AAU']);
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+
+    $telegramId = 555013;
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload($telegramId, '/start'))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, "ob:stream:{$stream->id}", 20, 2))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:uni:skip', 20, 3))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:sem:skip', 20, 4))->assertOk();
+
+    $user = User::query()->where('telegram_id', (string) $telegramId)->firstOrFail();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Courses)
+        ->and(cache()->get("onboarding.courses.{$user->id}"))->toContain($course->id);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:back', 20, 5))->assertOk();
+    $user->refresh();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Semester)
+        ->and($user->semester_id)->toBeNull()
+        ->and(cache()->get("onboarding.courses.{$user->id}"))->toBeNull();
+
+    Http::assertSent(function ($request) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/editMessageText')
+            && str_contains((string) ($data['text'] ?? ''), 'semester');
+    });
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:back', 20, 6))->assertOk();
+    $user->refresh();
+    expect($user->onboarding_step)->toBe(OnboardingStep::University)
+        ->and($user->university_id)->toBeNull();
+
+    Http::assertSent(function ($request) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/editMessageText')
+            && str_contains((string) ($data['text'] ?? ''), 'university');
+    });
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload($telegramId, 'ob:back', 20, 7))->assertOk();
+    $user->refresh();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Stream)
+        ->and($user->stream_id)->toBeNull();
+
+    Http::assertSent(function ($request) use ($stream) {
+        $data = $request->data();
+
+        return str_contains($request->url(), '/editMessageText')
+            && str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
     });
 });
 
