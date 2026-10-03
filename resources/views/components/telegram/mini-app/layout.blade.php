@@ -34,7 +34,7 @@
     <x-telegram.mini-app.bot-confirm-script />
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </head>
-<body @class(['tg-page antialiased', 'tg-page--with-tabbar' => $showTabBar])>
+<body x-data @class(['tg-page antialiased', 'tg-page--with-tabbar' => $showTabBar])>
     <div class="mx-auto flex min-h-screen max-w-lg flex-col">
         <header class="tg-header sticky top-0 z-20 px-4 py-3">
             @if ($showGreeting)

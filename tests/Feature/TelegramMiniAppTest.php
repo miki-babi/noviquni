@@ -247,7 +247,9 @@ it('shows profile course and saved-file bot deep links', function () {
         ->assertSee('Open in bot?', false)
         ->assertSee('The bot will send the file.', false)
         ->assertSee('study-card--lime', false)
-        ->assertSee('tgOpenBotLink', false);
+        ->assertSee('tgOpenBotLink', false)
+        ->assertSee('x-data', false)
+        ->assertSee('$store.botConfirm.ask', false);
 });
 
 it('shows profile and premium screens when premium is enabled', function () {

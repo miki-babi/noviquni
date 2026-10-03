@@ -7,6 +7,7 @@
 <a
     href="{{ $href }}"
     {{ $attributes }}
+    x-data
     data-tg-bot-link
     data-href="{{ $href }}"
     role="button"

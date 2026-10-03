@@ -4,6 +4,7 @@
 
 <div
     data-tg-bot-confirm
+    x-data
     x-cloak
     x-show="$store.botConfirm.open"
     x-transition.opacity.duration.150ms
