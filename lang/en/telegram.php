@@ -36,6 +36,9 @@ return [
         'keyboard_hint' => "Your study menu is ready:\n📚 Courses · 📖 Resources · 🔖 Quick saved · 👤 Profile · 👥 Refer",
     ],
     'refer' => [
+        'start_cta' => 'Start now',
+        'stats' => "👥 Referrals\nProgress: :count/:required",
+        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it.',
         'share' => '📤 Share',
         'share_message' => "Hey! Join me on Noviq Uni for freshman study resources.\n:link",
     ],

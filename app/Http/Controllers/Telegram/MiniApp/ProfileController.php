@@ -11,6 +11,7 @@ use App\Models\University;
 use App\Models\User;
 use App\Services\OnboardingService;
 use App\Services\ReferralService;
+use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    public function show(ReferralService $referrals, TelegramDeepLink $deepLinks): View
+    public function show(ReferralService $referrals, SettingsService $settings, TelegramDeepLink $deepLinks): View
     {
         /** @var User $user */
         $user = Auth::user();
@@ -43,6 +44,8 @@ class ProfileController extends Controller
             'bookmarks' => $bookmarks,
             'deepLinks' => $deepLinks,
             'referralLink' => $referrals->referralLink($user),
+            'qualifiedCount' => $referrals->qualifiedCount($user),
+            'requiredReferrals' => $settings->requiredReferrals(),
             'premiumEnabled' => (bool) config('services.telegram.premium_enabled'),
             'activeNav' => 'profile',
         ]);
@@ -64,6 +67,12 @@ class ProfileController extends Controller
             ->orderBy('name')
             ->get();
 
+        $selectedCourseIds = $user->courses->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if ($selectedCourseIds === []) {
+            $selectedCourseIds = $courses->pluck('id')->map(fn ($id) => (int) $id)->all();
+        }
+
         return view('telegram.mini-app.profile-edit', [
             'copy' => $copy,
             'user' => $user,
@@ -71,7 +80,7 @@ class ProfileController extends Controller
             'universities' => $universities,
             'semesters' => $semesters,
             'courses' => $courses,
-            'selectedCourseIds' => $user->courses->pluck('id')->map(fn ($id) => (int) $id)->all(),
+            'selectedCourseIds' => $selectedCourseIds,
             'activeNav' => 'profile',
         ]);
     }

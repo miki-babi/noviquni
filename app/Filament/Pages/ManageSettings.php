@@ -127,7 +127,7 @@ class ManageSettings extends Page
                                 ['blockquote', 'bulletList', 'orderedList'],
                                 ['undo', 'redo'],
                             ])
-                            ->helperText('Formatted for Telegram. Variables: {{first_name}}, {{name}}')
+                            ->helperText('Formatted for Telegram. Variables: {{first_name}}, {{name}}, {{referral_cta}}. If {{referral_cta}} is omitted, a Start now link is appended automatically.')
                             ->columnSpanFull(),
                         Repeater::make('telegram_start_buttons')
                             ->label('Inline buttons')

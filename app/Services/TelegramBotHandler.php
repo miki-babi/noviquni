@@ -730,12 +730,17 @@ class TelegramBotHandler
             return;
         }
 
+        $this->sendDefaultStartMessage($user, $chatId);
+    }
+
+    protected function sendDefaultStartMessage(User $user, int|string $chatId, bool $sendReplyKeyboard = true): void
+    {
         $copy = TelegramCopy::for($user);
         $name = $copy->firstName($user);
         $hasCourses = $user->courses()->exists();
 
         if (! $hasCourses) {
-            $this->telegram->sendMessage($chatId, $copy->get('start.new', ['name' => $name]), [
+            $this->telegram->sendMessage($chatId, $this->withReferralCta($copy->get('start.new', ['name' => $name]), $user), [
                 'reply_markup' => [
                     'inline_keyboard' => [[
                         [
@@ -746,12 +751,15 @@ class TelegramBotHandler
                     ]],
                 ],
             ]);
-            $this->sendReplyKeyboard($user, $chatId);
+
+            if ($sendReplyKeyboard) {
+                $this->sendReplyKeyboard($user, $chatId);
+            }
 
             return;
         }
 
-        $this->telegram->sendMessage($chatId, $copy->get('start.returning', ['name' => $name]), [
+        $this->telegram->sendMessage($chatId, $this->withReferralCta($copy->get('start.returning', ['name' => $name]), $user), [
             'reply_markup' => [
                 'inline_keyboard' => [[
                     [
@@ -762,13 +770,16 @@ class TelegramBotHandler
                 ]],
             ],
         ]);
-        $this->sendReplyKeyboard($user, $chatId);
+
+        if ($sendReplyKeyboard) {
+            $this->sendReplyKeyboard($user, $chatId);
+        }
     }
 
     /**
      * @param  array<int, array<int, array<string, mixed>>>  $extraButtonRows
      */
-    protected function sendCustomStartMessage(User $user, int|string $chatId, array $extraButtonRows = []): void
+    protected function sendCustomStartMessage(User $user, int|string $chatId, array $extraButtonRows = [], bool $sendReplyKeyboard = true): void
     {
         $copy = TelegramCopy::for($user);
         $caption = TelegramHtml::fromRichHtml($this->settings->telegramStartCaption());
@@ -780,6 +791,7 @@ class TelegramBotHandler
             ],
             $caption,
         );
+        $caption = $this->withReferralCta($caption, $user);
 
         $inlineKeyboard = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
         $rows = $inlineKeyboard['inline_keyboard'] ?? [];
@@ -809,9 +821,37 @@ class TelegramBotHandler
             $this->telegram->sendMessage($chatId, '‎', $payload);
         }
 
-        if ($user->onboarding_step === OnboardingStep::Complete) {
+        if ($sendReplyKeyboard && $user->onboarding_step === OnboardingStep::Complete) {
             $this->sendReplyKeyboard($user, $chatId);
         }
+    }
+
+    protected function referralCtaHtml(User $user): string
+    {
+        $copy = TelegramCopy::for($user);
+        $url = $this->referrals->referralLink($user);
+
+        return '<a href="'.TelegramHtml::escape($url).'">'.TelegramHtml::escape($copy->get('refer.start_cta')).'</a>';
+    }
+
+    protected function withReferralCta(string $text, User $user): string
+    {
+        $cta = $this->referralCtaHtml($user);
+        $url = $this->referrals->referralLink($user);
+
+        if (str_contains($text, '{{referral_cta}}')) {
+            return str_replace('{{referral_cta}}', $cta, $text);
+        }
+
+        if ($text !== '' && str_contains($text, $url)) {
+            return $text;
+        }
+
+        if ($text === '') {
+            return $cta;
+        }
+
+        return rtrim($text)."\n\n".$cta;
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void
@@ -2531,32 +2571,20 @@ class TelegramBotHandler
     protected function showReferrals(User $user, int|string $chatId): void
     {
         $copy = TelegramCopy::for($user);
-        $link = $this->referrals->referralLink($user);
-        $shareText = $copy->get('refer.share_message', [
-            'link' => $link,
-            'name' => $copy->firstName($user),
+        $stats = $copy->get('refer.stats', [
+            'count' => $this->referrals->qualifiedCount($user),
+            'required' => $this->settings->requiredReferrals(),
         ]);
-        $shareUrl = 'https://t.me/share/url?url='.rawurlencode($link).'&text='.rawurlencode($shareText);
-        $shareRow = [[
-            'text' => $copy->get('refer.share'),
-            'url' => $shareUrl,
-            'style' => TelegramButtonStyle::Primary->value,
-        ]];
+
+        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'));
 
         if ($this->settings->hasCustomTelegramStartMessage()) {
-            $this->sendCustomStartMessage($user, $chatId, [$shareRow]);
+            $this->sendCustomStartMessage($user, $chatId, sendReplyKeyboard: false);
 
             return;
         }
 
-        $name = $copy->firstName($user);
-        $text = $user->courses()->exists()
-            ? $copy->get('start.returning', ['name' => $name])
-            : $copy->get('start.new', ['name' => $name]);
-
-        $this->telegram->sendMessage($chatId, $text, [
-            'reply_markup' => $this->telegram->inlineKeyboard([$shareRow]),
-        ]);
+        $this->sendDefaultStartMessage($user, $chatId, sendReplyKeyboard: false);
     }
 
     protected function toggleNotifications(User $user, int|string $chatId): void
@@ -2716,6 +2744,7 @@ class TelegramBotHandler
     {
         $copy = TelegramCopy::for($user);
 
+        $this->onboarding->syncAllActiveCourses($user);
         $this->onboarding->complete($user);
         cache()->forget("onboarding.courses.{$user->id}");
         cache()->forget(TelegramService::InlineMessageCacheKey.$user->id);

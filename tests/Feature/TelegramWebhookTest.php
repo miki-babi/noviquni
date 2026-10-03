@@ -125,6 +125,22 @@ it('styles Natural stream buttons green and Social stream buttons blue', functio
 
 it('completes onboarding when a stream inline button is tapped', function () {
     $stream = Stream::factory()->create(['name' => 'Natural']);
+    $otherStream = Stream::factory()->create(['name' => 'Social']);
+    $math = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+    $civics = Course::factory()->create([
+        'stream_id' => $otherStream->id,
+        'name' => 'Civics',
+        'is_active' => true,
+    ]);
+    Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Inactive',
+        'is_active' => false,
+    ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555002, '/start'))->assertOk();
 
@@ -138,7 +154,7 @@ it('completes onboarding when a stream inline button is tapped', function () {
 
     expect($user->stream_id)->toBe($stream->id)
         ->and($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->courses()->count())->toBe(0);
+        ->and($user->courses()->pluck('courses.id')->sort()->values()->all())->toBe(collect([$math->id, $civics->id])->sort()->values()->all());
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
@@ -921,7 +937,7 @@ it('opens a course from /start course deep link', function () {
     });
 });
 
-it('opens refer share from the refer reply keyboard label', function () {
+it('opens refer stats and a forwardable start message from the refer reply keyboard label', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555033',
         'name' => 'Mikiyas',
@@ -932,23 +948,33 @@ it('opens refer share from the refer reply keyboard label', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555033, '👥 Refer', 503))
         ->assertOk();
 
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'Progress: 0/')
+            && str_contains($text, 'Forward the start message below');
+    });
+
     Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $shareUrl = (string) data_get($data, 'reply_markup.inline_keyboard.0.0.url');
+        $text = (string) ($data['text'] ?? '');
 
-        return str_contains((string) ($data['text'] ?? ''), 'welcome to Noviq Uni')
-            && str_contains($shareUrl, 'https://t.me/share/url?url=')
-            && str_contains(urldecode($shareUrl), 'start='.$user->referral_code)
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📤 Share'
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === null;
+        return str_contains($text, 'welcome to Noviq Uni')
+            && str_contains($text, 'Start now</a>')
+            && str_contains($text, 'start='.$user->referral_code)
+            && ! str_contains((string) data_get($data, 'reply_markup.inline_keyboard.0.0.url'), 't.me/share/url');
     });
 });
 
-it('still opens refer share from the legacy refer and earn keyboard label', function () {
+it('still opens refer flow from the legacy refer and earn keyboard label', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555133',
         'name' => 'Mikiyas',
@@ -964,11 +990,10 @@ it('still opens refer share from the legacy refer and earn keyboard label', func
             return false;
         }
 
-        $data = $request->data();
-        $shareUrl = (string) data_get($data, 'reply_markup.inline_keyboard.0.0.url');
+        $text = (string) data_get($request->data(), 'text');
 
-        return str_contains($shareUrl, 'https://t.me/share/url?url=')
-            && str_contains(urldecode($shareUrl), 'start='.$user->referral_code);
+        return str_contains($text, 'Start now</a>')
+            && str_contains($text, 'start='.$user->referral_code);
     });
 });
 

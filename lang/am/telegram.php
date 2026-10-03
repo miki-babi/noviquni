@@ -35,6 +35,9 @@ return [
         'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 ኮርሶች · 📖 መርጃዎች · 🔖 በፍጥነት የተቀመጡ · 👤 መገለጫ · 👥 ይጋብዙ",
     ],
     'refer' => [
+        'start_cta' => 'አሁን ጀምር',
+        'stats' => "👥 ግብዣዎች\nሂደት: :count/:required",
+        'forward_hint' => 'ከታች ያለውን የመጀመሪያ መልእክት ለጓደኞችዎ ያስተላልፉ። የአሁን ጀምር ሊንክ አስቀድሞ በውስጡ አለ።',
         'share' => '📤 አጋራ',
         'share_message' => "ሰላም! ለ freshmen የጥናት መርጃዎች Noviq Uni ላይ ተቀላቀሉኝ።\n:link",
     ],

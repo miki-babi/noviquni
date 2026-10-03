@@ -70,7 +70,7 @@ it('sends the custom start message to new users before the stream onboarding pro
     $user = User::query()->where('telegram_id', '555910')->firstOrFail();
     expect($user->onboarding_step)->toBe(OnboardingStep::Stream);
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendPhoto')) {
             return false;
         }
@@ -80,7 +80,12 @@ it('sends the custom start message to new users before the stream onboarding pro
 
         $markup = json_decode((string) $fields->get('reply_markup'), true);
 
-        return str_contains((string) $fields->get('caption'), 'Welcome, Abebe!')
+        $caption = (string) $fields->get('caption');
+
+        return str_contains($caption, 'Welcome, Abebe!')
+            && str_contains($caption, '<a href="https://t.me/')
+            && str_contains($caption, 'Start now</a>')
+            && str_contains($caption, 'start='.$user->referral_code)
             && data_get($markup, 'inline_keyboard.0.0.url') === 'https://noviquni.test/about';
     });
 
@@ -139,7 +144,7 @@ it('sends the admin start photo caption and inline buttons on /start', function 
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555900, 9001))->assertOk();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendPhoto')) {
             return false;
         }
@@ -148,8 +153,11 @@ it('sends the admin start photo caption and inline buttons on /start', function 
             ->mapWithKeys(fn (array $part) => [$part['name'] => $part['contents']]);
 
         $markup = json_decode((string) $fields->get('reply_markup'), true);
+        $caption = (string) $fields->get('caption');
 
-        return str_contains((string) $fields->get('caption'), 'Welcome back, Abebe!')
+        return str_contains($caption, 'Welcome back, Abebe!')
+            && str_contains($caption, 'Start now</a>')
+            && str_contains($caption, 'start='.$user->referral_code)
             && data_get($markup, 'inline_keyboard.0.0.web_app.url') === 'https://noviquni.test/tg/continue'
             && data_get($markup, 'inline_keyboard.1.0.callback_data') === 'premium_pay'
             && collect($request->data())->contains(fn (array $part) => ($part['name'] ?? null) === 'photo'
@@ -179,14 +187,17 @@ it('falls back to default welcome when no custom start message is configured', f
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555901, 9002))->assertOk();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
 
-        return str_contains((string) ($data['text'] ?? ''), 'Welcome back, Abebe')
+        return str_contains($text, 'Welcome back, Abebe')
+            && str_contains($text, 'Start now</a>')
+            && str_contains($text, 'start='.$user->referral_code)
             && filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
     });
 
@@ -266,7 +277,9 @@ it('logs the start photo caption when a custom start image is sent', function ()
     );
 
     expect($photoLog)->not->toBeNull()
-        ->and($photoLog->context['caption'] ?? null)->toBe('Welcome back, Abebe!')
+        ->and($photoLog->context['caption'] ?? null)->toContain('Welcome back, Abebe!')
+        ->and($photoLog->context['caption'] ?? null)->toContain('Start now</a>')
+        ->and($photoLog->context['caption'] ?? null)->toContain('start='.$user->referral_code)
         ->and($photoLog->context['file_name'] ?? null)->toBe('welcome.jpg')
         ->and($photoLog->context['ok'] ?? null)->toBeTrue()
         ->and($photoLog->context['telegram_message_id'] ?? null)->toBe(50);

@@ -41,6 +41,14 @@ class OnboardingService
         $user->courses()->sync($validIds);
     }
 
+    public function syncAllActiveCourses(User $user): void
+    {
+        $this->syncCourses(
+            $user,
+            Course::query()->active()->orderBy('name')->pluck('id')->map(fn ($id) => (int) $id)->all(),
+        );
+    }
+
     public function complete(User $user): void
     {
         $user->update(['onboarding_step' => OnboardingStep::Complete]);

@@ -306,6 +306,39 @@ it('shows the study profile edit form', function () {
         ->assertSee('Save changes');
 });
 
+it('preselects every active course on the study profile when none are enrolled', function () {
+    $natural = Stream::factory()->create(['name' => 'Natural']);
+    $social = Stream::factory()->create(['name' => 'Social']);
+    $math = Course::factory()->create([
+        'stream_id' => $natural->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+    $civics = Course::factory()->create([
+        'stream_id' => $social->id,
+        'name' => 'Civics',
+        'is_active' => true,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $natural->id,
+        'is_active' => true,
+    ]);
+
+    $response = $this->actingAs($user)
+        ->get(route('tg.profile.edit'))
+        ->assertOk()
+        ->assertSee('Mathematics')
+        ->assertSee('Civics');
+
+    expect($response->getContent())
+        ->toContain('value="'.$math->id.'"')
+        ->toContain('value="'.$civics->id.'"')
+        ->toMatch('/name="course_ids\[\]"\s+value="'.$math->id.'"\s+class="[^"]*"\s+checked/')
+        ->toMatch('/name="course_ids\[\]"\s+value="'.$civics->id.'"\s+class="[^"]*"\s+checked/');
+});
+
 it('updates academic profile fields from the mini app', function () {
     $natural = Stream::factory()->create(['name' => 'Natural']);
     $social = Stream::factory()->create(['name' => 'Social']);

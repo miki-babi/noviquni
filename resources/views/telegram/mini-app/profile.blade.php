@@ -171,14 +171,12 @@
 
         <div class="study-card study-continue">
             <p class="study-card-title">{{ $copy->get('profile.refer') }}</p>
-            <p class="mt-2 break-all text-xs tg-hint">{{ $referralLink }}</p>
-            <a
-                class="tg-btn tg-btn-secondary tg-chunk mt-3"
-                href="https://t.me/share/url?url={{ rawurlencode($referralLink) }}&text={{ rawurlencode($copy->get('refer.share_message', ['link' => $referralLink, 'name' => $copy->firstName($user)])) }}"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                {{ $copy->get('refer.share') }}
+            <p class="mt-2 text-sm">
+                {{ $copy->get('refer.stats', ['count' => $qualifiedCount, 'required' => $requiredReferrals]) }}
+            </p>
+            <p class="mt-2 text-xs tg-hint">{{ $copy->get('refer.forward_hint') }}</p>
+            <a class="tg-btn tg-btn-secondary tg-chunk mt-3" href="{{ $referralLink }}" target="_blank" rel="noopener noreferrer">
+                {{ $copy->get('refer.start_cta') }}
             </a>
         </div>
 
