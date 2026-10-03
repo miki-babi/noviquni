@@ -478,6 +478,10 @@ class TelegramBotHandler
 
     protected function handlePremiumPay(User $user, int|string $chatId): ?string
     {
+        if (! $this->premium->isEnabled()) {
+            return null;
+        }
+
         if ($user->onboarding_step !== OnboardingStep::Complete) {
             return TelegramCopy::for($user)->get('menu.finish_onboarding');
         }
@@ -961,12 +965,6 @@ class TelegramBotHandler
         }
 
         $rows[] = [[
-            'text' => $copy->get('browse.open_course_mini_app'),
-            'web_app' => ['url' => route('tg.courses.show', $course)],
-            'style' => TelegramButtonStyle::Success->value,
-        ]];
-
-        $rows[] = [[
             'text' => $copy->get('hub.back'),
             'callback_data' => 'back:courses',
         ]];
@@ -1160,7 +1158,8 @@ class TelegramBotHandler
      */
     protected function resourceInlineButton(LearningResource $resource, ?string $label = null): array
     {
-        $text = $label ?? (($resource->is_premium ? '🔒 ' : '').$resource->title);
+        $showLock = $this->premium->isEnabled() && $resource->is_premium;
+        $text = $label ?? (($showLock ? '🔒 ' : '').$resource->title);
 
         if ($resource->hasFiles()) {
             return [
@@ -1926,6 +1925,10 @@ class TelegramBotHandler
 
     protected function showPremium(User $user, int|string $chatId): void
     {
+        if (! $this->premium->isEnabled()) {
+            return;
+        }
+
         if ($user->hasActivePremium()) {
             $this->telegram->sendMessage($chatId, 'Premium active until '.$user->premium_until->toDayDateTimeString());
 
@@ -2155,9 +2158,6 @@ class TelegramBotHandler
     {
         $copy = TelegramCopy::for($user);
         $user->load(['stream', 'university', 'semester', 'courses']);
-        $premium = $user->hasActivePremium()
-            ? $copy->get('profile.premium_yes', ['until' => $user->premium_until])
-            : $copy->get('profile.premium_no');
         $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
 
         $this->telegram->sendMessage($chatId, $copy->get('profile.body', [
@@ -2166,7 +2166,6 @@ class TelegramBotHandler
             'university' => $user->university?->name ?? '-',
             'semester' => $user->semester?->name ?? '-',
             'courses' => $courses,
-            'premium' => $premium,
         ]), [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 ['text' => $copy->get('profile.notifications'), 'callback_data' => 'profile:notify'],

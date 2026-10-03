@@ -713,7 +713,7 @@ it('shows course resource types after course tap', function () {
             && ($moduleButton['text'] ?? null) === 'Module'
             && ($moduleButton['style'] ?? null) === 'success'
             && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype_soon:'))
-            && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.courses.show', $course));
+            && $buttons->every(fn (array $button) => ($button['web_app']['url'] ?? null) !== route('tg.courses.show', $course));
     });
 });
 

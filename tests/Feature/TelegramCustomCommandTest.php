@@ -136,6 +136,8 @@ it('delivers a free learning resource and records a download', function () {
 });
 
 it('locks a premium learning resource without sending its file', function () {
+    config(['services.telegram.premium_enabled' => true]);
+
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 4]], 200),

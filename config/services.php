@@ -41,6 +41,8 @@ return [
         'mini_app_url' => env('TELEGRAM_MINI_APP_URL'),
         // Comma-separated Telegram usernames (without @) allowed to ingest file_ids via DM.
         'file_admin_username' => env('TELEGRAM_FILE_ADMIN_USERNAME'),
+        // Student premium locks/paywalls. Off = all published content is free.
+        'premium_enabled' => (bool) env('TELEGRAM_PREMIUM_ENABLED', false),
     ],
 
     'noviq_college' => [

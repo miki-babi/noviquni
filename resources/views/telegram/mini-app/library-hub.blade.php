@@ -13,7 +13,7 @@
                 @foreach ($group['resources'] as $item)
                     @php
                         $resource = $item['resource'];
-                        $locked = $item['locked'];
+                        $locked = config('services.telegram.premium_enabled') && $item['locked'];
                     @endphp
                     <a href="{{ $resource->miniAppUrl() }}" class="tg-cell {{ $locked ? 'opacity-70' : '' }}">
                         <span class="tg-cell-body">

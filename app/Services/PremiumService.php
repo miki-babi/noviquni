@@ -37,10 +37,19 @@ class PremiumService
             return false;
         }
 
+        if (! config('services.telegram.premium_enabled')) {
+            return true;
+        }
+
         if ($user->hasActivePremium()) {
             return true;
         }
 
         return ! $resource->is_premium;
+    }
+
+    public function isEnabled(): bool
+    {
+        return (bool) config('services.telegram.premium_enabled');
     }
 }

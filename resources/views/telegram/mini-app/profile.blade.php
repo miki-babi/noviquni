@@ -66,7 +66,6 @@
                     'university' => $user->university?->name ?? '-',
                     'semester' => $user->semester?->name ?? '-',
                     'courses' => $courses,
-                    'premium' => $premium,
                 ]) }}
             </p>
         </div>
@@ -80,14 +79,16 @@
             </div>
         </a>
 
-        <a href="{{ route('tg.premium') }}" class="study-card">
-            <div class="study-card-inner">
-                <span class="min-w-0 flex-1">
-                    <span class="study-card-title block">{{ $copy->get('menu.premium') }}</span>
-                </span>
-                <span class="tg-cell-chevron" aria-hidden="true">›</span>
-            </div>
-        </a>
+        @if ($premiumEnabled ?? false)
+            <a href="{{ route('tg.premium') }}" class="study-card">
+                <div class="study-card-inner">
+                    <span class="min-w-0 flex-1">
+                        <span class="study-card-title block">{{ $copy->get('menu.premium') }}</span>
+                    </span>
+                    <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                </div>
+            </a>
+        @endif
 
         <form method="POST" action="{{ route('tg.profile.notifications') }}">
             @csrf

@@ -114,7 +114,9 @@ it('renders the flashcards player for premium students', function () {
         ->assertSee('Tap to reveal answer', false);
 });
 
-it('locks flashcards for free students', function () {
+it('locks flashcards for free students when premium is enabled', function () {
+    config(['services.telegram.premium_enabled' => true]);
+
     [$user, $course, $stream] = miniAppPlayerContext();
 
     $module = LearningResource::factory()->published()->module()->create([
@@ -203,7 +205,9 @@ it('returns 404 when the player type does not match the resource', function () {
         ->assertNotFound();
 });
 
-it('shows the locked view for premium resources without entitlement', function () {
+it('shows the locked view for premium resources without entitlement when premium is enabled', function () {
+    config(['services.telegram.premium_enabled' => true]);
+
     [$user, $course, $stream] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->published()->premium()->quiz()->create([

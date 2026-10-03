@@ -65,7 +65,7 @@ return [
         'no_resources' => 'No published resources for this course yet.',
     ],
     'profile' => [
-        'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses\nPremium: :premium",
+        'body' => "Stream: :stream\nUniversity: :university\nSemester: :semester\nCourses: :courses",
         'notifications' => 'ማሳወቂያዎች',
         'refer' => 'ይጋብዙና ያግኙ',
         'settings' => 'ቅንብሮች',

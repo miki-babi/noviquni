@@ -79,7 +79,26 @@ it('lists resource hubs across enrolled courses only', function () {
         ->assertDontSee('🔒');
 });
 
-it('locks premium resources in the library hub for free users', function () {
+it('does not lock premium resources in the library hub when premium is disabled', function () {
+    [$user, $course, $stream] = libraryContext();
+
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Premium notes',
+        'is_premium' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.library.hub', 'notes'))
+        ->assertOk()
+        ->assertSee('Premium notes')
+        ->assertDontSee('🔒');
+});
+
+it('locks premium resources in the library hub for free users when premium is enabled', function () {
+    config(['services.telegram.premium_enabled' => true]);
+
     [$user, $course, $stream] = libraryContext();
 
     LearningResource::factory()->published()->notes()->create([

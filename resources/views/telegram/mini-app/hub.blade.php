@@ -15,7 +15,7 @@
                     <span class="tg-cell-body">
                         <span class="tg-cell-title">{{ $resource->title }}</span>
                     </span>
-                    @if ($resource->is_premium)
+                    @if (config('services.telegram.premium_enabled') && $resource->is_premium)
                         <span class="tg-cell-meta">🔒</span>
                     @endif
                     <span class="tg-cell-chevron" aria-hidden="true">›</span>

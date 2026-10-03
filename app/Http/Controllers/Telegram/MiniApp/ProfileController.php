@@ -27,18 +27,14 @@ class ProfileController extends Controller
         $copy = TelegramCopy::for($user);
         $user->load(['stream', 'university', 'semester', 'courses']);
 
-        $premium = $user->hasActivePremium()
-            ? $copy->get('profile.premium_yes', ['until' => $user->premium_until])
-            : $copy->get('profile.premium_no');
-
         $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
 
         return view('telegram.mini-app.profile', [
             'copy' => $copy,
             'user' => $user,
-            'premium' => $premium,
             'courses' => $courses,
             'referralLink' => $referrals->referralLink($user),
+            'premiumEnabled' => (bool) config('services.telegram.premium_enabled'),
             'activeNav' => 'profile',
         ]);
     }
