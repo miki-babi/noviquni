@@ -9,7 +9,6 @@ use App\Enums\RewardStatus;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
 use App\Enums\WithdrawalStatus;
-use App\Jobs\FlushTelegramAdminPublishBuffer;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\ReferralReward;
@@ -1436,7 +1435,7 @@ class TelegramBotHandler
 
         $buffer = $this->adminPublishBuffer($telegramId) ?? [
             'asset_ids' => [],
-            'updated_at' => 0,
+            'prompt_message_id' => null,
             'media_group_id' => null,
         ];
 
@@ -1449,25 +1448,29 @@ class TelegramBotHandler
             $assetIds[] = $asset->id;
         }
 
-        $updatedAt = (int) round(microtime(true) * 1000);
         $buffer = [
             'asset_ids' => $assetIds,
-            'updated_at' => $updatedAt,
+            'prompt_message_id' => isset($buffer['prompt_message_id'])
+                ? (int) $buffer['prompt_message_id']
+                : null,
             'media_group_id' => $mediaGroupId ?? ($buffer['media_group_id'] ?? null),
         ];
 
-        $this->putAdminPublishBuffer($telegramId, $buffer);
+        if (($buffer['prompt_message_id'] ?? 0) < 1) {
+            $buffer['prompt_message_id'] = null;
+        }
 
-        FlushTelegramAdminPublishBuffer::dispatch($telegramId, $chatId, $updatedAt);
+        $this->putAdminPublishBuffer($telegramId, $buffer);
+        $this->refreshAdminPublishBufferPrompt($telegramId, $chatId);
 
         return true;
     }
 
-    public function flushAdminPublishBuffer(int $telegramId, int|string $chatId, int $updatedAtToken): void
+    protected function refreshAdminPublishBufferPrompt(int $telegramId, int|string $chatId): void
     {
         $buffer = $this->adminPublishBuffer($telegramId);
 
-        if ($buffer === null || (int) ($buffer['updated_at'] ?? 0) !== $updatedAtToken) {
+        if ($buffer === null) {
             return;
         }
 
@@ -1482,9 +1485,13 @@ class TelegramBotHandler
             return;
         }
 
+        $promptMessageId = isset($buffer['prompt_message_id']) && (int) $buffer['prompt_message_id'] > 0
+            ? (int) $buffer['prompt_message_id']
+            : null;
+
         if (count($assetIds) === 1) {
-            $this->sendSingleFileStoredPrompt($chatId, $assetIds[0]);
-            $this->clearAdminPublishBuffer($telegramId);
+            $result = $this->sendOrEditSingleFileStoredPrompt($chatId, $assetIds[0], $promptMessageId);
+            $this->rememberAdminPublishPromptMessage($telegramId, $buffer, $result, $promptMessageId);
 
             return;
         }
@@ -1502,62 +1509,111 @@ class TelegramBotHandler
             })
             ->implode("\n");
 
-        $this->telegram->sendMessage(
-            $chatId,
-            '<b>Stored '.$assets->count().' files</b>'."\n"
+        $text = '<b>Stored '.$assets->count().' files</b>'."\n"
             .$lines."\n\n"
-            .'Bulk publish with the same stream, course, type, and premium setting?',
-            [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    [[
-                        'text' => 'Bulk publish',
-                        'callback_data' => 'admin:publish:bulk',
-                        'style' => TelegramButtonStyle::Success->value,
-                    ]],
-                    [[
-                        'text' => 'Publish separately',
-                        'callback_data' => 'admin:publish:separate',
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ]],
-                    [[
-                        'text' => 'Done',
-                        'callback_data' => 'admin:publish:done',
-                    ]],
-                ]),
-            ],
-        );
+            .'Bulk publish with the same stream, course, type, and premium setting?';
+
+        $payload = [
+            'reply_markup' => $this->telegram->inlineKeyboard([
+                [[
+                    'text' => 'Bulk publish',
+                    'callback_data' => 'admin:publish:bulk',
+                    'style' => TelegramButtonStyle::Success->value,
+                ]],
+                [[
+                    'text' => 'Publish separately',
+                    'callback_data' => 'admin:publish:separate',
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]],
+                [[
+                    'text' => 'Done',
+                    'callback_data' => 'admin:publish:done',
+                ]],
+            ]),
+        ];
+
+        $result = null;
+
+        if ($promptMessageId !== null) {
+            $result = $this->telegram->editMessageText($chatId, $promptMessageId, $text, $payload);
+        }
+
+        if ($result === null) {
+            $result = $this->telegram->sendMessage($chatId, $text, $payload);
+            $promptMessageId = null;
+        }
+
+        $this->rememberAdminPublishPromptMessage($telegramId, $buffer, $result, $promptMessageId);
     }
 
-    protected function sendSingleFileStoredPrompt(int|string $chatId, int $assetId): void
+    /**
+     * @param  array<string, mixed>  $buffer
+     * @param  array<string, mixed>|null  $result
+     */
+    protected function rememberAdminPublishPromptMessage(
+        int $telegramId,
+        array $buffer,
+        ?array $result,
+        ?int $existingMessageId,
+    ): void {
+        $messageId = isset($result['message_id'])
+            ? (int) $result['message_id']
+            : $existingMessageId;
+
+        if ($messageId === null || $messageId < 1) {
+            return;
+        }
+
+        $buffer['prompt_message_id'] = $messageId;
+        $this->putAdminPublishBuffer($telegramId, $buffer);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function sendOrEditSingleFileStoredPrompt(int|string $chatId, int $assetId, ?int $messageId = null): ?array
     {
         $asset = TelegramFileAsset::query()->find($assetId);
 
         if ($asset === null) {
-            return;
+            return null;
         }
 
         $displayName = filled($asset->file_name) ? $asset->file_name : 'document';
 
-        $this->telegram->sendMessage(
-            $chatId,
-            '<b>File stored</b>'."\n"
+        $payload = [
+            'reply_markup' => $this->telegram->inlineKeyboard([
+                [[
+                    'text' => 'Publish resource',
+                    'callback_data' => 'admin:publish:'.$asset->id,
+                    'style' => TelegramButtonStyle::Success->value,
+                ]],
+                [[
+                    'text' => 'Done',
+                    'callback_data' => 'admin:publish:done',
+                ]],
+            ]),
+        ];
+
+        $text = '<b>File stored</b>'."\n"
             .'Name: '.e($displayName)."\n"
             .'file_id: <code>'.e($asset->file_id).'</code>'."\n"
-            .'Publish from Telegram, or attach this file_id in the admin panel.',
-            [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    [[
-                        'text' => 'Publish resource',
-                        'callback_data' => 'admin:publish:'.$asset->id,
-                        'style' => TelegramButtonStyle::Success->value,
-                    ]],
-                    [[
-                        'text' => 'Done',
-                        'callback_data' => 'admin:publish:done',
-                    ]],
-                ]),
-            ],
-        );
+            .'Publish from Telegram, or attach this file_id in the admin panel.';
+
+        if ($messageId !== null) {
+            $result = $this->telegram->editMessageText($chatId, $messageId, $text, $payload);
+
+            if ($result !== null) {
+                return $result;
+            }
+        }
+
+        return $this->telegram->sendMessage($chatId, $text, $payload);
+    }
+
+    protected function sendSingleFileStoredPrompt(int|string $chatId, int $assetId): void
+    {
+        $this->sendOrEditSingleFileStoredPrompt($chatId, $assetId);
     }
 
     /**
@@ -1764,6 +1820,8 @@ class TelegramBotHandler
         if ($asset === null) {
             return 'File not found in vault.';
         }
+
+        $this->clearAdminPublishBuffer($telegramId);
 
         $session = [
             'asset_id' => $asset->id,
