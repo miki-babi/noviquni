@@ -324,15 +324,17 @@ it('shows a green Saved button when the resource is already bookmarked', functio
         }
 
         $buttons = data_get($request->data(), 'reply_markup.inline_keyboard.0', []);
-        $shareUrl = urldecode((string) ($buttons[1]['url'] ?? ''));
+        $shareUrl = (string) ($buttons[1]['url'] ?? '');
+        parse_str(parse_url($shareUrl, PHP_URL_QUERY) ?: '', $query);
+        $shareText = (string) ($query['text'] ?? '');
+        $deepLink = 'https://t.me/noviquni_bot?start=resource_'.$resource->id;
 
         return ($buttons[0]['text'] ?? null) === 'Saved'
             && ($buttons[0]['style'] ?? null) === 'success'
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && str_contains($shareUrl, 't.me/share/url')
-            && str_contains($shareUrl, 'Already Saved Notes')
-            && str_contains($shareUrl, 'Lecture summary for week 2')
-            && str_contains($shareUrl, 'start=resource_'.$resource->id);
+            && ($query['url'] ?? null) === $deepLink
+            && $shareText === "Already Saved Notes\n\nLecture summary for week 2\n\n{$deepLink}";
     });
 });
 
