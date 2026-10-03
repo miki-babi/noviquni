@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Stream;
-use App\Models\University;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -38,14 +37,7 @@ class DatabaseSeeder extends Seeder
             'is_active' => true,
         ]);
 
-        foreach (['Addis Ababa University', 'Bahir Dar University', 'Hawassa University'] as $index => $name) {
-            University::query()->create([
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'is_active' => true,
-                'sort_order' => $index + 1,
-            ]);
-        }
+        $this->call(UniversitySeeder::class);
 
         foreach (['Semester 1', 'Semester 2'] as $index => $name) {
             Semester::query()->create([
