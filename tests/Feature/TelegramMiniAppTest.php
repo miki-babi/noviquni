@@ -242,7 +242,8 @@ it('shows profile course and saved-file bot deep links', function () {
         ->assertSee($deepLinks->forResource($resource->id), false)
         ->assertSee('?start=course_physics', false)
         ->assertSee('?start=resource_'.$resource->id, false)
-        ->assertSee('openBotLink', false);
+        ->assertSee('data-tg-bot-link', false)
+        ->assertSee('tgOpenBotLink', false);
 });
 
 it('shows profile and premium screens when premium is enabled', function () {
@@ -388,7 +389,7 @@ it('opens course hubs inside the mini app', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    $notes = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
@@ -416,7 +417,10 @@ it('opens course hubs inside the mini app', function () {
     $this->actingAs($user)
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
         ->assertOk()
-        ->assertSee('Week-1 notes');
+        ->assertSee('Week-1 notes')
+        ->assertSee(app(TelegramDeepLink::class)->forResource($notes->id), false)
+        ->assertSee('data-tg-bot-link', false)
+        ->assertDontSee($notes->miniAppUrl(), false);
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

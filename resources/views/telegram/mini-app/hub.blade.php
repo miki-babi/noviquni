@@ -1,3 +1,7 @@
+@php
+    $deepLinks = app(\App\Services\TelegramDeepLink::class);
+@endphp
+
 <x-telegram.mini-app.layout
     :copy="$copy"
     :active-nav="$activeNav"
@@ -12,7 +16,10 @@
         @else
             <div class="tg-section">
                 @foreach ($resources as $resource)
-                    <a href="{{ $resource->miniAppUrl() }}" class="tg-cell">
+                    <x-telegram.mini-app.bot-link
+                        :href="$deepLinks->forResource($resource->id)"
+                        class="tg-cell"
+                    >
                         <span class="tg-cell-body">
                             <span class="tg-cell-title">{{ $resource->title }}</span>
                         </span>
@@ -20,7 +27,7 @@
                             <span class="tg-cell-meta">🔒</span>
                         @endif
                         <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                    </a>
+                    </x-telegram.mini-app.bot-link>
                 @endforeach
             </div>
         @endif

@@ -36,18 +36,6 @@
                     this.username = tgUser.username;
                 }
             },
-            openBotLink(event) {
-                const href = event.currentTarget.getAttribute('href');
-                if (! href) {
-                    return;
-                }
-                const webApp = window.Telegram?.WebApp;
-                if (webApp?.openTelegramLink) {
-                    event.preventDefault();
-                    webApp.openTelegramLink(href);
-                    webApp.close?.();
-                }
-            },
         }"
     >
         <div class="study-profile-hero">
@@ -95,13 +83,12 @@
                             @php
                                 $accent = $accentCycle[($loop->index) % count($accentCycle)];
                             @endphp
-                            <a
-                                href="{{ $deepLinks->forCourse($course->slug) }}"
+                            <x-telegram.mini-app.bot-link
+                                :href="$deepLinks->forCourse($course->slug)"
                                 class="study-chip study-chip--{{ $accent }}"
-                                @click="openBotLink($event)"
                             >
                                 {{ $course->name }}
-                            </a>
+                            </x-telegram.mini-app.bot-link>
                         @endforeach
                     </div>
                 @endif
@@ -124,10 +111,9 @@
                     @foreach ($bookmarks as $bookmark)
                         @php $resource = $bookmark->learningResource; @endphp
                         @if ($resource)
-                            <a
-                                href="{{ $deepLinks->forResource($resource->id) }}"
+                            <x-telegram.mini-app.bot-link
+                                :href="$deepLinks->forResource($resource->id)"
                                 class="study-file-row"
-                                @click="openBotLink($event)"
                             >
                                 <span class="min-w-0 flex-1">
                                     <span class="study-card-title block">{{ $resource->title }}</span>
@@ -139,7 +125,7 @@
                                     </span>
                                 </span>
                                 <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                            </a>
+                            </x-telegram.mini-app.bot-link>
                         @endif
                     @endforeach
                 </div>

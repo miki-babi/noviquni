@@ -6,6 +6,28 @@
 
         root.style.colorScheme = isDark ? 'dark' : 'light';
 
+        window.tgOpenBotLink = function (href) {
+            if (! href) {
+                return true;
+            }
+
+            const webApp = window.Telegram?.WebApp;
+
+            if (! webApp || typeof webApp.openTelegramLink !== 'function') {
+                return true;
+            }
+
+            webApp.openTelegramLink(href);
+
+            window.setTimeout(function () {
+                try {
+                    webApp.close();
+                } catch (e) {}
+            }, 50);
+
+            return false;
+        };
+
         if (! tg) {
             return;
         }

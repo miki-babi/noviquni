@@ -1,3 +1,7 @@
+@php
+    $deepLinks = app(\App\Services\TelegramDeepLink::class);
+@endphp
+
 <x-telegram.mini-app.layout
     :copy="$copy"
     :active-nav="$activeNav"
@@ -16,7 +20,10 @@
                             $resource = $item['resource'];
                             $locked = config('services.telegram.premium_enabled') && $item['locked'];
                         @endphp
-                        <a href="{{ $resource->miniAppUrl() }}" class="tg-cell {{ $locked ? 'opacity-70' : '' }}">
+                        <x-telegram.mini-app.bot-link
+                            :href="$deepLinks->forResource($resource->id)"
+                            @class(['tg-cell', 'opacity-70' => $locked])
+                        >
                             <span class="tg-cell-body">
                                 <span class="tg-cell-title">{{ $resource->title }}</span>
                                 <span class="tg-cell-subtitle">{{ $resource->type->label() }}</span>
@@ -25,7 +32,7 @@
                                 <span class="tg-cell-meta">🔒</span>
                             @endif
                             <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                        </a>
+                        </x-telegram.mini-app.bot-link>
                     @endforeach
                 </div>
             @endforeach

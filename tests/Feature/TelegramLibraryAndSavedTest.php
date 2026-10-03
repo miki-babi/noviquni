@@ -8,6 +8,7 @@ use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Services\TelegramDeepLink;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -45,7 +46,7 @@ function libraryContext(): array
 it('lists resource hubs across enrolled courses only', function () {
     [$user, $course, $stream] = libraryContext();
 
-    LearningResource::factory()->published()->notes()->create([
+    $enrolled = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Enrolled notes',
@@ -76,6 +77,8 @@ it('lists resource hubs across enrolled courses only', function () {
         ->assertOk()
         ->assertSee('Physics')
         ->assertSee('Enrolled notes')
+        ->assertSee(app(TelegramDeepLink::class)->forResource($enrolled->id), false)
+        ->assertSee('data-tg-bot-link', false)
         ->assertDontSee('Other course notes')
         ->assertDontSee('🔒');
 });
@@ -139,7 +142,9 @@ it('shows empty quick saved state and toggles bookmarks', function () {
     $this->actingAs($user)
         ->get(route('tg.saved'))
         ->assertOk()
-        ->assertSee('Savable notes');
+        ->assertSee('Savable notes')
+        ->assertSee(app(TelegramDeepLink::class)->forResource($resource->id), false)
+        ->assertSee('data-tg-bot-link', false);
 
     $this->actingAs($user)
         ->from(route('tg.play.notes', $resource))

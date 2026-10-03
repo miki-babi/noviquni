@@ -1,3 +1,7 @@
+@php
+    $deepLinks = app(\App\Services\TelegramDeepLink::class);
+@endphp
+
 <x-telegram.mini-app.layout
     :copy="$copy"
     :active-nav="$activeNav"
@@ -17,7 +21,10 @@
                 @foreach ($bookmarks as $bookmark)
                     @php $resource = $bookmark->learningResource; @endphp
                     @if ($resource)
-                        <a href="{{ $resource->miniAppUrl() }}" class="tg-cell">
+                        <x-telegram.mini-app.bot-link
+                            :href="$deepLinks->forResource($resource->id)"
+                            class="tg-cell"
+                        >
                             <span class="tg-cell-body">
                                 <span class="tg-cell-title">{{ $resource->title }}</span>
                                 @if ($resource->course)
@@ -25,7 +32,7 @@
                                 @endif
                             </span>
                             <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                        </a>
+                        </x-telegram.mini-app.bot-link>
                     @endif
                 @endforeach
             </div>
