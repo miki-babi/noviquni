@@ -18,6 +18,7 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
     config([
         'services.telegram.bot_token' => 'test-token',
+        'services.telegram.bot_username' => 'noviquni_bot',
         'services.telegram.file_admin_username' => 'vault_admin',
         'queue.default' => 'sync',
     ]);
@@ -318,15 +319,18 @@ it('sends telegram_files by file_id without uploading from disk', function () {
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) use ($fileId) {
+    Http::assertSent(function ($request) use ($fileId, $resource) {
         if (! str_contains($request->url(), '/sendDocument')) {
             return false;
         }
 
         $data = $request->data();
+        $buttons = data_get($data, 'reply_markup.inline_keyboard.0', []);
 
         return ($data['document'] ?? null) === $fileId
-            && ($data['caption'] ?? null) === 'Telegram Vault Notes';
+            && ($data['caption'] ?? null) === 'Telegram Vault Notes'
+            && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
+            && ($buttons[1]['callback_data'] ?? null) === 'share:resource:'.$resource->id;
     });
 });
 

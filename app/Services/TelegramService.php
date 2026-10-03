@@ -72,12 +72,12 @@ class TelegramService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */
-    public function sendDocument(int|string $chatId, string $fileUrlOrId, string $caption = ''): ?array
+    public function sendDocument(int|string $chatId, string $fileUrlOrId, string $caption = '', array $payload = []): ?array
     {
-        $params = [
+        $params = array_merge([
             'chat_id' => $chatId,
             'caption' => $caption,
-        ];
+        ], $payload);
 
         if ($this->isLocalFilesystemPath($fileUrlOrId)) {
             return $this->callMultipart('sendDocument', $params, 'document', $fileUrlOrId);

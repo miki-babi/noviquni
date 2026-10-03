@@ -3,6 +3,7 @@
 use App\Enums\CollegeResourceKind;
 use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
+use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
@@ -18,6 +19,7 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
     config([
         'services.telegram.bot_token' => 'test-token',
+        'services.telegram.bot_username' => 'noviquni_bot',
         'queue.default' => 'sync',
     ]);
 });
@@ -219,8 +221,32 @@ it('sends uploaded resource files as telegram documents', function () {
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/sendDocument');
+    Http::assertSent(function ($request) use ($resource) {
+        if (! str_contains($request->url(), '/sendDocument')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $markup = $data['reply_markup'] ?? null;
+
+        // Multipart uploads expose fields as [{name, contents}, ...]
+        if ($markup === null && array_is_list($data)) {
+            foreach ($data as $field) {
+                if (($field['name'] ?? null) === 'reply_markup') {
+                    $markup = $field['contents'] ?? null;
+                    break;
+                }
+            }
+        }
+
+        if (is_string($markup)) {
+            $markup = json_decode($markup, true);
+        }
+
+        $buttons = data_get($markup, 'inline_keyboard.0', []);
+
+        return ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
+            && ($buttons[1]['callback_data'] ?? null) === 'share:resource:'.$resource->id;
     });
 
     Http::assertNotSent(function ($request) {
@@ -231,5 +257,256 @@ it('sends uploaded resource files as telegram documents', function () {
         $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
 
         return array_key_exists('web_app', $button);
+    });
+});
+
+it('toggles a bookmark from the quick save callback', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555790',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+    ]);
+    $user->courses()->attach($course->id);
+
+    $resource = LearningResource::factory()->published()->create([
+        'title' => 'Saveable Notes',
+        'stream_id' => $stream->id,
+        'course_id' => $course->id,
+        'type' => ResourceType::Notes,
+        'is_premium' => false,
+        'files' => null,
+        'telegram_files' => [
+            ['file_id' => 'BQACAgQAAxkBAAI-saveable', 'file_name' => 'notes.pdf'],
+        ],
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9010,
+        'callback_query' => [
+            'id' => 'cb-9010',
+            'data' => 'save:resource:'.$resource->id,
+            'from' => [
+                'id' => 555790,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 60,
+                'chat' => ['id' => 555790],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeTrue();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/answerCallbackQuery')) {
+            return false;
+        }
+
+        return str_contains((string) ($request->data()['text'] ?? ''), 'Saved');
+    });
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9011,
+        'callback_query' => [
+            'id' => 'cb-9011',
+            'data' => 'save:resource:'.$resource->id,
+            'from' => [
+                'id' => 555790,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 60,
+                'chat' => ['id' => 555790],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeFalse();
+});
+
+it('sends a share deep link message for a resource file', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 70]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555791',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+    ]);
+    $user->courses()->attach($course->id);
+
+    $resource = LearningResource::factory()->published()->create([
+        'title' => 'Shareable Notes',
+        'stream_id' => $stream->id,
+        'course_id' => $course->id,
+        'type' => ResourceType::Notes,
+        'is_premium' => false,
+        'files' => null,
+        'telegram_files' => [
+            ['file_id' => 'BQACAgQAAxkBAAI-shareable', 'file_name' => 'notes.pdf'],
+        ],
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9012,
+        'callback_query' => [
+            'id' => 'cb-9012',
+            'data' => 'share:resource:'.$resource->id,
+            'from' => [
+                'id' => 555791,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 61,
+                'chat' => ['id' => 555791],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) use ($resource) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) ($request->data()['text'] ?? '');
+
+        return str_contains($text, 'Shareable Notes')
+            && str_contains($text, '?start=resource_'.$resource->id);
+    });
+});
+
+it('blocks quick save when onboarding is incomplete', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555792',
+        'onboarding_step' => OnboardingStep::Stream,
+    ]);
+
+    $resource = LearningResource::factory()->published()->create([
+        'title' => 'Locked Notes',
+        'type' => ResourceType::Notes,
+        'is_premium' => false,
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9013,
+        'callback_query' => [
+            'id' => 'cb-9013',
+            'data' => 'save:resource:'.$resource->id,
+            'from' => [
+                'id' => 555792,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 62,
+                'chat' => ['id' => 555792],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeFalse();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/answerCallbackQuery')) {
+            return false;
+        }
+
+        return filled($request->data()['text'] ?? null);
+    });
+});
+
+it('reports not found for missing resources on save and share', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 71]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    User::factory()->student()->create([
+        'telegram_id' => '555793',
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9014,
+        'callback_query' => [
+            'id' => 'cb-9014',
+            'data' => 'save:resource:999999',
+            'from' => [
+                'id' => 555793,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 63,
+                'chat' => ['id' => 555793],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/answerCallbackQuery')) {
+            return false;
+        }
+
+        return str_contains((string) ($request->data()['text'] ?? ''), 'not found');
+    });
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9015,
+        'callback_query' => [
+            'id' => 'cb-9015',
+            'data' => 'share:resource:999999',
+            'from' => [
+                'id' => 555793,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 64,
+                'chat' => ['id' => 555793],
+                'text' => 'file',
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) ($request->data()['text'] ?? ''), 'not found');
     });
 });

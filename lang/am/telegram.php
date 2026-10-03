@@ -133,6 +133,9 @@ return [
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'በጥናት መተግበሪያ ክፈት',
+        'quick_save' => 'በፍጥነት አስቀምጥ',
+        'share' => 'አጋራ',
+        'share_message' => "<b>:title</b>ን አጋራ\n\n:link",
     ],
     'library' => [
         'title' => 'በኮርሶችዎ ያሉ መርጃዎች',

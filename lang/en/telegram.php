@@ -134,6 +134,9 @@ return [
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'Open in study app',
+        'quick_save' => 'Quick save',
+        'share' => 'Share',
+        'share_message' => "Share <b>:title</b>\n\n:link",
     ],
     'library' => [
         'title' => 'Resources across your courses',

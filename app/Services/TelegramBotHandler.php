@@ -256,6 +256,11 @@ class TelegramBotHandler
             str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'rtype:') => $this->handleResourceTypeCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
+            str_starts_with($data, 'save:resource:') => $this->handleSaveResource($user, (int) Str::after($data, 'save:resource:')),
+            str_starts_with($data, 'share:resource:') => $this->guardComplete(
+                $user,
+                fn () => $this->handleShareResource($user, $chatId, (int) Str::after($data, 'share:resource:')),
+            ),
             str_starts_with($data, 'saved:page:') => $this->guardComplete(
                 $user,
                 fn () => $this->showSaved($user, $chatId, $messageId, (int) Str::after($data, 'saved:page:')),
@@ -395,6 +400,59 @@ class TelegramBotHandler
         $this->openResource($user, $chatId, $resourceId);
 
         return null;
+    }
+
+    protected function handleSaveResource(User $user, int $resourceId): ?string
+    {
+        $copy = TelegramCopy::for($user);
+
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            return $copy->get('menu.finish_onboarding');
+        }
+
+        $resource = LearningResource::query()->published()->find($resourceId);
+
+        if ($resource === null) {
+            return $copy->get('resource.not_found');
+        }
+
+        $existing = $user->bookmarks()
+            ->where('learning_resource_id', $resource->id)
+            ->first();
+
+        if ($existing !== null) {
+            $existing->delete();
+
+            return $copy->get('saved.removed_status');
+        }
+
+        $user->bookmarks()->create([
+            'learning_resource_id' => $resource->id,
+        ]);
+
+        return $copy->get('saved.saved_status');
+    }
+
+    protected function handleShareResource(User $user, int|string $chatId, int $resourceId): void
+    {
+        $copy = TelegramCopy::for($user);
+        $resource = LearningResource::query()->published()->find($resourceId);
+
+        if ($resource === null) {
+            $this->telegram->sendMessage($chatId, $copy->get('resource.not_found'));
+
+            return;
+        }
+
+        $link = app(TelegramDeepLink::class)->forResource($resource->id);
+
+        $this->telegram->sendMessage(
+            $chatId,
+            $copy->get('resource.share_message', [
+                'title' => e($resource->title),
+                'link' => $link,
+            ]),
+        );
     }
 
     protected function handleNotifyOn(User $user, int|string $chatId): ?string
@@ -1167,13 +1225,26 @@ class TelegramBotHandler
         }
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
-        $this->sendResourceFiles($chatId, $resource);
+        $this->sendResourceFiles($user, $chatId, $resource);
     }
 
-    protected function sendResourceFiles(int|string $chatId, LearningResource $resource): void
+    protected function sendResourceFiles(User $user, int|string $chatId, LearningResource $resource): void
     {
+        $copy = TelegramCopy::for($user);
         $caption = $resource->title;
         $sent = false;
+        $markup = [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('resource.quick_save'),
+                    'callback_data' => 'save:resource:'.$resource->id,
+                ],
+                [
+                    'text' => $copy->get('resource.share'),
+                    'callback_data' => 'share:resource:'.$resource->id,
+                ],
+            ]]),
+        ];
 
         foreach ($resource->telegram_files ?? [] as $telegramFile) {
             if (! is_array($telegramFile)) {
@@ -1190,6 +1261,7 @@ class TelegramBotHandler
                 $chatId,
                 $fileId,
                 $sent ? '' : $caption,
+                $markup,
             );
             $sent = true;
         }
@@ -1229,6 +1301,7 @@ class TelegramBotHandler
                 $chatId,
                 $absolutePath,
                 $sent ? '' : $caption,
+                $markup,
             );
             $sent = true;
         }
@@ -1237,6 +1310,7 @@ class TelegramBotHandler
             $this->telegram->sendMessage(
                 $chatId,
                 '<b>'.e($resource->title).'</b>',
+                $markup,
             );
         }
     }
