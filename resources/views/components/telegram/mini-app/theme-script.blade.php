@@ -13,7 +13,7 @@
         tg.ready();
         tg.expand();
 
-        const headerBg = isDark ? '#151515' : '#ffffff';
+        const headerBg = isDark ? '#0a0a0a' : '#f4f5f7';
 
         if (typeof tg.setHeaderColor === 'function') {
             try {

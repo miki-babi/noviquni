@@ -40,6 +40,8 @@ return [
     ],
     'browse' => [
         'page_title' => 'Courses',
+        'greeting' => 'Hello :name',
+        'welcome_back' => 'Welcome back!',
         'my_courses' => 'My courses',
         'add_course' => '+ Add another course',
         'resources_count' => ':count resources',

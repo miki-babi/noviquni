@@ -1,8 +1,13 @@
+@php
+    $accentCycle = ['lime', 'mint', 'coral', 'teal'];
+@endphp
+
 <x-telegram.mini-app.layout
     :copy="$copy"
     :user="$user"
     :active-nav="$activeNav"
     :title="$copy->get('browse.page_title')"
+    :show-greeting="true"
 >
     <div class="study-page">
         @if ($state === 'empty')
@@ -21,8 +26,9 @@
                 @php
                     $course = $row['course'];
                     $initial = mb_strtoupper(mb_substr($course->name, 0, 1));
+                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
                 @endphp
-                <a href="{{ route('tg.courses.show', $course) }}" class="study-card">
+                <a href="{{ route('tg.courses.show', $course) }}" class="study-card study-card--{{ $accent }}">
                     <div class="study-card-inner">
                         <span class="study-initial" aria-hidden="true">{{ $initial }}</span>
                         <span class="min-w-0 flex-1">
@@ -58,8 +64,9 @@
                     $course = $row['course'];
                     $initial = mb_strtoupper(mb_substr($course->name, 0, 1));
                     $meta = $copy->get('browse.resources_count', ['count' => $row['resource_count']]);
+                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
                 @endphp
-                <a href="{{ route('tg.courses.show', $course) }}" class="study-card">
+                <a href="{{ route('tg.courses.show', $course) }}" class="study-card study-card--{{ $accent }}">
                     <div class="study-card-inner">
                         <span class="study-initial" aria-hidden="true">{{ $initial }}</span>
                         <span class="min-w-0 flex-1">

@@ -1,29 +1,34 @@
-<x-telegram.mini-app.layout :copy="$copy" :active-nav="$activeNav" :title="$copy->get('keyboard.premium')">
-    <div class="space-y-5">
+<x-telegram.mini-app.layout
+    :copy="$copy"
+    :active-nav="$activeNav"
+    :title="$copy->get('menu.premium')"
+    :back-url="route('tg.profile')"
+>
+    <div class="study-page">
         @if ($user->hasActivePremium())
-            <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 text-sm text-emerald-900">
-                Premium active until {{ $user->premium_until->toDayDateTimeString() }}
+            <div class="study-card study-card--mint study-continue">
+                <p class="study-card-title">Premium active until {{ $user->premium_until->toDayDateTimeString() }}</p>
             </div>
         @else
-            <div class="rounded-2xl border border-border-light px-4 py-4 text-sm leading-relaxed space-y-2">
-                <p class="font-semibold">⭐ Premium — full resource access</p>
-                <p>Modules, notes, worksheets, quizzes, flashcards, and exams.</p>
-                <p>Price: {{ $price }} ETB</p>
-                <p>Referrals: {{ $progress }}/{{ $required }}</p>
+            <div class="study-card study-card--lime study-continue">
+                <p class="study-card-title">Premium — full resource access</p>
+                <p class="study-card-meta mt-2">Modules, notes, worksheets, quizzes, flashcards, and exams.</p>
+                <p class="study-card-meta mt-1">Price: {{ $price }} ETB</p>
+                <p class="study-card-meta mt-1">Referrals: {{ $progress }}/{{ $required }}</p>
                 @if (filled($urgency))
-                    <p class="text-amber-800">{{ $urgency }}</p>
+                    <p class="mt-2 text-sm font-semibold">{{ $urgency }}</p>
                 @endif
             </div>
 
             @if (session('payment_instructions'))
-                <div class="whitespace-pre-line rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-950">
-                    {{ session('payment_instructions') }}
+                <div class="study-card study-card--coral study-continue">
+                    <p class="whitespace-pre-line text-sm leading-relaxed">{{ session('payment_instructions') }}</p>
                 </div>
             @endif
 
             <form method="POST" action="{{ route('tg.premium.pay') }}">
                 @csrf
-                <button type="submit" class="inline-flex w-full items-center justify-center rounded-2xl bg-primary-600 px-4 py-3 text-sm font-semibold text-white">
+                <button type="submit" class="tg-btn">
                     Pay now
                 </button>
             </form>

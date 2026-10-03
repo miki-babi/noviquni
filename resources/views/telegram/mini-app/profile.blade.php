@@ -11,7 +11,7 @@
     :copy="$copy"
     :user="$user"
     :active-nav="$activeNav"
-    :title="$copy->get('keyboard.profile')"
+    :title="$copy->get('menu.profile')"
 >
     <div
         class="study-page"

@@ -67,7 +67,8 @@ it('lists resource hubs across enrolled courses only', function () {
         ->assertSee('Notes')
         ->assertSee('Quick saved')
         ->assertSee(route('tg.saved'), false)
-        ->assertSee('data-tg-menu-button', false)
+        ->assertSee('data-tg-tabbar', false)
+        ->assertDontSee('data-tg-menu-button', false)
         ->assertDontSee('Other course notes');
 
     $this->actingAs($user)

@@ -85,7 +85,8 @@ it('shows browse courses for an authenticated student', function () {
     $this->actingAs($user)
         ->get(route('tg.browse'))
         ->assertOk()
-        ->assertSee('Courses')
+        ->assertSee('Hello Abebe')
+        ->assertSee('Welcome back!')
         ->assertSee('Physics')
         ->assertSee('My courses')
         ->assertSee('1 resources')
@@ -93,10 +94,11 @@ it('shows browse courses for an authenticated student', function () {
         ->assertDontSee('Continue')
         ->assertDontSee('Resume →')
         ->assertDontSee('Week-1 notes')
-        ->assertSee('data-tg-menu-button', false)
+        ->assertSee('data-tg-tabbar', false)
+        ->assertSee('Courses')
         ->assertSee('Resources')
         ->assertSee('Profile')
-        ->assertSee('Abebe Kebede')
+        ->assertDontSee('data-tg-menu-button', false)
         ->assertDontSee('>Study<', false)
         ->assertDontSee('>Account<', false)
         ->assertDontSee('>Other<', false)
@@ -107,7 +109,8 @@ it('shows browse courses for an authenticated student', function () {
 
     $html = $this->actingAs($user)->get(route('tg.browse'))->getContent();
     expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/')
-        ->and($html)->toContain('class="dark"');
+        ->and($html)->toContain('class="dark"')
+        ->and($html)->toContain('study-card--lime');
 });
 
 it('persists theme preference and renders light class', function () {
@@ -127,7 +130,7 @@ it('persists theme preference and renders light class', function () {
         ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('class="light"', false)
-        ->assertSee('Premium')
+        ->assertSee('data-tg-tabbar', false)
         ->assertSee('Theme');
 });
 
