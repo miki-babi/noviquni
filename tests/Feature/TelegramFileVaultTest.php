@@ -57,16 +57,184 @@ it('stores a document from a file vault admin and replies with file_id', functio
         ->and($asset->file_name)->toBe('week-1-notes.pdf')
         ->and($asset->uploaded_by_username)->toBe('Vault_Admin');
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($asset) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $text = (string) ($request->data()['text'] ?? '');
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
 
         return str_contains($text, 'File stored')
             && str_contains($text, 'BQACAgQAAxkBAAI-test-file-id')
-            && str_contains($text, 'week-1-notes.pdf');
+            && str_contains($text, 'week-1-notes.pdf')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'admin:publish:'.$asset->id
+            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'admin:publish:done';
+    });
+});
+
+function adminDocumentWebhook(int $updateId, int $telegramId, string $fileId, string $uniqueId, string $fileName = 'week-1-notes.pdf'): array
+{
+    return [
+        'update_id' => $updateId,
+        'message' => [
+            'message_id' => $updateId,
+            'chat' => ['id' => $telegramId, 'type' => 'private'],
+            'from' => [
+                'id' => $telegramId,
+                'first_name' => 'Admin',
+                'username' => 'vault_admin',
+            ],
+            'document' => [
+                'file_id' => $fileId,
+                'file_unique_id' => $uniqueId,
+                'file_name' => $fileName,
+                'mime_type' => 'application/pdf',
+                'file_size' => 12345,
+            ],
+        ],
+    ];
+}
+
+function adminCallbackWebhook(int $updateId, int $telegramId, string $data, int $messageId = 20): array
+{
+    return [
+        'update_id' => $updateId,
+        'callback_query' => [
+            'id' => 'cb-'.$updateId,
+            'data' => $data,
+            'from' => [
+                'id' => $telegramId,
+                'first_name' => 'Admin',
+                'username' => 'vault_admin',
+            ],
+            'message' => [
+                'message_id' => $messageId,
+                'chat' => ['id' => $telegramId],
+                'text' => 'previous',
+            ],
+        ],
+    ];
+}
+
+it('publishes a learning resource through the telegram wizard', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/bot*/editMessageText' => Http::response(['ok' => true, 'result' => ['message_id' => 20]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+
+    $telegramId = 777010;
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9201,
+        $telegramId,
+        'BQACAgQAAxkBAAI-publish-file',
+        'AgADpublish-unique-1',
+        'calc-notes.pdf',
+    ))->assertOk();
+
+    $asset = TelegramFileAsset::query()->where('file_unique_id', 'AgADpublish-unique-1')->firstOrFail();
+
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9202, $telegramId, 'admin:publish:'.$asset->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9203, $telegramId, 'admin:pub:stream:'.$stream->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9204, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9205, $telegramId, 'admin:pub:type:notes'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9206, $telegramId, 'admin:pub:title:filename'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9207, $telegramId, 'admin:pub:premium:0'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9208, $telegramId, 'admin:pub:confirm'))->assertOk();
+
+    $resource = LearningResource::query()->where('title', 'calc-notes')->first();
+
+    expect($resource)->not->toBeNull()
+        ->and($resource->is_published)->toBeTrue()
+        ->and($resource->is_premium)->toBeFalse()
+        ->and($resource->type)->toBe(ResourceType::Notes)
+        ->and($resource->course_id)->toBe($course->id)
+        ->and($resource->stream_id)->toBe($stream->id)
+        ->and($resource->telegram_files)->toBe([
+            ['file_id' => 'BQACAgQAAxkBAAI-publish-file', 'file_name' => 'calc-notes.pdf'],
+        ]);
+});
+
+it('cancels the publish wizard without creating a resource', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/bot*/editMessageText' => Http::response(['ok' => true, 'result' => ['message_id' => 20]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    Course::factory()->create(['stream_id' => $stream->id, 'is_active' => true]);
+
+    $telegramId = 777011;
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9211,
+        $telegramId,
+        'BQACAgQAAxkBAAI-cancel-file',
+        'AgADcancel-unique-1',
+    ))->assertOk();
+
+    $asset = TelegramFileAsset::query()->where('file_unique_id', 'AgADcancel-unique-1')->firstOrFail();
+
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9212, $telegramId, 'admin:publish:'.$asset->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9213, $telegramId, 'admin:pub:cancel'))->assertOk();
+
+    expect(LearningResource::query()->count())->toBe(0)
+        ->and(cache()->get('telegram.publish.'.$telegramId))->toBeNull();
+});
+
+it('rejects publish callbacks from non-admin users', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $asset = TelegramFileAsset::factory()->create();
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9221,
+        'callback_query' => [
+            'id' => 'cb-9221',
+            'data' => 'admin:publish:'.$asset->id,
+            'from' => [
+                'id' => 777099,
+                'first_name' => 'Student',
+                'username' => 'random_student',
+            ],
+            'message' => [
+                'message_id' => 20,
+                'chat' => ['id' => 777099],
+                'text' => 'previous',
+            ],
+        ],
+    ])->assertOk();
+
+    expect(LearningResource::query()->count())->toBe(0)
+        ->and(cache()->get('telegram.publish.777099'))->toBeNull();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/answerCallbackQuery')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return ($data['text'] ?? null) === 'Not allowed.'
+            && ($data['show_alert'] ?? null) === true;
     });
 });
 

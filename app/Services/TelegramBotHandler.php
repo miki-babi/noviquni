@@ -20,6 +20,7 @@ use App\Models\TelegramFileAsset;
 use App\Models\University;
 use App\Models\User;
 use App\Models\Withdrawal;
+use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Collection;
@@ -62,6 +63,10 @@ class TelegramBotHandler
         }
 
         if ($this->tryHandleAdminDocument($message)) {
+            return;
+        }
+
+        if ($this->tryHandleAdminPublishTitle($message)) {
             return;
         }
 
@@ -214,6 +219,13 @@ class TelegramBotHandler
         $callbackId = (string) ($callback['id'] ?? '');
 
         if ($chatId === null || $callbackId === '') {
+            return;
+        }
+
+        if (str_starts_with($data, 'admin:publish:') || str_starts_with($data, 'admin:pub:')) {
+            $alert = $this->handleAdminPublishCallback($from, $chatId, $data, $messageId);
+            $this->telegram->answerCallbackQuery($callbackId, $alert, $alert !== null);
+
             return;
         }
 
@@ -1336,10 +1348,492 @@ class TelegramBotHandler
             '<b>File stored</b>'."\n"
             .'Name: '.e($displayName)."\n"
             .'file_id: <code>'.e($asset->file_id).'</code>'."\n"
-            .'Attach this file_id on a learning resource in the admin panel.',
+            .'Publish from Telegram, or attach this file_id in the admin panel.',
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [[
+                        'text' => 'Publish resource',
+                        'callback_data' => 'admin:publish:'.$asset->id,
+                        'style' => TelegramButtonStyle::Success->value,
+                    ]],
+                    [[
+                        'text' => 'Done',
+                        'callback_data' => 'admin:publish:done',
+                    ]],
+                ]),
+            ],
         );
 
         return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    protected function tryHandleAdminPublishTitle(array $message): bool
+    {
+        $username = $message['from']['username'] ?? null;
+
+        if (! $this->telegram->isFileVaultAdmin(is_string($username) ? $username : null)) {
+            return false;
+        }
+
+        $telegramId = (int) ($message['from']['id'] ?? 0);
+        $session = $this->adminPublishSession($telegramId);
+
+        if ($session === null || ($session['step'] ?? null) !== 'title') {
+            return false;
+        }
+
+        $text = trim((string) ($message['text'] ?? ''));
+
+        if ($text === '' || str_starts_with($text, '/')) {
+            return false;
+        }
+
+        $session['title'] = mb_substr($text, 0, 200);
+        $session['step'] = 'premium';
+        $this->putAdminPublishSession($telegramId, $session);
+
+        $this->askPublishPremium((int) $message['chat']['id']);
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $from
+     */
+    protected function handleAdminPublishCallback(array $from, int|string $chatId, string $data, ?int $messageId): ?string
+    {
+        $username = $from['username'] ?? null;
+
+        if (! $this->telegram->isFileVaultAdmin(is_string($username) ? $username : null)) {
+            return 'Not allowed.';
+        }
+
+        $telegramId = (int) ($from['id'] ?? 0);
+
+        if ($data === 'admin:publish:done') {
+            $this->clearAdminPublish($telegramId);
+            $this->telegram->replyOrEdit($chatId, 'Saved to the vault. You can publish later from Telegram or Filament.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([]),
+            ], $messageId);
+
+            return null;
+        }
+
+        if (str_starts_with($data, 'admin:publish:')) {
+            $assetId = (int) Str::after($data, 'admin:publish:');
+
+            return $this->startAdminPublish($telegramId, $chatId, $assetId, $messageId);
+        }
+
+        if ($data === 'admin:pub:cancel') {
+            $this->clearAdminPublish($telegramId);
+            $this->telegram->replyOrEdit($chatId, 'Publish cancelled.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([]),
+            ], $messageId);
+
+            return null;
+        }
+
+        $session = $this->adminPublishSession($telegramId);
+
+        if ($session === null) {
+            return 'Publish session expired. Send the file again.';
+        }
+
+        if (str_starts_with($data, 'admin:pub:stream:')) {
+            $streamId = (int) Str::after($data, 'admin:pub:stream:');
+            $stream = Stream::query()->active()->find($streamId);
+
+            if ($stream === null) {
+                return 'That stream is unavailable.';
+            }
+
+            $session['stream_id'] = $stream->id;
+            $session['course_id'] = null;
+            $session['course_page'] = 1;
+            $session['step'] = 'course';
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishCourse($chatId, $session, $messageId);
+
+            return null;
+        }
+
+        if (str_starts_with($data, 'admin:pub:page:')) {
+            $page = max(1, (int) Str::after($data, 'admin:pub:page:'));
+            $session['course_page'] = $page;
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishCourse($chatId, $session, $messageId);
+
+            return null;
+        }
+
+        if (str_starts_with($data, 'admin:pub:course:')) {
+            $courseId = (int) Str::after($data, 'admin:pub:course:');
+            $course = Course::query()
+                ->active()
+                ->where('stream_id', $session['stream_id'] ?? 0)
+                ->find($courseId);
+
+            if ($course === null) {
+                return 'That course is unavailable.';
+            }
+
+            $session['course_id'] = $course->id;
+            $session['step'] = 'type';
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishType($chatId, $messageId);
+
+            return null;
+        }
+
+        if (str_starts_with($data, 'admin:pub:type:')) {
+            $typeValue = Str::after($data, 'admin:pub:type:');
+            $type = ResourceType::tryFrom($typeValue);
+
+            if ($type === null || ! in_array($type, $this->publishableResourceTypes(), true)) {
+                return 'That type is unavailable.';
+            }
+
+            $session['type'] = $type->value;
+            $session['step'] = 'title';
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishTitle($chatId, $session, $messageId);
+
+            return null;
+        }
+
+        if ($data === 'admin:pub:title:filename') {
+            $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+
+            if ($asset === null) {
+                $this->clearAdminPublish($telegramId);
+
+                return 'File missing from vault.';
+            }
+
+            $title = filled($asset->file_name)
+                ? pathinfo((string) $asset->file_name, PATHINFO_FILENAME)
+                : 'Untitled resource';
+
+            $session['title'] = mb_substr($title !== '' ? $title : 'Untitled resource', 0, 200);
+            $session['step'] = 'premium';
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishPremium($chatId, $messageId);
+
+            return null;
+        }
+
+        if (str_starts_with($data, 'admin:pub:premium:')) {
+            $session['is_premium'] = Str::after($data, 'admin:pub:premium:') === '1';
+            $session['step'] = 'confirm';
+            $this->putAdminPublishSession($telegramId, $session);
+            $this->askPublishConfirm($chatId, $session, $messageId);
+
+            return null;
+        }
+
+        if ($data === 'admin:pub:confirm') {
+            return $this->finalizeAdminPublish($telegramId, $chatId, $session, $messageId);
+        }
+
+        return 'That publish button is no longer valid.';
+    }
+
+    protected function startAdminPublish(int $telegramId, int|string $chatId, int $assetId, ?int $messageId): ?string
+    {
+        $asset = TelegramFileAsset::query()->find($assetId);
+
+        if ($asset === null) {
+            return 'File not found in vault.';
+        }
+
+        $session = [
+            'asset_id' => $asset->id,
+            'step' => 'stream',
+            'stream_id' => null,
+            'course_id' => null,
+            'course_page' => 1,
+            'type' => null,
+            'title' => null,
+            'is_premium' => false,
+        ];
+
+        $this->putAdminPublishSession($telegramId, $session);
+        $this->askPublishStream($chatId, $messageId);
+
+        return null;
+    }
+
+    protected function askPublishStream(int|string $chatId, ?int $messageId = null): void
+    {
+        $streams = Stream::query()->active()->orderBy('name')->get();
+
+        if ($streams->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, 'No streams are available.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
+                ]),
+            ], $messageId);
+
+            return;
+        }
+
+        $rows = $streams->map(fn (Stream $stream) => [[
+            'text' => $stream->name,
+            'callback_data' => 'admin:pub:stream:'.$stream->id,
+            'style' => TelegramButtonStyle::Primary->value,
+        ]])->values()->all();
+
+        $rows[] = [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']];
+
+        $this->telegram->replyOrEdit($chatId, 'Pick a stream for this resource:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    protected function askPublishCourse(int|string $chatId, array $session, ?int $messageId = null): void
+    {
+        $perPage = 8;
+        $page = max(1, (int) ($session['course_page'] ?? 1));
+        $streamId = (int) ($session['stream_id'] ?? 0);
+
+        $query = Course::query()->active()->where('stream_id', $streamId)->orderBy('name');
+        $total = (clone $query)->count();
+
+        if ($total === 0) {
+            $this->telegram->replyOrEdit($chatId, 'No courses in that stream.', [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
+                ]),
+            ], $messageId);
+
+            return;
+        }
+
+        $courses = $query->forPage($page, $perPage)->get();
+        $rows = $courses->map(fn (Course $course) => [[
+            'text' => $course->name,
+            'callback_data' => 'admin:pub:course:'.$course->id,
+            'style' => TelegramButtonStyle::Primary->value,
+        ]])->values()->all();
+
+        $nav = [];
+        if ($page > 1) {
+            $nav[] = ['text' => '‹ Prev', 'callback_data' => 'admin:pub:page:'.($page - 1)];
+        }
+        if ($page * $perPage < $total) {
+            $nav[] = ['text' => 'Next ›', 'callback_data' => 'admin:pub:page:'.($page + 1)];
+        }
+        if ($nav !== []) {
+            $rows[] = $nav;
+        }
+
+        $rows[] = [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']];
+
+        $this->telegram->replyOrEdit($chatId, 'Pick a course:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function askPublishType(int|string $chatId, ?int $messageId = null): void
+    {
+        $rows = collect($this->publishableResourceTypes())
+            ->map(fn (ResourceType $type) => [[
+                'text' => $type->label(),
+                'callback_data' => 'admin:pub:type:'.$type->value,
+                'style' => TelegramButtonStyle::Primary->value,
+            ]])
+            ->values()
+            ->all();
+
+        $rows[] = [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']];
+
+        $this->telegram->replyOrEdit($chatId, 'Pick a resource type:', [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    protected function askPublishTitle(int|string $chatId, array $session, ?int $messageId = null): void
+    {
+        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+        $filename = filled($asset?->file_name)
+            ? pathinfo((string) $asset->file_name, PATHINFO_FILENAME)
+            : 'Untitled resource';
+
+        $this->telegram->replyOrEdit(
+            $chatId,
+            'Send a title as a text message, or use the filename:'."\n"
+            .'<code>'.e($filename).'</code>',
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [[
+                        'text' => 'Use filename',
+                        'callback_data' => 'admin:pub:title:filename',
+                        'style' => TelegramButtonStyle::Success->value,
+                    ]],
+                    [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
+                ]),
+            ],
+            $messageId,
+        );
+    }
+
+    protected function askPublishPremium(int|string $chatId, ?int $messageId = null): void
+    {
+        $this->telegram->replyOrEdit($chatId, 'Is this a premium resource?', [
+            'reply_markup' => $this->telegram->inlineKeyboard([
+                [
+                    ['text' => 'No', 'callback_data' => 'admin:pub:premium:0'],
+                    ['text' => 'Yes', 'callback_data' => 'admin:pub:premium:1', 'style' => TelegramButtonStyle::Primary->value],
+                ],
+                [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
+            ]),
+        ], $messageId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    protected function askPublishConfirm(int|string $chatId, array $session, ?int $messageId = null): void
+    {
+        $course = Course::query()->find($session['course_id'] ?? 0);
+        $stream = Stream::query()->find($session['stream_id'] ?? 0);
+        $type = ResourceType::tryFrom((string) ($session['type'] ?? ''));
+        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+
+        $summary = '<b>Publish resource?</b>'."\n"
+            .'Title: '.e((string) ($session['title'] ?? ''))."\n"
+            .'Type: '.e($type?->label() ?? '-')."\n"
+            .'Stream: '.e($stream?->name ?? '-')."\n"
+            .'Course: '.e($course?->name ?? '-')."\n"
+            .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
+            .'File: '.e($asset?->file_name ?? $asset?->file_id ?? '-');
+
+        $this->telegram->replyOrEdit($chatId, $summary, [
+            'reply_markup' => $this->telegram->inlineKeyboard([
+                [[
+                    'text' => 'Publish',
+                    'callback_data' => 'admin:pub:confirm',
+                    'style' => TelegramButtonStyle::Success->value,
+                ]],
+                [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
+            ]),
+        ], $messageId);
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    protected function finalizeAdminPublish(int $telegramId, int|string $chatId, array $session, ?int $messageId): ?string
+    {
+        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+        $course = Course::query()->active()->find($session['course_id'] ?? 0);
+        $type = ResourceType::tryFrom((string) ($session['type'] ?? ''));
+        $title = trim((string) ($session['title'] ?? ''));
+
+        if ($asset === null || $course === null || $type === null || $title === '') {
+            $this->clearAdminPublish($telegramId);
+
+            return 'Publish data incomplete. Send the file again.';
+        }
+
+        $telegramFiles = LearningResourceFiles::normalizeTelegramFileIds([$asset->file_id]);
+
+        $resource = LearningResource::query()->create([
+            'title' => $title,
+            'slug' => $this->uniqueLearningSlug($title),
+            'type' => $type,
+            'stream_id' => $course->stream_id,
+            'course_id' => $course->id,
+            'is_premium' => (bool) ($session['is_premium'] ?? false),
+            'is_published' => true,
+            'telegram_files' => $telegramFiles,
+            'files' => null,
+        ]);
+
+        $this->clearAdminPublish($telegramId);
+
+        $this->telegram->replyOrEdit(
+            $chatId,
+            '<b>Published</b>'."\n"
+            .'Title: '.e($resource->title)."\n"
+            .'Type: '.e($type->label())."\n"
+            .'Course: '.e($course->name)."\n"
+            .'ID: '.$resource->id,
+            ['reply_markup' => $this->telegram->inlineKeyboard([])],
+            $messageId,
+        );
+
+        return null;
+    }
+
+    /**
+     * @return list<ResourceType>
+     */
+    protected function publishableResourceTypes(): array
+    {
+        return [
+            ResourceType::Notes,
+            ResourceType::Module,
+            ResourceType::Slides,
+            ResourceType::Worksheet,
+            ResourceType::Assignment,
+            ResourceType::MidExam,
+            ResourceType::FinalExam,
+            ResourceType::PracticeExams,
+            ResourceType::ReferenceBooks,
+        ];
+    }
+
+    protected function uniqueLearningSlug(string $title): string
+    {
+        $base = Str::slug($title) ?: 'resource';
+        $slug = $base;
+        $suffix = 1;
+
+        while (LearningResource::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$suffix;
+            $suffix++;
+        }
+
+        return $slug;
+    }
+
+    protected function adminPublishCacheKey(int $telegramId): string
+    {
+        return 'telegram.publish.'.$telegramId;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function adminPublishSession(int $telegramId): ?array
+    {
+        $session = Cache::get($this->adminPublishCacheKey($telegramId));
+
+        return is_array($session) ? $session : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     */
+    protected function putAdminPublishSession(int $telegramId, array $session): void
+    {
+        Cache::put($this->adminPublishCacheKey($telegramId), $session, now()->addHour());
+    }
+
+    protected function clearAdminPublish(int $telegramId): void
+    {
+        Cache::forget($this->adminPublishCacheKey($telegramId));
     }
 
     protected function showPremium(User $user, int|string $chatId): void
