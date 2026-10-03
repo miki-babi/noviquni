@@ -12,10 +12,7 @@
     :title="$copy->get('profile.edit_title')"
     :back-url="route('tg.profile')"
 >
-    <div
-        class="study-page"
-        x-data="{ streamId: @js($selectedStreamId ?: null) }"
-    >
+    <div class="study-page">
         <form method="POST" action="{{ route('tg.profile.academic') }}" class="space-y-4">
             @csrf
 
@@ -30,7 +27,6 @@
                                     name="stream_id"
                                     value="{{ $stream->id }}"
                                     class="mt-1"
-                                    x-model.number="streamId"
                                     @checked((int) $selectedStreamId === $stream->id)
                                     required
                                 >
@@ -118,11 +114,7 @@
                 <p class="study-card-title">{{ $copy->get('profile.courses') }}</p>
                 <div class="mt-3 space-y-2">
                     @foreach ($courses as $course)
-                        <label
-                            class="study-card study-card-ghost block cursor-pointer"
-                            x-show="streamId === {{ $course->stream_id }}"
-                            x-cloak
-                        >
+                        <label class="study-card study-card-ghost block cursor-pointer">
                             <div class="study-card-inner">
                                 <input
                                     type="checkbox"
@@ -130,7 +122,6 @@
                                     value="{{ $course->id }}"
                                     class="mt-1"
                                     @checked(in_array($course->id, $selectedCourses, true))
-                                    :disabled="streamId !== {{ $course->stream_id }}"
                                 >
                                 <span class="study-card-title">{{ $course->name }}</span>
                             </div>

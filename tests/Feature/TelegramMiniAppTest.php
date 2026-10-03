@@ -45,7 +45,7 @@ it('builds main keyboard buttons with courses resources saved profile and refer'
         ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('👤 Profile')
         ->and(data_get($keyboard, 'keyboard.2.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('👥 Refer and earn')
+        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('👥 Refer')
         ->and(data_get($keyboard, 'keyboard.2.1.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.2.1.style'))->toBe('primary');
 });
@@ -348,7 +348,7 @@ it('updates academic profile fields from the mini app', function () {
         ->and($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
 });
 
-it('rejects courses that do not belong to the selected stream', function () {
+it('allows courses from another stream on the study profile', function () {
     $natural = Stream::factory()->create(['name' => 'Natural']);
     $social = Stream::factory()->create(['name' => 'Social']);
     $math = Course::factory()->create([
@@ -370,15 +370,13 @@ it('rejects courses that do not belong to the selected stream', function () {
     $user->courses()->sync([$math->id]);
 
     $this->actingAs($user)
-        ->from(route('tg.profile.edit'))
         ->post(route('tg.profile.academic'), [
             'stream_id' => $natural->id,
             'course_ids' => [$civics->id],
         ])
-        ->assertRedirect(route('tg.profile.edit'))
-        ->assertSessionHasErrors('course_ids.0');
+        ->assertRedirect(route('tg.profile'));
 
-    expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$math->id]);
+    expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
 });
 
 it('opens course hubs inside the mini app', function () {

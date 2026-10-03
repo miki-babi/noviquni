@@ -101,10 +101,7 @@ class ProfileController extends Controller
             'course_ids' => ['nullable', 'array'],
             'course_ids.*' => [
                 'integer',
-                Rule::exists('courses', 'id')->where(function ($query) use ($request): void {
-                    $query->where('is_active', true)
-                        ->where('stream_id', (int) $request->input('stream_id'));
-                }),
+                Rule::exists('courses', 'id')->where(fn ($query) => $query->where('is_active', true)),
             ],
         ]);
 
