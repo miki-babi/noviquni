@@ -61,4 +61,23 @@ enum ResourceHub: string
             $this->types(),
         );
     }
+
+    /**
+     * Mini-app library/course route slugs: one per resource type, plus legacy hub aliases.
+     *
+     * @return list<string>
+     */
+    public static function miniAppRouteSlugs(): array
+    {
+        $typeSlugs = array_map(
+            fn (ResourceType $type): string => $type->value,
+            ResourceType::creatableCases(),
+        );
+        $legacyHubSlugs = array_map(
+            fn (self $hub): string => $hub->value,
+            self::cases(),
+        );
+
+        return array_values(array_unique([...$typeSlugs, ...$legacyHubSlugs]));
+    }
 }

@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Telegram\MiniApp;
 
-use App\Enums\ResourceHub;
+use App\Enums\ResourceType;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Telegram\MiniApp\Concerns\ResolvesMiniAppHub;
 use App\Models\LearningResource;
 use App\Models\User;
 use App\Services\PremiumService;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 
 class LibraryController extends Controller
 {
+    use ResolvesMiniAppHub;
+
     public function show(): View
     {
         /** @var User $user */
@@ -22,19 +25,19 @@ class LibraryController extends Controller
         $copy = TelegramCopy::for($user);
         $courseIds = $user->courses()->pluck('courses.id');
 
-        $hubs = collect(ResourceHub::cases())
-            ->map(function (ResourceHub $hub) use ($courseIds): array {
+        $hubs = collect(ResourceType::creatableCases())
+            ->map(function (ResourceType $type) use ($courseIds): array {
                 $count = $courseIds->isEmpty()
                     ? 0
                     : LearningResource::query()
                         ->published()
                         ->whereIn('course_id', $courseIds)
-                        ->whereIn('type', $hub->typeValues())
+                        ->where('type', $type->value)
                         ->count();
 
                 return [
-                    'hub' => $hub,
-                    'label' => $hub->label(),
+                    'hub' => $type,
+                    'label' => $type->label(),
                     'count' => $count,
                 ];
             })
@@ -52,9 +55,9 @@ class LibraryController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        $resourceHub = ResourceHub::tryFrom($hub);
+        $resolved = $this->resolveMiniAppHub($hub);
 
-        if ($resourceHub === null) {
+        if ($resolved === null) {
             abort(404);
         }
 
@@ -76,7 +79,7 @@ class LibraryController extends Controller
                 ->with('course')
                 ->whereIn('course_id', $courseIds)
                 ->when($course !== null, fn ($query) => $query->where('course_id', $course->id))
-                ->whereIn('type', $resourceHub->typeValues())
+                ->whereIn('type', $resolved['types'])
                 ->orderBy('sort_order')
                 ->orderBy('title')
                 ->get()
@@ -101,8 +104,8 @@ class LibraryController extends Controller
         return view('telegram.mini-app.library-hub', [
             'copy' => $copy,
             'user' => $user,
-            'hub' => $resourceHub,
-            'title' => $resourceHub->label(),
+            'hub' => $resolved['hub'],
+            'title' => $resolved['hub']->label(),
             'groups' => $groups,
             'activeNav' => 'resources',
         ]);

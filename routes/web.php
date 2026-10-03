@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\ResourceHub;
 use App\Http\Controllers\Public\CourseController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\ResourceController;
@@ -55,13 +56,13 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('browse', [BrowseController::class, 'show'])->name('browse');
         Route::get('library', [LibraryController::class, 'show'])->name('library');
         Route::get('library/{hub}', [LibraryController::class, 'hub'])
-            ->whereIn('hub', ['notes', 'modules', 'practice', 'exams'])
+            ->whereIn('hub', ResourceHub::miniAppRouteSlugs())
             ->name('library.hub');
         Route::get('saved', [SavedController::class, 'show'])->name('saved');
         Route::post('saved/{resource:slug}', [SavedController::class, 'toggle'])->name('saved.toggle');
         Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
         Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
-            ->whereIn('hub', ['notes', 'modules', 'practice', 'exams'])
+            ->whereIn('hub', ResourceHub::miniAppRouteSlugs())
             ->name('courses.hub');
         Route::get('resources/{resource:slug}', [App\Http\Controllers\Telegram\MiniApp\ResourceController::class, 'show'])->name('resources.show');
         Route::get('play/module/{resource:slug}', ModulePlayerController::class)->name('play.module');

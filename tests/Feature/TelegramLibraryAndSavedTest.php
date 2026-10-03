@@ -175,3 +175,48 @@ it('shows save control on the notes player', function () {
         ->assertSee('Save', false)
         ->assertSee(route('tg.saved.toggle', $resource), false);
 });
+
+it('lists a worksheet card separately from notes', function () {
+    [$user, $course, $stream] = libraryContext();
+
+    LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Lecture notes',
+    ]);
+
+    $worksheet = LearningResource::factory()->published()->worksheet()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Problem set 1',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.library'))
+        ->assertOk()
+        ->assertSee('Notes')
+        ->assertSee('Worksheet')
+        ->assertSee(route('tg.library.hub', 'worksheet'), false);
+
+    $this->actingAs($user)
+        ->get(route('tg.library.hub', 'worksheet'))
+        ->assertOk()
+        ->assertSee('Problem set 1')
+        ->assertDontSee('Lecture notes')
+        ->assertSee(app(TelegramDeepLink::class)->forResource($worksheet->id), false);
+});
+
+it('keeps legacy modules hub alias working', function () {
+    [$user, $course, $stream] = libraryContext();
+
+    LearningResource::factory()->published()->module()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Legacy module pack',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.library.hub', 'modules'))
+        ->assertOk()
+        ->assertSee('Legacy module pack');
+});

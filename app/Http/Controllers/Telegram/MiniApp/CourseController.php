@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Telegram\MiniApp;
 
-use App\Enums\ResourceHub;
+use App\Enums\ResourceType;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Telegram\MiniApp\Concerns\ResolvesMiniAppHub;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\User;
@@ -15,6 +16,8 @@ use Illuminate\View\View;
 
 class CourseController extends Controller
 {
+    use ResolvesMiniAppHub;
+
     public function show(Course $course, StudyPlanService $studyPlans): View|RedirectResponse
     {
         /** @var User $user */
@@ -27,17 +30,12 @@ class CourseController extends Controller
         $copy = TelegramCopy::for($user);
         $plans = $studyPlans->plansForUser($user, $course);
 
-        $hubs = collect([
-            ResourceHub::Modules,
-            ResourceHub::Notes,
-            ResourceHub::Practice,
-            ResourceHub::Exams,
-        ])
-            ->map(function (ResourceHub $hub) use ($course): ?array {
+        $hubs = collect(ResourceType::creatableCases())
+            ->map(function (ResourceType $type) use ($course): ?array {
                 $count = LearningResource::query()
                     ->published()
                     ->where('course_id', $course->id)
-                    ->whereIn('type', $hub->typeValues())
+                    ->where('type', $type->value)
                     ->count();
 
                 if ($count === 0) {
@@ -45,8 +43,8 @@ class CourseController extends Controller
                 }
 
                 return [
-                    'hub' => $hub,
-                    'label' => $hub->label(),
+                    'hub' => $type,
+                    'label' => $type->label(),
                     'count' => $count,
                 ];
             })
@@ -67,14 +65,9 @@ class CourseController extends Controller
     {
         /** @var User $user */
         $user = Auth::user();
-        $resourceHub = ResourceHub::tryFrom($hub);
+        $resolved = $this->resolveMiniAppHub($hub);
 
-        if ($resourceHub === null || ! in_array($resourceHub, [
-            ResourceHub::Notes,
-            ResourceHub::Modules,
-            ResourceHub::Practice,
-            ResourceHub::Exams,
-        ], true)) {
+        if ($resolved === null) {
             abort(404);
         }
 
@@ -86,7 +79,7 @@ class CourseController extends Controller
         $resources = LearningResource::query()
             ->published()
             ->where('course_id', $course->id)
-            ->whereIn('type', $resourceHub->typeValues())
+            ->whereIn('type', $resolved['types'])
             ->orderBy('sort_order')
             ->orderBy('title')
             ->get();
@@ -95,8 +88,8 @@ class CourseController extends Controller
             'copy' => $copy,
             'user' => $user,
             'course' => $course,
-            'hub' => $resourceHub,
-            'title' => $resourceHub->label(),
+            'hub' => $resolved['hub'],
+            'title' => $resolved['hub']->label(),
             'resources' => $resources,
             'activeNav' => 'courses',
         ]);

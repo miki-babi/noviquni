@@ -306,10 +306,11 @@ it('opens course hubs for free and premium students', function () {
         ->get(route('tg.courses.show', $course))
         ->assertOk()
         ->assertSee('Notes')
-        ->assertSee('Modules');
+        ->assertSee('Module');
 
     $this->actingAs($user->fresh())
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
         ->assertOk()
-        ->assertSee(route('tg.play.notes', $notes), false);
+        ->assertSee('Chapter notes')
+        ->assertSee('?start=resource_'.$notes->id, false);
 });
