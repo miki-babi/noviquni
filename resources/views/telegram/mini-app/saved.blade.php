@@ -1,5 +1,6 @@
 @php
     $deepLinks = app(\App\Services\TelegramDeepLink::class);
+    $accentCycle = ['lime', 'mint', 'coral', 'teal'];
 @endphp
 
 <x-telegram.mini-app.layout
@@ -8,34 +9,41 @@
     :title="$copy->get('saved.title')"
     :back-url="route('tg.library')"
 >
-    <div class="study-page" style="padding-inline: 0;">
+    <div class="study-page">
         @if ($bookmarks->isEmpty())
-            <div class="space-y-4 px-4">
-                <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('saved.empty') }}</p>
-                <a href="{{ route('tg.browse') }}" class="tg-btn">
-                    {{ $copy->get('menu.courses') }}
-                </a>
-            </div>
+            <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('saved.empty') }}</p>
+            <a href="{{ route('tg.browse') }}" class="tg-btn">
+                {{ $copy->get('menu.courses') }}
+            </a>
         @else
-            <div class="tg-section">
-                @foreach ($bookmarks as $bookmark)
-                    @php $resource = $bookmark->learningResource; @endphp
-                    @if ($resource)
-                        <x-telegram.mini-app.bot-link
-                            :href="$deepLinks->forResource($resource->id)"
-                            class="tg-cell"
-                        >
-                            <span class="tg-cell-body">
-                                <span class="tg-cell-title">{{ $resource->title }}</span>
-                                @if ($resource->course)
-                                    <span class="tg-cell-subtitle">{{ $resource->course->name }}</span>
-                                @endif
+            @foreach ($bookmarks as $bookmark)
+                @php
+                    $resource = $bookmark->learningResource;
+                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                @endphp
+                @if ($resource)
+                    <x-telegram.mini-app.bot-link
+                        :href="$deepLinks->forResource($resource->id)"
+                        :confirm-title="$copy->get('bot_confirm.title')"
+                        :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                        class="study-card study-card--{{ $accent }}"
+                    >
+                        <div class="study-card-inner">
+                            <span class="min-w-0 flex-1">
+                                <span class="study-card-title block">{{ $resource->title }}</span>
+                                <span class="study-card-meta block">
+                                    @if ($resource->course)
+                                        {{ $resource->course->name }}
+                                    @else
+                                        {{ $resource->type->label() }}
+                                    @endif
+                                </span>
                             </span>
                             <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                        </x-telegram.mini-app.bot-link>
-                    @endif
-                @endforeach
-            </div>
+                        </div>
+                    </x-telegram.mini-app.bot-link>
+                @endif
+            @endforeach
         @endif
     </div>
 </x-telegram.mini-app.layout>

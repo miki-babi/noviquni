@@ -1,5 +1,7 @@
 @php
     $deepLinks = app(\App\Services\TelegramDeepLink::class);
+    $accentCycle = ['lime', 'mint', 'coral', 'teal'];
+    $cardIndex = 0;
 @endphp
 
 <x-telegram.mini-app.layout
@@ -8,33 +10,39 @@
     :title="$title"
     :back-url="route('tg.library')"
 >
-    <div class="study-page" style="padding-inline: 0;">
+    <div class="study-page">
         @if ($groups->isEmpty())
-            <p class="px-4 text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.hub_empty', ['hub' => strtolower($hub->label())]) }}</p>
+            <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('library.hub_empty', ['hub' => strtolower($hub->label())]) }}</p>
         @else
             @foreach ($groups as $group)
-                <p class="tg-section-title">{{ $group['course_name'] }}</p>
-                <div class="tg-section">
-                    @foreach ($group['resources'] as $item)
-                        @php
-                            $resource = $item['resource'];
-                            $locked = config('services.telegram.premium_enabled') && $item['locked'];
-                        @endphp
-                        <x-telegram.mini-app.bot-link
-                            :href="$deepLinks->forResource($resource->id)"
-                            @class(['tg-cell', 'opacity-70' => $locked])
-                        >
-                            <span class="tg-cell-body">
-                                <span class="tg-cell-title">{{ $resource->title }}</span>
-                                <span class="tg-cell-subtitle">{{ $resource->type->label() }}</span>
+                <p class="tg-section-title" style="padding-inline: 0;">{{ $group['course_name'] }}</p>
+                @foreach ($group['resources'] as $item)
+                    @php
+                        $resource = $item['resource'];
+                        $locked = config('services.telegram.premium_enabled') && $item['locked'];
+                        $accent = $accentCycle[$cardIndex % count($accentCycle)];
+                        $cardIndex++;
+                    @endphp
+                    <x-telegram.mini-app.bot-link
+                        :href="$deepLinks->forResource($resource->id)"
+                        :confirm-title="$copy->get('bot_confirm.title')"
+                        :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                        @class(['study-card', 'study-card--'.$accent, 'opacity-70' => $locked])
+                    >
+                        <div class="study-card-inner">
+                            <span class="min-w-0 flex-1">
+                                <span class="study-card-title block">{{ $resource->title }}</span>
+                                <span class="study-card-meta block">
+                                    {{ $resource->type->label() }}
+                                    @if ($locked)
+                                        · 🔒
+                                    @endif
+                                </span>
                             </span>
-                            @if ($locked)
-                                <span class="tg-cell-meta">🔒</span>
-                            @endif
                             <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                        </x-telegram.mini-app.bot-link>
-                    @endforeach
-                </div>
+                        </div>
+                    </x-telegram.mini-app.bot-link>
+                @endforeach
             @endforeach
         @endif
     </div>

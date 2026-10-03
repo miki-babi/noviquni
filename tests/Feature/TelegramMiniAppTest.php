@@ -243,6 +243,10 @@ it('shows profile course and saved-file bot deep links', function () {
         ->assertSee('?start=course_physics', false)
         ->assertSee('?start=resource_'.$resource->id, false)
         ->assertSee('data-tg-bot-link', false)
+        ->assertSee('data-tg-bot-confirm', false)
+        ->assertSee('Open in bot?', false)
+        ->assertSee('The bot will send the file.', false)
+        ->assertSee('study-card--lime', false)
         ->assertSee('tgOpenBotLink', false);
 });
 
@@ -420,6 +424,9 @@ it('opens course hubs inside the mini app', function () {
         ->assertSee('Week-1 notes')
         ->assertSee(app(TelegramDeepLink::class)->forResource($notes->id), false)
         ->assertSee('data-tg-bot-link', false)
+        ->assertSee('data-tg-bot-confirm', false)
+        ->assertSee('study-card--lime', false)
+        ->assertSee('Open in bot?', false)
         ->assertDontSee($notes->miniAppUrl(), false);
 });
 

@@ -31,6 +31,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <x-telegram.mini-app.theme-script />
+    <x-telegram.mini-app.bot-confirm-script />
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </head>
 <body @class(['tg-page antialiased', 'tg-page--with-tabbar' => $showTabBar])>
@@ -116,6 +117,8 @@
     @if ($showTabBar)
         <x-telegram.mini-app.tab-bar :copy="$copy" :active-nav="$activeNav" />
     @endif
+
+    <x-telegram.mini-app.bot-confirm-modal :copy="$copy" />
 
     <x-telegram.mini-app.back-button-script :back-url="$backUrl" />
 </body>

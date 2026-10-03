@@ -135,6 +135,13 @@ return [
         'back' => 'Back',
         'next' => 'Next',
     ],
+    'bot_confirm' => [
+        'title' => 'Open in bot?',
+        'resource' => 'Open :title in Telegram? The bot will send the file.',
+        'course' => 'Open :title in Telegram?',
+        'open' => 'Open',
+        'cancel' => 'Cancel',
+    ],
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'Open in study app',

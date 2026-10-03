@@ -1,5 +1,6 @@
 @php
     $deepLinks = app(\App\Services\TelegramDeepLink::class);
+    $accentCycle = ['lime', 'mint', 'coral', 'teal'];
 @endphp
 
 <x-telegram.mini-app.layout
@@ -8,28 +9,33 @@
     :title="$title"
     :back-url="route('tg.courses.show', $course)"
 >
-    <div class="study-page" style="padding-inline: 0;">
-        <p class="tg-section-title">{{ $course->name }}</p>
+    <div class="study-page">
+        <p class="tg-section-title" style="padding-inline: 0;">{{ $course->name }}</p>
 
         @if ($resources->isEmpty())
-            <p class="px-4 text-[15px] leading-relaxed tg-hint">{{ $copy->get('hub.no_resources') }}</p>
+            <p class="text-[15px] leading-relaxed tg-hint">{{ $copy->get('hub.no_resources') }}</p>
         @else
-            <div class="tg-section">
-                @foreach ($resources as $resource)
-                    <x-telegram.mini-app.bot-link
-                        :href="$deepLinks->forResource($resource->id)"
-                        class="tg-cell"
-                    >
-                        <span class="tg-cell-body">
-                            <span class="tg-cell-title">{{ $resource->title }}</span>
+            @foreach ($resources as $resource)
+                @php
+                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                @endphp
+                <x-telegram.mini-app.bot-link
+                    :href="$deepLinks->forResource($resource->id)"
+                    :confirm-title="$copy->get('bot_confirm.title')"
+                    :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                    class="study-card study-card--{{ $accent }}"
+                >
+                    <div class="study-card-inner">
+                        <span class="min-w-0 flex-1">
+                            <span class="study-card-title block">{{ $resource->title }}</span>
+                            @if (config('services.telegram.premium_enabled') && $resource->is_premium)
+                                <span class="study-card-meta block">🔒 Premium</span>
+                            @endif
                         </span>
-                        @if (config('services.telegram.premium_enabled') && $resource->is_premium)
-                            <span class="tg-cell-meta">🔒</span>
-                        @endif
                         <span class="tg-cell-chevron" aria-hidden="true">›</span>
-                    </x-telegram.mini-app.bot-link>
-                @endforeach
-            </div>
+                    </div>
+                </x-telegram.mini-app.bot-link>
+            @endforeach
         @endif
     </div>
 </x-telegram.mini-app.layout>

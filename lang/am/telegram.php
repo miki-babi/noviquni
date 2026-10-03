@@ -134,6 +134,13 @@ return [
         'back' => 'ተመለስ',
         'next' => 'ቀጣይ',
     ],
+    'bot_confirm' => [
+        'title' => 'በቦቱ ይክፈቱ?',
+        'resource' => ':title በቴሌግራም ይክፈቱ? ቦቱ ፋይሉን ይልካል።',
+        'course' => ':title በቴሌግራም ይክፈቱ?',
+        'open' => 'ክፈት',
+        'cancel' => 'ሰርዝ',
+    ],
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'በጥናት መተግበሪያ ክፈት',

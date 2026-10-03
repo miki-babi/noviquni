@@ -753,6 +753,63 @@
         font-weight: 500;
     }
 
+    .tg-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 1rem;
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+        background: rgba(0, 0, 0, 0.62);
+    }
+
+    @media (min-width: 480px) {
+        .tg-modal-overlay {
+            align-items: center;
+        }
+    }
+
+    .tg-modal {
+        width: min(100%, 24rem);
+        border-radius: var(--radius-blob);
+        background: var(--tg-card);
+        box-shadow: var(--tg-chunk-shadow);
+        padding: 1.25rem 1.25rem 1.1rem;
+    }
+
+    .tg-modal-title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 800;
+        line-height: 1.25;
+        color: var(--tg-text);
+    }
+
+    .tg-modal-message {
+        margin: 0.55rem 0 0;
+        font-size: 0.9375rem;
+        line-height: 1.45;
+        color: var(--tg-hint);
+    }
+
+    .tg-modal-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem;
+        margin-top: 1.15rem;
+    }
+
+    .tg-modal-actions .tg-btn {
+        width: 100%;
+        min-height: 2.85rem;
+    }
+
+    a.study-card {
+        cursor: pointer;
+    }
+
     .tg-tabbar {
         position: fixed;
         bottom: 0;

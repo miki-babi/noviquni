@@ -85,6 +85,8 @@
                             @endphp
                             <x-telegram.mini-app.bot-link
                                 :href="$deepLinks->forCourse($course->slug)"
+                                :confirm-title="$copy->get('bot_confirm.title')"
+                                :confirm-message="$copy->get('bot_confirm.course', ['title' => $course->name])"
                                 class="study-chip study-chip--{{ $accent }}"
                             >
                                 {{ $course->name }}
@@ -107,24 +109,31 @@
                     {{ $copy->get('menu.resources') }}
                 </a>
             @else
-                <div class="study-file-list mt-3">
+                <div class="mt-3 flex flex-col gap-3">
                     @foreach ($bookmarks as $bookmark)
-                        @php $resource = $bookmark->learningResource; @endphp
+                        @php
+                            $resource = $bookmark->learningResource;
+                            $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                        @endphp
                         @if ($resource)
                             <x-telegram.mini-app.bot-link
                                 :href="$deepLinks->forResource($resource->id)"
-                                class="study-file-row"
+                                :confirm-title="$copy->get('bot_confirm.title')"
+                                :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                                class="study-card study-card--{{ $accent }}"
                             >
-                                <span class="min-w-0 flex-1">
-                                    <span class="study-card-title block">{{ $resource->title }}</span>
-                                    <span class="study-card-meta block">
-                                        {{ $resource->type->label() }}
-                                        @if ($resource->course)
-                                            · {{ $resource->course->name }}
-                                        @endif
+                                <div class="study-card-inner">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="study-card-title block">{{ $resource->title }}</span>
+                                        <span class="study-card-meta block">
+                                            {{ $resource->type->label() }}
+                                            @if ($resource->course)
+                                                · {{ $resource->course->name }}
+                                            @endif
+                                        </span>
                                     </span>
-                                </span>
-                                <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                                    <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                                </div>
                             </x-telegram.mini-app.bot-link>
                         @endif
                     @endforeach

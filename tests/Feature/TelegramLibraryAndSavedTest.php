@@ -79,6 +79,9 @@ it('lists resource hubs across enrolled courses only', function () {
         ->assertSee('Enrolled notes')
         ->assertSee(app(TelegramDeepLink::class)->forResource($enrolled->id), false)
         ->assertSee('data-tg-bot-link', false)
+        ->assertSee('data-tg-bot-confirm', false)
+        ->assertSee('study-card--lime', false)
+        ->assertSee('Open in bot?', false)
         ->assertDontSee('Other course notes')
         ->assertDontSee('🔒');
 });
@@ -144,7 +147,9 @@ it('shows empty quick saved state and toggles bookmarks', function () {
         ->assertOk()
         ->assertSee('Savable notes')
         ->assertSee(app(TelegramDeepLink::class)->forResource($resource->id), false)
-        ->assertSee('data-tg-bot-link', false);
+        ->assertSee('data-tg-bot-link', false)
+        ->assertSee('study-card--lime', false)
+        ->assertSee('Open in bot?', false);
 
     $this->actingAs($user)
         ->from(route('tg.play.notes', $resource))
