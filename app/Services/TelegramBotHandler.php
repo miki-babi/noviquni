@@ -9,6 +9,7 @@ use App\Enums\RewardStatus;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
 use App\Enums\WithdrawalStatus;
+use App\Jobs\FlushTelegramAdminPublishBuffer;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\ReferralReward;
@@ -1427,7 +1428,114 @@ class TelegramBotHandler
             ],
         );
 
+        $telegramId = (int) ($message['from']['id'] ?? 0);
         $chatId = $message['chat']['id'];
+        $mediaGroupId = filled($message['media_group_id'] ?? null)
+            ? (string) $message['media_group_id']
+            : null;
+
+        $buffer = $this->adminPublishBuffer($telegramId) ?? [
+            'asset_ids' => [],
+            'updated_at' => 0,
+            'media_group_id' => null,
+        ];
+
+        $assetIds = array_values(array_unique(array_map(
+            'intval',
+            $buffer['asset_ids'] ?? [],
+        )));
+
+        if (! in_array($asset->id, $assetIds, true)) {
+            $assetIds[] = $asset->id;
+        }
+
+        $updatedAt = (int) round(microtime(true) * 1000);
+        $buffer = [
+            'asset_ids' => $assetIds,
+            'updated_at' => $updatedAt,
+            'media_group_id' => $mediaGroupId ?? ($buffer['media_group_id'] ?? null),
+        ];
+
+        $this->putAdminPublishBuffer($telegramId, $buffer);
+
+        FlushTelegramAdminPublishBuffer::dispatch($telegramId, $chatId, $updatedAt);
+
+        return true;
+    }
+
+    public function flushAdminPublishBuffer(int $telegramId, int|string $chatId, int $updatedAtToken): void
+    {
+        $buffer = $this->adminPublishBuffer($telegramId);
+
+        if ($buffer === null || (int) ($buffer['updated_at'] ?? 0) !== $updatedAtToken) {
+            return;
+        }
+
+        $assetIds = array_values(array_unique(array_map(
+            'intval',
+            $buffer['asset_ids'] ?? [],
+        )));
+
+        if ($assetIds === []) {
+            $this->clearAdminPublishBuffer($telegramId);
+
+            return;
+        }
+
+        if (count($assetIds) === 1) {
+            $this->sendSingleFileStoredPrompt($chatId, $assetIds[0]);
+            $this->clearAdminPublishBuffer($telegramId);
+
+            return;
+        }
+
+        $assets = TelegramFileAsset::query()
+            ->whereIn('id', $assetIds)
+            ->orderBy('id')
+            ->get();
+
+        $lines = $assets
+            ->map(function (TelegramFileAsset $asset): string {
+                $name = filled($asset->file_name) ? $asset->file_name : ('#'.$asset->id);
+
+                return '• '.e($name);
+            })
+            ->implode("\n");
+
+        $this->telegram->sendMessage(
+            $chatId,
+            '<b>Stored '.$assets->count().' files</b>'."\n"
+            .$lines."\n\n"
+            .'Bulk publish with the same stream, course, type, and premium setting?',
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [[
+                        'text' => 'Bulk publish',
+                        'callback_data' => 'admin:publish:bulk',
+                        'style' => TelegramButtonStyle::Success->value,
+                    ]],
+                    [[
+                        'text' => 'Publish separately',
+                        'callback_data' => 'admin:publish:separate',
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ]],
+                    [[
+                        'text' => 'Done',
+                        'callback_data' => 'admin:publish:done',
+                    ]],
+                ]),
+            ],
+        );
+    }
+
+    protected function sendSingleFileStoredPrompt(int|string $chatId, int $assetId): void
+    {
+        $asset = TelegramFileAsset::query()->find($assetId);
+
+        if ($asset === null) {
+            return;
+        }
+
         $displayName = filled($asset->file_name) ? $asset->file_name : 'document';
 
         $this->telegram->sendMessage(
@@ -1450,8 +1558,6 @@ class TelegramBotHandler
                 ]),
             ],
         );
-
-        return true;
     }
 
     /**
@@ -1509,8 +1615,20 @@ class TelegramBotHandler
             return null;
         }
 
+        if ($data === 'admin:publish:bulk') {
+            return $this->startAdminBulkPublish($telegramId, $chatId, $messageId);
+        }
+
+        if ($data === 'admin:publish:separate') {
+            return $this->startAdminSeparatePublish($telegramId, $chatId, $messageId);
+        }
+
         if (str_starts_with($data, 'admin:publish:')) {
             $assetId = (int) Str::after($data, 'admin:publish:');
+
+            if ($assetId < 1) {
+                return 'That publish button is no longer valid.';
+            }
 
             return $this->startAdminPublish($telegramId, $chatId, $assetId, $messageId);
         }
@@ -1585,6 +1703,15 @@ class TelegramBotHandler
             }
 
             $session['type'] = $type->value;
+
+            if ((bool) ($session['bulk'] ?? false)) {
+                $session['step'] = 'premium';
+                $this->putAdminPublishSession($telegramId, $session);
+                $this->askPublishPremium($chatId, $messageId);
+
+                return null;
+            }
+
             $session['step'] = 'title';
             $this->putAdminPublishSession($telegramId, $session);
             $this->askPublishTitle($chatId, $session, $messageId);
@@ -1593,7 +1720,8 @@ class TelegramBotHandler
         }
 
         if ($data === 'admin:pub:title:filename') {
-            $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+            $assetIds = $this->adminPublishAssetIds($session);
+            $asset = TelegramFileAsset::query()->find($assetIds[0] ?? 0);
 
             if ($asset === null) {
                 $this->clearAdminPublish($telegramId);
@@ -1639,6 +1767,8 @@ class TelegramBotHandler
 
         $session = [
             'asset_id' => $asset->id,
+            'asset_ids' => [$asset->id],
+            'bulk' => false,
             'step' => 'stream',
             'stream_id' => null,
             'course_id' => null,
@@ -1650,6 +1780,75 @@ class TelegramBotHandler
 
         $this->putAdminPublishSession($telegramId, $session);
         $this->askPublishStream($chatId, $messageId);
+
+        return null;
+    }
+
+    protected function startAdminBulkPublish(int $telegramId, int|string $chatId, ?int $messageId): ?string
+    {
+        $buffer = $this->adminPublishBuffer($telegramId);
+        $assetIds = array_values(array_unique(array_map(
+            'intval',
+            $buffer['asset_ids'] ?? [],
+        )));
+
+        if (count($assetIds) < 2) {
+            return 'Bulk publish batch expired. Send the files again.';
+        }
+
+        $assets = TelegramFileAsset::query()->whereIn('id', $assetIds)->count();
+
+        if ($assets !== count($assetIds)) {
+            $this->clearAdminPublishBuffer($telegramId);
+
+            return 'Some files are missing from the vault. Send them again.';
+        }
+
+        $this->clearAdminPublishBuffer($telegramId);
+
+        $session = [
+            'asset_id' => $assetIds[0],
+            'asset_ids' => $assetIds,
+            'bulk' => true,
+            'step' => 'stream',
+            'stream_id' => null,
+            'course_id' => null,
+            'course_page' => 1,
+            'type' => null,
+            'title' => null,
+            'is_premium' => false,
+        ];
+
+        $this->putAdminPublishSession($telegramId, $session);
+        $this->askPublishStream($chatId, $messageId);
+
+        return null;
+    }
+
+    protected function startAdminSeparatePublish(int $telegramId, int|string $chatId, ?int $messageId): ?string
+    {
+        $buffer = $this->adminPublishBuffer($telegramId);
+        $assetIds = array_values(array_unique(array_map(
+            'intval',
+            $buffer['asset_ids'] ?? [],
+        )));
+
+        if ($assetIds === []) {
+            return 'Publish batch expired. Send the files again.';
+        }
+
+        $this->clearAdminPublishBuffer($telegramId);
+
+        $this->telegram->replyOrEdit(
+            $chatId,
+            'Publish each file separately:',
+            ['reply_markup' => $this->telegram->inlineKeyboard([])],
+            $messageId,
+        );
+
+        foreach ($assetIds as $assetId) {
+            $this->sendSingleFileStoredPrompt($chatId, $assetId);
+        }
 
         return null;
     }
@@ -1751,7 +1950,8 @@ class TelegramBotHandler
      */
     protected function askPublishTitle(int|string $chatId, array $session, ?int $messageId = null): void
     {
-        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+        $assetIds = $this->adminPublishAssetIds($session);
+        $asset = TelegramFileAsset::query()->find($assetIds[0] ?? 0);
         $filename = filled($asset?->file_name)
             ? pathinfo((string) $asset->file_name, PATHINFO_FILENAME)
             : 'Untitled resource';
@@ -1795,20 +1995,48 @@ class TelegramBotHandler
         $course = Course::query()->find($session['course_id'] ?? 0);
         $stream = Stream::query()->find($session['stream_id'] ?? 0);
         $type = ResourceType::tryFrom((string) ($session['type'] ?? ''));
-        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+        $assetIds = $this->adminPublishAssetIds($session);
+        $assets = TelegramFileAsset::query()
+            ->whereIn('id', $assetIds)
+            ->orderBy('id')
+            ->get();
+        $isBulk = (bool) ($session['bulk'] ?? false) && $assets->count() > 1;
 
-        $summary = '<b>Publish resource?</b>'."\n"
-            .'Title: '.e((string) ($session['title'] ?? ''))."\n"
-            .'Type: '.e($type?->label() ?? '-')."\n"
-            .'Stream: '.e($stream?->name ?? '-')."\n"
-            .'Course: '.e($course?->name ?? '-')."\n"
-            .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
-            .'File: '.e($asset?->file_name ?? $asset?->file_id ?? '-');
+        if ($isBulk) {
+            $fileLines = $assets
+                ->values()
+                ->map(function (TelegramFileAsset $asset, int $index): string {
+                    $name = filled($asset->file_name)
+                        ? pathinfo((string) $asset->file_name, PATHINFO_FILENAME)
+                        : ('Document '.($index + 1));
+
+                    return '• '.e($name !== '' ? $name : ('Document '.($index + 1)));
+                })
+                ->implode("\n");
+
+            $summary = '<b>Publish '.$assets->count().' resources?</b>'."\n"
+                .'Type: '.e($type?->label() ?? '-')."\n"
+                .'Stream: '.e($stream?->name ?? '-')."\n"
+                .'Course: '.e($course?->name ?? '-')."\n"
+                .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
+                .'Titles (from filenames):'."\n"
+                .$fileLines;
+        } else {
+            $asset = $assets->first();
+
+            $summary = '<b>Publish resource?</b>'."\n"
+                .'Title: '.e((string) ($session['title'] ?? ''))."\n"
+                .'Type: '.e($type?->label() ?? '-')."\n"
+                .'Stream: '.e($stream?->name ?? '-')."\n"
+                .'Course: '.e($course?->name ?? '-')."\n"
+                .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
+                .'File: '.e($asset?->file_name ?? $asset?->file_id ?? '-');
+        }
 
         $this->telegram->replyOrEdit($chatId, $summary, [
             'reply_markup' => $this->telegram->inlineKeyboard([
                 [[
-                    'text' => 'Publish',
+                    'text' => $isBulk ? 'Publish all' : 'Publish',
                     'callback_data' => 'admin:pub:confirm',
                     'style' => TelegramButtonStyle::Success->value,
                 ]],
@@ -1822,45 +2050,112 @@ class TelegramBotHandler
      */
     protected function finalizeAdminPublish(int $telegramId, int|string $chatId, array $session, ?int $messageId): ?string
     {
-        $asset = TelegramFileAsset::query()->find($session['asset_id'] ?? 0);
+        $assetIds = $this->adminPublishAssetIds($session);
         $course = Course::query()->active()->find($session['course_id'] ?? 0);
         $type = ResourceType::tryFrom((string) ($session['type'] ?? ''));
+        $isBulk = (bool) ($session['bulk'] ?? false);
         $title = trim((string) ($session['title'] ?? ''));
 
-        if ($asset === null || $course === null || $type === null || $title === '') {
+        if ($assetIds === [] || $course === null || $type === null || (! $isBulk && $title === '')) {
             $this->clearAdminPublish($telegramId);
 
             return 'Publish data incomplete. Send the file again.';
         }
 
-        $telegramFiles = LearningResourceFiles::normalizeTelegramFileIds([$asset->file_id]);
+        $assets = TelegramFileAsset::query()
+            ->whereIn('id', $assetIds)
+            ->orderBy('id')
+            ->get()
+            ->keyBy('id');
 
-        $resource = LearningResource::query()->create([
-            'title' => $title,
-            'slug' => $this->uniqueLearningSlug($title),
-            'type' => $type,
-            'stream_id' => $course->stream_id,
-            'course_id' => $course->id,
-            'is_premium' => (bool) ($session['is_premium'] ?? false),
-            'is_published' => true,
-            'telegram_files' => $telegramFiles,
-            'files' => null,
-        ]);
+        if ($assets->count() !== count($assetIds)) {
+            $this->clearAdminPublish($telegramId);
+
+            return 'Publish data incomplete. Send the file again.';
+        }
+
+        $created = [];
+        $isPremium = (bool) ($session['is_premium'] ?? false);
+
+        foreach ($assetIds as $index => $assetId) {
+            /** @var TelegramFileAsset $asset */
+            $asset = $assets->get($assetId);
+
+            if ($isBulk) {
+                $stem = filled($asset->file_name)
+                    ? pathinfo((string) $asset->file_name, PATHINFO_FILENAME)
+                    : '';
+                $resourceTitle = $stem !== '' ? $stem : ('Document '.($index + 1));
+            } else {
+                $resourceTitle = $title;
+            }
+
+            $resourceTitle = mb_substr($resourceTitle, 0, 200);
+            $telegramFiles = LearningResourceFiles::normalizeTelegramFileIds([$asset->file_id]);
+
+            $created[] = LearningResource::query()->create([
+                'title' => $resourceTitle,
+                'slug' => $this->uniqueLearningSlug($resourceTitle),
+                'type' => $type,
+                'stream_id' => $course->stream_id,
+                'course_id' => $course->id,
+                'is_premium' => $isPremium,
+                'is_published' => true,
+                'telegram_files' => $telegramFiles,
+                'files' => null,
+            ]);
+        }
 
         $this->clearAdminPublish($telegramId);
 
+        if (count($created) === 1) {
+            $resource = $created[0];
+
+            $this->telegram->replyOrEdit(
+                $chatId,
+                '<b>Published</b>'."\n"
+                .'Title: '.e($resource->title)."\n"
+                .'Type: '.e($type->label())."\n"
+                .'Course: '.e($course->name)."\n"
+                .'ID: '.$resource->id,
+                ['reply_markup' => $this->telegram->inlineKeyboard([])],
+                $messageId,
+            );
+
+            return null;
+        }
+
+        $lines = collect($created)
+            ->map(fn (LearningResource $resource): string => '• '.e($resource->title).' (ID '.$resource->id.')')
+            ->implode("\n");
+
         $this->telegram->replyOrEdit(
             $chatId,
-            '<b>Published</b>'."\n"
-            .'Title: '.e($resource->title)."\n"
+            '<b>Published '.count($created).' resources</b>'."\n"
             .'Type: '.e($type->label())."\n"
             .'Course: '.e($course->name)."\n"
-            .'ID: '.$resource->id,
+            .'Premium: '.($isPremium ? 'Yes' : 'No')."\n"
+            .$lines,
             ['reply_markup' => $this->telegram->inlineKeyboard([])],
             $messageId,
         );
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $session
+     * @return list<int>
+     */
+    protected function adminPublishAssetIds(array $session): array
+    {
+        if (isset($session['asset_ids']) && is_array($session['asset_ids'])) {
+            return array_values(array_unique(array_map('intval', $session['asset_ids'])));
+        }
+
+        $assetId = (int) ($session['asset_id'] ?? 0);
+
+        return $assetId > 0 ? [$assetId] : [];
     }
 
     /**
@@ -1900,6 +2195,11 @@ class TelegramBotHandler
         return 'telegram.publish.'.$telegramId;
     }
 
+    protected function adminPublishBufferCacheKey(int $telegramId): string
+    {
+        return 'telegram.publish.buffer.'.$telegramId;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
@@ -1918,9 +2218,33 @@ class TelegramBotHandler
         Cache::put($this->adminPublishCacheKey($telegramId), $session, now()->addHour());
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function adminPublishBuffer(int $telegramId): ?array
+    {
+        $buffer = Cache::get($this->adminPublishBufferCacheKey($telegramId));
+
+        return is_array($buffer) ? $buffer : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $buffer
+     */
+    protected function putAdminPublishBuffer(int $telegramId, array $buffer): void
+    {
+        Cache::put($this->adminPublishBufferCacheKey($telegramId), $buffer, now()->addMinutes(10));
+    }
+
+    protected function clearAdminPublishBuffer(int $telegramId): void
+    {
+        Cache::forget($this->adminPublishBufferCacheKey($telegramId));
+    }
+
     protected function clearAdminPublish(int $telegramId): void
     {
         Cache::forget($this->adminPublishCacheKey($telegramId));
+        $this->clearAdminPublishBuffer($telegramId);
     }
 
     protected function showPremium(User $user, int|string $chatId): void

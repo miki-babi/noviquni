@@ -2,14 +2,17 @@
 
 use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
+use App\Jobs\FlushTelegramAdminPublishBuffer;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Services\TelegramBotHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
@@ -24,7 +27,23 @@ beforeEach(function () {
     ]);
 });
 
+function flushLatestAdminPublishBufferJob(): void
+{
+    $jobs = [];
+
+    Queue::assertPushed(FlushTelegramAdminPublishBuffer::class, function (FlushTelegramAdminPublishBuffer $job) use (&$jobs) {
+        $jobs[] = $job;
+
+        return true;
+    });
+
+    expect($jobs)->not->toBeEmpty();
+
+    end($jobs)->handle(app(TelegramBotHandler::class));
+}
+
 it('stores a document from a file vault admin and replies with file_id', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
@@ -58,6 +77,8 @@ it('stores a document from a file vault admin and replies with file_id', functio
         ->and($asset->file_name)->toBe('week-1-notes.pdf')
         ->and($asset->uploaded_by_username)->toBe('Vault_Admin');
 
+    flushLatestAdminPublishBufferJob();
+
     Http::assertSent(function ($request) use ($asset) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
@@ -74,9 +95,15 @@ it('stores a document from a file vault admin and replies with file_id', functio
     });
 });
 
-function adminDocumentWebhook(int $updateId, int $telegramId, string $fileId, string $uniqueId, string $fileName = 'week-1-notes.pdf'): array
-{
-    return [
+function adminDocumentWebhook(
+    int $updateId,
+    int $telegramId,
+    string $fileId,
+    string $uniqueId,
+    string $fileName = 'week-1-notes.pdf',
+    ?string $mediaGroupId = null,
+): array {
+    $payload = [
         'update_id' => $updateId,
         'message' => [
             'message_id' => $updateId,
@@ -95,6 +122,12 @@ function adminDocumentWebhook(int $updateId, int $telegramId, string $fileId, st
             ],
         ],
     ];
+
+    if ($mediaGroupId !== null) {
+        $payload['message']['media_group_id'] = $mediaGroupId;
+    }
+
+    return $payload;
 }
 
 function adminCallbackWebhook(int $updateId, int $telegramId, string $data, int $messageId = 20): array
@@ -119,6 +152,7 @@ function adminCallbackWebhook(int $updateId, int $telegramId, string $data, int 
 }
 
 it('publishes a learning resource through the telegram wizard', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
@@ -144,6 +178,8 @@ it('publishes a learning resource through the telegram wizard', function () {
         'calc-notes.pdf',
     ))->assertOk();
 
+    flushLatestAdminPublishBufferJob();
+
     $asset = TelegramFileAsset::query()->where('file_unique_id', 'AgADpublish-unique-1')->firstOrFail();
 
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9202, $telegramId, 'admin:publish:'.$asset->id))->assertOk();
@@ -167,7 +203,183 @@ it('publishes a learning resource through the telegram wizard', function () {
         ]);
 });
 
+it('prompts for bulk publish after buffering an album of documents', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $telegramId = 777020;
+    $mediaGroupId = 'album-777020';
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9301,
+        $telegramId,
+        'BQACAgQAAxkBAAI-album-1',
+        'AgADalbum-unique-1',
+        'chapter-1.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9302,
+        $telegramId,
+        'BQACAgQAAxkBAAI-album-2',
+        'AgADalbum-unique-2',
+        'chapter-2.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    expect(TelegramFileAsset::query()->count())->toBe(2);
+
+    Http::assertNotSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) ($request->data()['text'] ?? '');
+
+        return str_contains($text, 'File stored') || str_contains($text, 'Stored 2 files');
+    });
+
+    Queue::assertPushedTimes(FlushTelegramAdminPublishBuffer::class, 2);
+
+    flushLatestAdminPublishBufferJob();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+
+        return str_contains($text, 'Stored 2 files')
+            && str_contains($text, 'chapter-1.pdf')
+            && str_contains($text, 'chapter-2.pdf')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'admin:publish:bulk'
+            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'admin:publish:separate'
+            && data_get($data, 'reply_markup.inline_keyboard.2.0.callback_data') === 'admin:publish:done';
+    });
+});
+
+it('bulk publishes multiple vault files through one shared wizard', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/bot*/editMessageText' => Http::response(['ok' => true, 'result' => ['message_id' => 20]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+        'is_active' => true,
+    ]);
+
+    $telegramId = 777021;
+    $mediaGroupId = 'album-777021';
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9311,
+        $telegramId,
+        'BQACAgQAAxkBAAI-bulk-1',
+        'AgADbulk-unique-1',
+        'kinematics.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9312,
+        $telegramId,
+        'BQACAgQAAxkBAAI-bulk-2',
+        'AgADbulk-unique-2',
+        'dynamics.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    flushLatestAdminPublishBufferJob();
+
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9313, $telegramId, 'admin:publish:bulk'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9314, $telegramId, 'admin:pub:stream:'.$stream->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9315, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9316, $telegramId, 'admin:pub:type:module'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9317, $telegramId, 'admin:pub:premium:1'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9318, $telegramId, 'admin:pub:confirm'))->assertOk();
+
+    $resources = LearningResource::query()->orderBy('title')->get();
+
+    expect($resources)->toHaveCount(2)
+        ->and($resources->pluck('title')->all())->toBe(['dynamics', 'kinematics'])
+        ->and($resources->every(fn (LearningResource $resource) => $resource->course_id === $course->id))->toBeTrue()
+        ->and($resources->every(fn (LearningResource $resource) => $resource->type === ResourceType::Module))->toBeTrue()
+        ->and($resources->every(fn (LearningResource $resource) => $resource->is_premium === true))->toBeTrue()
+        ->and($resources->every(fn (LearningResource $resource) => $resource->is_published === true))->toBeTrue()
+        ->and(cache()->get('telegram.publish.'.$telegramId))->toBeNull()
+        ->and(cache()->get('telegram.publish.buffer.'.$telegramId))->toBeNull();
+});
+
+it('sends individual publish buttons when choosing publish separately', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/bot*/editMessageText' => Http::response(['ok' => true, 'result' => ['message_id' => 20]], 200),
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $telegramId = 777022;
+    $mediaGroupId = 'album-777022';
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9321,
+        $telegramId,
+        'BQACAgQAAxkBAAI-sep-1',
+        'AgADsep-unique-1',
+        'alpha.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    $this->postJson('/telegram/webhook', adminDocumentWebhook(
+        9322,
+        $telegramId,
+        'BQACAgQAAxkBAAI-sep-2',
+        'AgADsep-unique-2',
+        'beta.pdf',
+        $mediaGroupId,
+    ))->assertOk();
+
+    flushLatestAdminPublishBufferJob();
+
+    $assets = TelegramFileAsset::query()->orderBy('id')->get();
+
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9323, $telegramId, 'admin:publish:separate'))->assertOk();
+
+    expect(cache()->get('telegram.publish.buffer.'.$telegramId))->toBeNull();
+
+    foreach ($assets as $asset) {
+        Http::assertSent(function ($request) use ($asset) {
+            if (! str_contains($request->url(), '/sendMessage')) {
+                return false;
+            }
+
+            $data = $request->data();
+            $text = (string) ($data['text'] ?? '');
+
+            return str_contains($text, 'File stored')
+                && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'admin:publish:'.$asset->id;
+        });
+    }
+});
+
 it('cancels the publish wizard without creating a resource', function () {
+    Queue::fake([FlushTelegramAdminPublishBuffer::class]);
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
@@ -187,6 +399,8 @@ it('cancels the publish wizard without creating a resource', function () {
         'BQACAgQAAxkBAAI-cancel-file',
         'AgADcancel-unique-1',
     ))->assertOk();
+
+    flushLatestAdminPublishBufferJob();
 
     $asset = TelegramFileAsset::query()->where('file_unique_id', 'AgADcancel-unique-1')->firstOrFail();
 
