@@ -135,6 +135,14 @@ return [
         'open_in_app' => 'በጥናት መተግበሪያ ክፈት',
         'quick_save' => 'በፍጥነት አስቀምጥ',
         'share' => 'አጋራ',
+        'share_message' => '📚 :title
+
+:description
+
+እዚህ ያግኙት 👇
+:link
+
+🎓 ተጨማሪ የመጀመሪያ ዓመት መርጃዎች፣ ፈተናዎች፣ ስራዎች፣ አጭር ማስታወሻዎች እና ማጣቀሻ መጽሐፍት በ NOViQ Uni ይገኛሉ።',
     ],
     'library' => [
         'title' => 'በኮርሶችዎ ያሉ መርጃዎች',

@@ -1235,7 +1235,12 @@ class TelegramBotHandler
         }
 
         $deepLink = app(TelegramDeepLink::class)->forResource($resource->id);
-        $shareText = trim($resource->title."\n\n".(string) $resource->description."\n\n".$deepLink);
+        $shareText = $copy->get('resource.share_message', [
+            'title' => $resource->title,
+            'description' => filled($resource->description) ? (string) $resource->description : '',
+            'link' => $deepLink,
+        ]);
+        $shareText = trim(preg_replace("/\n{3,}/", "\n\n", $shareText) ?? $shareText);
         $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
 
         return $this->telegram->inlineKeyboard([[

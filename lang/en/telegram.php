@@ -136,6 +136,7 @@ return [
         'open_in_app' => 'Open in study app',
         'quick_save' => 'Quick save',
         'share' => 'Share',
+        'share_message' => "📚 :title\n\n:description\n\nGet it here 👇\n:link\n\n🎓 More freshman resources, exams, assignments, short notes & reference books are available on NOViQ Uni.",
     ],
     'library' => [
         'title' => 'Resources across your courses',
