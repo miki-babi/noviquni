@@ -327,10 +327,15 @@ it('sends telegram_files by file_id without uploading from disk', function () {
         $data = $request->data();
         $buttons = data_get($data, 'reply_markup.inline_keyboard.0', []);
 
+        $shareUrl = (string) ($buttons[1]['url'] ?? '');
+
         return ($data['document'] ?? null) === $fileId
             && ($data['caption'] ?? null) === 'Telegram Vault Notes'
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
-            && ($buttons[1]['callback_data'] ?? null) === 'share:resource:'.$resource->id;
+            && ($buttons[0]['text'] ?? null) === 'Quick save'
+            && ! array_key_exists('style', $buttons[0])
+            && str_contains($shareUrl, 't.me/share/url')
+            && str_contains(urldecode($shareUrl), 'start=resource_'.$resource->id);
     });
 });
 

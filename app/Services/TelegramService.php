@@ -320,6 +320,19 @@ class TelegramService
     }
 
     /**
+     * @param  array<string, mixed>  $replyMarkup
+     * @return array<string, mixed>|null
+     */
+    public function editMessageReplyMarkup(int|string $chatId, int $messageId, array $replyMarkup): ?array
+    {
+        return $this->call('editMessageReplyMarkup', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'reply_markup' => $replyMarkup,
+        ]);
+    }
+
+    /**
      * Send a new message or edit an existing one when messageId is present.
      *
      * @param  array<string, mixed>  $payload

@@ -256,10 +256,11 @@ class TelegramBotHandler
             str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'rtype:') => $this->handleResourceTypeCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
-            str_starts_with($data, 'save:resource:') => $this->handleSaveResource($user, (int) Str::after($data, 'save:resource:')),
-            str_starts_with($data, 'share:resource:') => $this->guardComplete(
+            str_starts_with($data, 'save:resource:') => $this->handleSaveResource(
                 $user,
-                fn () => $this->handleShareResource($user, $chatId, (int) Str::after($data, 'share:resource:')),
+                $chatId,
+                (int) Str::after($data, 'save:resource:'),
+                $messageId,
             ),
             str_starts_with($data, 'saved:page:') => $this->guardComplete(
                 $user,
@@ -402,7 +403,7 @@ class TelegramBotHandler
         return null;
     }
 
-    protected function handleSaveResource(User $user, int $resourceId): ?string
+    protected function handleSaveResource(User $user, int|string $chatId, int $resourceId, ?int $messageId = null): ?string
     {
         $copy = TelegramCopy::for($user);
 
@@ -422,37 +423,23 @@ class TelegramBotHandler
 
         if ($existing !== null) {
             $existing->delete();
-
-            return $copy->get('saved.removed_status');
+            $status = $copy->get('saved.removed_status');
+        } else {
+            $user->bookmarks()->create([
+                'learning_resource_id' => $resource->id,
+            ]);
+            $status = $copy->get('saved.saved_status');
         }
 
-        $user->bookmarks()->create([
-            'learning_resource_id' => $resource->id,
-        ]);
-
-        return $copy->get('saved.saved_status');
-    }
-
-    protected function handleShareResource(User $user, int|string $chatId, int $resourceId): void
-    {
-        $copy = TelegramCopy::for($user);
-        $resource = LearningResource::query()->published()->find($resourceId);
-
-        if ($resource === null) {
-            $this->telegram->sendMessage($chatId, $copy->get('resource.not_found'));
-
-            return;
+        if ($messageId !== null) {
+            $this->telegram->editMessageReplyMarkup(
+                $chatId,
+                $messageId,
+                $this->resourceFileKeyboard($user, $resource),
+            );
         }
 
-        $link = app(TelegramDeepLink::class)->forResource($resource->id);
-
-        $this->telegram->sendMessage(
-            $chatId,
-            $copy->get('resource.share_message', [
-                'title' => e($resource->title),
-                'link' => $link,
-            ]),
-        );
+        return $status;
     }
 
     protected function handleNotifyOn(User $user, int|string $chatId): ?string
@@ -1228,22 +1215,44 @@ class TelegramBotHandler
         $this->sendResourceFiles($user, $chatId, $resource);
     }
 
-    protected function sendResourceFiles(User $user, int|string $chatId, LearningResource $resource): void
+    /**
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    protected function resourceFileKeyboard(User $user, LearningResource $resource): array
     {
         $copy = TelegramCopy::for($user);
+        $isSaved = $user->bookmarks()
+            ->where('learning_resource_id', $resource->id)
+            ->exists();
+
+        $saveButton = [
+            'text' => $isSaved ? $copy->get('saved.unsave') : $copy->get('resource.quick_save'),
+            'callback_data' => 'save:resource:'.$resource->id,
+        ];
+
+        if ($isSaved) {
+            $saveButton['style'] = TelegramButtonStyle::Success->value;
+        }
+
+        $deepLink = app(TelegramDeepLink::class)->forResource($resource->id);
+        $shareText = trim($resource->title."\n\n".(string) $resource->description);
+        $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
+
+        return $this->telegram->inlineKeyboard([[
+            $saveButton,
+            [
+                'text' => $copy->get('resource.share'),
+                'url' => $shareUrl,
+            ],
+        ]]);
+    }
+
+    protected function sendResourceFiles(User $user, int|string $chatId, LearningResource $resource): void
+    {
         $caption = $resource->title;
         $sent = false;
         $markup = [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                [
-                    'text' => $copy->get('resource.quick_save'),
-                    'callback_data' => 'save:resource:'.$resource->id,
-                ],
-                [
-                    'text' => $copy->get('resource.share'),
-                    'callback_data' => 'share:resource:'.$resource->id,
-                ],
-            ]]),
+            'reply_markup' => $this->resourceFileKeyboard($user, $resource),
         ];
 
         foreach ($resource->telegram_files ?? [] as $telegramFile) {
