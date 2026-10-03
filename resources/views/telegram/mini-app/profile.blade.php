@@ -5,6 +5,7 @@
     $initial = mb_strtoupper(mb_substr($user->name ?: 'S', 0, 1));
     $photoUrl = $user->telegram_photo_url;
     $username = $user->telegram_username;
+    $accentCycle = ['lime', 'mint', 'coral', 'teal'];
 @endphp
 
 <x-telegram.mini-app.layout
@@ -35,6 +36,18 @@
                     this.username = tgUser.username;
                 }
             },
+            openBotLink(event) {
+                const href = event.currentTarget.getAttribute('href');
+                if (! href) {
+                    return;
+                }
+                const webApp = window.Telegram?.WebApp;
+                if (webApp?.openTelegramLink) {
+                    event.preventDefault();
+                    webApp.openTelegramLink(href);
+                    webApp.close?.();
+                }
+            },
         }"
     >
         <div class="study-profile-hero">
@@ -50,7 +63,7 @@
                 <span x-show="! photoUrl" x-text="displayName.charAt(0).toUpperCase()">{{ $initial }}</span>
             </span>
             <div class="min-w-0">
-                <h2 class="study-profile-name" x-text="displayName">{{ $user->name }}</h2>
+                <h2 class="study-profile-name" x-text="displayName.toUpperCase()">{{ mb_strtoupper($user->name ?: '') }}</h2>
                 <p class="study-profile-username" x-show="username" x-text="username ? '@' + username : ''">
                     @if ($username)
                         {{ '@'.$username }}
@@ -60,14 +73,77 @@
         </div>
 
         <div class="study-card study-continue">
-            <p class="whitespace-pre-line text-sm leading-relaxed">
-                {{ $copy->get('profile.body', [
-                    'stream' => $user->stream?->name ?? '-',
-                    'university' => $user->university?->name ?? '-',
-                    'semester' => $user->semester?->name ?? '-',
-                    'courses' => $courses,
-                ]) }}
-            </p>
+            <div class="study-profile-row">
+                <span class="study-profile-label">{{ $copy->get('profile.stream') }}</span>
+                <span class="study-profile-value">{{ $user->stream?->name ?? $copy->get('profile.none') }}</span>
+            </div>
+            <div class="study-profile-row">
+                <span class="study-profile-label">{{ $copy->get('profile.university') }}</span>
+                <span class="study-profile-value">{{ $user->university?->name ?? $copy->get('profile.none') }}</span>
+            </div>
+            <div class="study-profile-row">
+                <span class="study-profile-label">{{ $copy->get('profile.semester') }}</span>
+                <span class="study-profile-value">{{ $user->semester?->name ?? $copy->get('profile.none') }}</span>
+            </div>
+            <div class="study-profile-row study-profile-row--stack">
+                <span class="study-profile-label">{{ $copy->get('profile.courses') }}</span>
+                @if ($courses->isEmpty())
+                    <span class="study-profile-value">{{ $copy->get('profile.none') }}</span>
+                @else
+                    <div class="study-chip-wrap">
+                        @foreach ($courses as $course)
+                            @php
+                                $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                            @endphp
+                            <a
+                                href="{{ $deepLinks->forCourse($course->slug) }}"
+                                class="study-chip study-chip--{{ $accent }}"
+                                @click="openBotLink($event)"
+                            >
+                                {{ $course->name }}
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <div class="study-card study-continue">
+            <div class="flex items-center justify-between gap-3">
+                <p class="study-card-title">{{ $copy->get('profile.files') }}</p>
+                <a href="{{ route('tg.saved') }}" class="text-xs font-semibold tg-link">{{ $copy->get('menu.saved') }}</a>
+            </div>
+
+            @if ($bookmarks->isEmpty())
+                <p class="mt-3 text-sm leading-relaxed tg-hint">{{ $copy->get('profile.files_empty') }}</p>
+                <a href="{{ route('tg.library') }}" class="tg-btn tg-btn-secondary mt-3">
+                    {{ $copy->get('menu.resources') }}
+                </a>
+            @else
+                <div class="study-file-list mt-3">
+                    @foreach ($bookmarks as $bookmark)
+                        @php $resource = $bookmark->learningResource; @endphp
+                        @if ($resource)
+                            <a
+                                href="{{ $deepLinks->forResource($resource->id) }}"
+                                class="study-file-row"
+                                @click="openBotLink($event)"
+                            >
+                                <span class="min-w-0 flex-1">
+                                    <span class="study-card-title block">{{ $resource->title }}</span>
+                                    <span class="study-card-meta block">
+                                        {{ $resource->type->label() }}
+                                        @if ($resource->course)
+                                            · {{ $resource->course->name }}
+                                        @endif
+                                    </span>
+                                </span>
+                                <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                            </a>
+                        @endif
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <a href="{{ route('tg.profile.edit') }}" class="study-card">

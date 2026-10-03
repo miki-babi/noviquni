@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\OnboardingStep;
+use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Semester;
@@ -8,6 +9,7 @@ use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Services\TelegramDeepLink;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -190,7 +192,7 @@ it('shows profile without premium screens when premium is disabled', function ()
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('Abebe Kebede')
+        ->assertSee('ABEBE KEBEDE')
         ->assertSee('@abebe')
         ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
         ->assertSee('Edit study profile')
@@ -200,6 +202,47 @@ it('shows profile without premium screens when premium is disabled', function ()
     $this->actingAs($user)
         ->get(route('tg.premium'))
         ->assertRedirect(route('tg.profile'));
+});
+
+it('shows profile course and saved-file bot deep links', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+        'slug' => 'physics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+        'name' => 'Abebe Kebede',
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $resource = LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Week-1 notes',
+    ]);
+
+    Bookmark::query()->create([
+        'user_id' => $user->id,
+        'learning_resource_id' => $resource->id,
+    ]);
+
+    $deepLinks = app(TelegramDeepLink::class);
+
+    $this->actingAs($user)
+        ->get(route('tg.profile'))
+        ->assertOk()
+        ->assertSee('Physics')
+        ->assertSee($deepLinks->forCourse('physics'), false)
+        ->assertSee('Week-1 notes')
+        ->assertSee($deepLinks->forResource($resource->id), false)
+        ->assertSee('?start=course_physics', false)
+        ->assertSee('?start=resource_'.$resource->id, false)
+        ->assertSee('openBotLink', false);
 });
 
 it('shows profile and premium screens when premium is enabled', function () {
@@ -216,7 +259,7 @@ it('shows profile and premium screens when premium is enabled', function () {
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('Abebe Kebede')
+        ->assertSee('ABEBE KEBEDE')
         ->assertSee('Premium')
         ->assertSee(route('tg.premium'), false);
 

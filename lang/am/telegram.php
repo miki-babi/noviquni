@@ -77,6 +77,8 @@ return [
         'university' => 'ዩኒቨርሲቲ',
         'semester' => 'ሴሚስተር',
         'courses' => 'ኮርሶች',
+        'files' => 'በፍጥነት የተቀመጡ',
+        'files_empty' => 'እስካሁን የተቀመጠ ፋይል የለም። ከመርጃዎች ያስቀምጡ፣ ከዚያ እዚህ በቦቱ ይክፈቱ።',
         'other_university' => 'ሌላ',
         'skip_semester' => 'ዝለል',
         'save' => 'ለውጦችን አስቀምጥ',

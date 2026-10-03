@@ -11,6 +11,7 @@ use App\Models\University;
 use App\Models\User;
 use App\Services\OnboardingService;
 use App\Services\ReferralService;
+use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,19 +21,27 @@ use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
-    public function show(ReferralService $referrals): View
+    public function show(ReferralService $referrals, TelegramDeepLink $deepLinks): View
     {
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
         $user->load(['stream', 'university', 'semester', 'courses']);
 
-        $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
+        $bookmarks = $user->bookmarks()
+            ->with(['learningResource.course'])
+            ->latest('id')
+            ->limit(8)
+            ->get()
+            ->filter(fn ($bookmark) => $bookmark->learningResource?->is_published)
+            ->values();
 
         return view('telegram.mini-app.profile', [
             'copy' => $copy,
             'user' => $user,
-            'courses' => $courses,
+            'courses' => $user->courses,
+            'bookmarks' => $bookmarks,
+            'deepLinks' => $deepLinks,
             'referralLink' => $referrals->referralLink($user),
             'premiumEnabled' => (bool) config('services.telegram.premium_enabled'),
             'activeNav' => 'profile',

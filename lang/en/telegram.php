@@ -78,6 +78,8 @@ return [
         'university' => 'University',
         'semester' => 'Semester',
         'courses' => 'Courses',
+        'files' => 'Quick saved',
+        'files_empty' => 'No saved files yet. Save a resource from the library, then open it here in the bot.',
         'other_university' => 'Other',
         'skip_semester' => 'Skip',
         'save' => 'Save changes',
