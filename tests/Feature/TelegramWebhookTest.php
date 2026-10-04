@@ -385,7 +385,7 @@ it('shows courses with the selected resource type in a reply keyboard', function
     });
 });
 
-it('opens the selected course resource type in the mini app', function () {
+it('sends the file directly when a course has one file-backed resource of the selected type', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
     $user = User::factory()->student()->create([
@@ -395,24 +395,89 @@ it('opens the selected course resource type in the mini app', function () {
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
-    LearningResource::factory()->published()->notes()->create([
+    $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'title' => 'Motion notes',
+        'files' => null,
+        'telegram_files' => [
+            ['file_id' => 'BQACAgQAAxkBAAI-direct-notes', 'file_name' => 'notes.pdf'],
+        ],
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📚 Notes', 600))->assertOk();
     $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📗 Physics', 601))->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) use ($resource) {
+        if (! str_contains($request->url(), '/sendDocument')) {
+            return false;
+        }
+
         $data = $request->data();
 
-        return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) ($data['text'] ?? ''), 'Open Notes for Physics in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library.hub', [
-                'hub' => 'notes',
-                'course' => $course->slug,
-            ]);
+        return ($data['document'] ?? null) === 'BQACAgQAAxkBAAI-direct-notes'
+            && ($data['caption'] ?? null) === $resource->title;
     });
+
+    Http::assertNotSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Open Notes for Physics in the study app')
+            || filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
+    });
+});
+
+it('lists resources inline when a course has multiple resources of the selected type', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Chemistry']);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555029',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $first = LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Week 1 notes',
+        'files' => null,
+        'telegram_files' => [
+            ['file_id' => 'BQACAgQAAxkBAAI-week1', 'file_name' => 'week1.pdf'],
+        ],
+    ]);
+    $second = LearningResource::factory()->published()->notes()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Week 2 notes',
+        'files' => null,
+        'telegram_files' => [
+            ['file_id' => 'BQACAgQAAxkBAAI-week2', 'file_name' => 'week2.pdf'],
+        ],
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📚 Notes', 602))->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📗 Chemistry', 603))->assertOk();
+
+    Http::assertSent(function ($request) use ($course, $first, $second) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), $course->name)
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'open_resource:'.$first->id
+            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'open_resource:'.$second->id
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app') === null;
+    });
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
 });
 
 it('shows course setup for the legacy Browse label when no courses are enrolled', function () {

@@ -183,7 +183,7 @@ class TelegramBotHandler
         if ($course !== null) {
             if ($selectedResourceType !== null) {
                 Cache::forget($this->resourceTypeSelectionCacheKey($user));
-                $this->sendCourseResourceTypeMiniAppOpen($user, $chatId, $course, $selectedResourceType);
+                $this->deliverCourseResourceType($user, $chatId, $course, $selectedResourceType);
 
                 return;
             }
@@ -669,20 +669,22 @@ class TelegramBotHandler
         ]);
     }
 
-    protected function sendCourseResourceTypeMiniAppOpen(User $user, int|string $chatId, Course $course, ResourceType $type): void
+    protected function deliverCourseResourceType(User $user, int|string $chatId, Course $course, ResourceType $type): void
     {
-        $this->telegram->sendMessage($chatId, 'Open '.$type->label().' for '.$course->name.' in the study app:', [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                [
-                    'text' => '📚 Open '.$type->label(),
-                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.library.hub', [
-                        'hub' => $type->value,
-                        'course' => $course->slug,
-                    ])],
-                    'style' => TelegramButtonStyle::Success->value,
-                ],
-            ]]),
-        ]);
+        $resources = LearningResource::query()
+            ->published()
+            ->where('course_id', $course->id)
+            ->where('type', $type)
+            ->orderBy('title')
+            ->get();
+
+        if ($resources->count() === 1 && $resources->first()->hasFiles()) {
+            $this->openResource($user, $chatId, (int) $resources->first()->id);
+
+            return;
+        }
+
+        $this->listResourcesByType($user, $chatId, $course->id, $type);
     }
 
     protected function resourceTypeSelectionCacheKey(User $user): string
