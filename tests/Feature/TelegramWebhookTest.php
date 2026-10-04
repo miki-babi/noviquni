@@ -345,15 +345,21 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
         }
 
         $data = $request->data();
-        $labels = collect(data_get($data, 'reply_markup.keyboard', []))
+        $buttons = collect(data_get($data, 'reply_markup.keyboard', []))
             ->flatten(1)
-            ->pluck('text')
-            ->all();
+            ->keyBy('text');
+
+        $notes = $buttons->get('📚 Notes');
+        $quiz = $buttons->get('📚 Quiz');
+        $back = $buttons->get('← Back');
 
         return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
-            && in_array('📚 Notes', $labels, true)
-            && in_array('📚 Quiz', $labels, true)
-            && in_array('← Back', $labels, true);
+            && $notes !== null
+            && $quiz !== null
+            && $back !== null
+            && ($notes['style'] ?? null) === 'success'
+            && ($quiz['style'] ?? null) === 'primary'
+            && ! array_key_exists('style', $back);
     });
 });
 

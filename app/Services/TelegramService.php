@@ -201,7 +201,6 @@ class TelegramService
 
         $rows[] = [[
             'text' => $this->courseKeyboardBackLabel(),
-            'style' => TelegramButtonStyle::Primary->value,
         ]];
 
         return [
@@ -227,9 +226,12 @@ class TelegramService
     {
         $rows = collect(ResourceType::creatableCases())
             ->filter(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type))
-            ->map(fn (ResourceType $type): array => [
+            ->values()
+            ->map(fn (ResourceType $type, int $index): array => [
                 'text' => $this->resourceTypeKeyboardLabel($type),
-                'style' => TelegramButtonStyle::Primary->value,
+                'style' => ($index % 2 === 0
+                    ? TelegramButtonStyle::Success
+                    : TelegramButtonStyle::Primary)->value,
             ])
             ->chunk(2)
             ->map(fn ($row): array => $row->values()->all())
@@ -237,7 +239,6 @@ class TelegramService
 
         $rows[] = [[
             'text' => $this->courseKeyboardBackLabel(),
-            'style' => TelegramButtonStyle::Primary->value,
         ]];
 
         return [
