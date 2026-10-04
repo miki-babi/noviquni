@@ -56,8 +56,10 @@ class ChallengeForm
                     ->required()
                     ->native(false)
                     ->default(ChallengeStatus::Draft->value),
-                DateTimePicker::make('starts_at'),
-                DateTimePicker::make('ends_at'),
+                DateTimePicker::make('starts_at')
+                    ->helperText('UTC. Leave empty to make the challenge available immediately.'),
+                DateTimePicker::make('ends_at')
+                    ->helperText('UTC. Leave empty for no end date.'),
                 TextInput::make('max_winners')
                     ->label('Max winners')
                     ->numeric()

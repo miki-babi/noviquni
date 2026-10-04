@@ -75,6 +75,7 @@ return [
 :status',
         'status_completed' => '✅ ይህን ፈተና አጠናቀዋል።',
         'status_progress' => 'ሂደት: <b>:points</b> / <b>:cost</b> ነጥብ',
+        'status_starts' => 'ይጀምራል: <b>:when</b>',
         'not_found' => 'ይህ ፈተና አይገኝም።',
         'back' => '« ፈተናዎች',
     ],

@@ -51,18 +51,16 @@ class Challenge extends Model
     }
 
     /**
+     * Active challenges students can browse (includes upcoming starts).
+     *
      * @param  Builder<Challenge>  $query
      * @return Builder<Challenge>
      */
     #[Scope]
-    protected function redeemable(Builder $query): Builder
+    protected function listed(Builder $query): Builder
     {
         return $query
             ->where('status', ChallengeStatus::Active)
-            ->where(function (Builder $builder): void {
-                $builder->whereNull('starts_at')
-                    ->orWhere('starts_at', '<=', now());
-            })
             ->where(function (Builder $builder): void {
                 $builder->whereNull('ends_at')
                     ->orWhere('ends_at', '>=', now());
@@ -73,9 +71,36 @@ class Challenge extends Model
             });
     }
 
+    /**
+     * Challenges that can be auto-redeemed now.
+     *
+     * @param  Builder<Challenge>  $query
+     * @return Builder<Challenge>
+     */
+    #[Scope]
+    protected function redeemable(Builder $query): Builder
+    {
+        return $query
+            ->listed()
+            ->where(function (Builder $builder): void {
+                $builder->whereNull('starts_at')
+                    ->orWhere('starts_at', '<=', now());
+            });
+    }
+
     public function hasAvailableSlots(): bool
     {
         return $this->max_winners === null || $this->winners_count < $this->max_winners;
+    }
+
+    public function hasStarted(): bool
+    {
+        return $this->starts_at === null || ! $this->starts_at->isFuture();
+    }
+
+    public function hasEnded(): bool
+    {
+        return $this->ends_at !== null && $this->ends_at->isPast();
     }
 
     /**

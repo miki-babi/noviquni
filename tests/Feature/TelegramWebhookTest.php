@@ -1274,6 +1274,37 @@ it('opens active challenges when the Challenges keyboard button is tapped', func
     });
 });
 
+it('lists upcoming active challenges from the Challenges keyboard', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555052',
+        'onboarding_step' => OnboardingStep::Complete,
+        'referral_points' => 0,
+    ]);
+
+    Challenge::factory()->create([
+        'title' => 'Upcoming mentorship',
+        'cost_points' => 10,
+        'starts_at' => now()->addDay(),
+        'reward_message' => 'Secret prize text',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555052, '🏆 Challenges', 553))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text', '');
+        $buttons = collect(data_get($request->data(), 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return ! str_contains($text, 'No active challenges')
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Upcoming mentorship'))
+            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), 'Secret prize text'));
+    });
+});
+
 it('hides the prize message until the challenge is completed', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555051',

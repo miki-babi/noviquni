@@ -2586,7 +2586,7 @@ class TelegramBotHandler
         $copy = TelegramCopy::for($user);
 
         $challenges = Challenge::query()
-            ->redeemable()
+            ->listed()
             ->orderBy('cost_points')
             ->orderBy('id')
             ->limit(10)
@@ -2621,7 +2621,12 @@ class TelegramBotHandler
 
         $challenge = Challenge::query()->find($challengeId);
 
-        if ($challenge === null || $challenge->status !== ChallengeStatus::Active) {
+        if (
+            $challenge === null
+            || $challenge->status !== ChallengeStatus::Active
+            || $challenge->hasEnded()
+            || ! $challenge->hasAvailableSlots()
+        ) {
             $this->telegram->replyOrEdit($chatId, $copy->get('challenges.not_found'), [
                 'reply_markup' => $this->telegram->inlineKeyboard([[
                     ['text' => $copy->get('challenges.back'), 'callback_data' => 'challenges'],
@@ -2636,17 +2641,23 @@ class TelegramBotHandler
             ? TelegramHtml::escape($challenge->description)
             : '';
 
+        $status = match (true) {
+            $completed => $copy->get('challenges.status_completed'),
+            ! $challenge->hasStarted() => $copy->get('challenges.status_starts', [
+                'when' => $challenge->starts_at?->utc()->format('Y-m-d H:i').' UTC',
+            ]),
+            default => $copy->get('challenges.status_progress', [
+                'points' => $user->referral_points,
+                'cost' => $challenge->cost_points,
+            ]),
+        };
+
         $replacements = [
             'title' => TelegramHtml::escape($challenge->title),
             'description' => $description,
             'cost' => $challenge->cost_points,
             'points' => $user->referral_points,
-            'status' => $completed
-                ? $copy->get('challenges.status_completed')
-                : $copy->get('challenges.status_progress', [
-                    'points' => $user->referral_points,
-                    'cost' => $challenge->cost_points,
-                ]),
+            'status' => $status,
         ];
 
         if ($completed) {
@@ -2665,7 +2676,7 @@ class TelegramBotHandler
             ]]),
         ], $messageId);
 
-        if (! $completed) {
+        if (! $completed && $challenge->hasStarted()) {
             $this->challenges->tryAutoRedeem($user->fresh());
         }
     }

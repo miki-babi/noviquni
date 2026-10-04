@@ -139,3 +139,22 @@ it('allows admin point adjustments that trigger auto redeem', function () {
     expect($user->fresh()->referral_points)->toBe(0)
         ->and(ChallengeCompletion::query()->where('user_id', $user->id)->count())->toBe(1);
 });
+
+it('lists upcoming active challenges but does not auto redeem before start', function () {
+    $user = User::factory()->student()->create(['referral_points' => 10]);
+
+    $challenge = Challenge::factory()->create([
+        'cost_points' => 5,
+        'starts_at' => now()->addHour(),
+        'reward_message' => 'Hidden until complete',
+    ]);
+
+    expect(Challenge::query()->listed()->pluck('id'))->toContain($challenge->id)
+        ->and(Challenge::query()->redeemable()->pluck('id'))->not->toContain($challenge->id);
+
+    $completions = app(ChallengeService::class)->tryAutoRedeem($user);
+
+    expect($completions)->toHaveCount(0)
+        ->and($user->fresh()->referral_points)->toBe(10)
+        ->and(ChallengeCompletion::query()->where('challenge_id', $challenge->id)->exists())->toBeFalse();
+});

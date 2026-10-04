@@ -52,6 +52,7 @@ return [
         'detail_completed' => "<b>:title</b>\n\n:description\n\nCost: <b>:cost</b> points\nYour balance: <b>:points</b>\nPrize: :reward\n\n:status",
         'status_completed' => '✅ You already completed this challenge.',
         'status_progress' => 'Progress: <b>:points</b> / <b>:cost</b> points',
+        'status_starts' => 'Starts: <b>:when</b>',
         'not_found' => 'That challenge is not available.',
         'back' => '« Challenges',
     ],
