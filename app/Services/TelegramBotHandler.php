@@ -148,7 +148,7 @@ class TelegramBotHandler
         }
 
         if ($text === $this->telegram->courseKeyboardBackLabel()) {
-            if (Cache::pull($this->resourceHubSelectionCacheKey($user)) !== null) {
+            if (Cache::pull($this->resourceTypeSelectionCacheKey($user)) !== null) {
                 $this->showResourceKeyboard($user, $chatId);
 
                 return;
@@ -159,31 +159,31 @@ class TelegramBotHandler
             return;
         }
 
-        $resourceHub = $this->telegram->resourceHubForKeyboardLabel($user, $text);
+        $resourceType = $this->telegram->resourceTypeForKeyboardLabel($user, $text);
 
-        if ($resourceHub !== null) {
-            $this->showCoursesForResourceHub($user, $chatId, $resourceHub);
+        if ($resourceType !== null) {
+            $this->showCoursesForResourceType($user, $chatId, $resourceType);
 
             return;
         }
 
-        $selectedResourceHub = ResourceHub::tryFrom((string) Cache::get($this->resourceHubSelectionCacheKey($user)));
+        $selectedResourceType = ResourceType::tryFrom((string) Cache::get($this->resourceTypeSelectionCacheKey($user)));
         $course = $user->courses()
             ->active()
             ->when(
-                $selectedResourceHub !== null,
+                $selectedResourceType !== null,
                 fn ($query) => $query->whereHas(
                     'learningResources',
-                    fn ($resourceQuery) => $resourceQuery->published()->whereIn('type', $selectedResourceHub->typeValues()),
+                    fn ($resourceQuery) => $resourceQuery->published()->where('type', $selectedResourceType->value),
                 ),
             )
             ->where('courses.name', $this->courseNameFromKeyboardLabel($text))
             ->first();
 
         if ($course !== null) {
-            if ($selectedResourceHub !== null) {
-                Cache::forget($this->resourceHubSelectionCacheKey($user));
-                $this->sendCourseResourceHubMiniAppOpen($user, $chatId, $course, $selectedResourceHub);
+            if ($selectedResourceType !== null) {
+                Cache::forget($this->resourceTypeSelectionCacheKey($user));
+                $this->sendCourseResourceTypeMiniAppOpen($user, $chatId, $course, $selectedResourceType);
 
                 return;
             }
@@ -266,7 +266,8 @@ class TelegramBotHandler
             str_starts_with($data, 'course:') => $this->handleCourseTap($user, $chatId, (int) Str::after($data, 'course:'), $messageId),
             str_starts_with($data, 'course_resources:') => $this->handleCourseTap($user, $chatId, (int) Str::after($data, 'course_resources:'), $messageId),
             str_starts_with($data, 'hub:') => $this->handleHubCallback($user, $chatId, $data, $messageId),
-            str_starts_with($data, 'hub_lib:') => $this->handleLibraryHubCallback($user, $chatId, $data, $messageId),
+            str_starts_with($data, 'type_lib:') => $this->handleLibraryTypeCallback($user, $chatId, $data, $messageId),
+            str_starts_with($data, 'hub_lib:') => $this->handleLibraryTypeCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'rtype:') => $this->handleResourceTypeCallback($user, $chatId, $data, $messageId),
             str_starts_with($data, 'open_resource:') => $this->handleOpenResource($user, $chatId, $data),
             str_starts_with($data, 'save:resource:') => $this->handleSaveResource(
@@ -659,23 +660,23 @@ class TelegramBotHandler
         ]);
     }
 
-    protected function showCoursesForResourceHub(User $user, int|string $chatId, ResourceHub $hub): void
+    protected function showCoursesForResourceType(User $user, int|string $chatId, ResourceType $type): void
     {
-        Cache::put($this->resourceHubSelectionCacheKey($user), $hub->value, now()->addMinutes(15));
+        Cache::put($this->resourceTypeSelectionCacheKey($user), $type->value, now()->addMinutes(15));
 
-        $this->telegram->sendMessage($chatId, 'Choose a course for '.$hub->label().':', [
-            'reply_markup' => $this->telegram->courseKeyboard($user, $hub),
+        $this->telegram->sendMessage($chatId, 'Choose a course for '.$type->label().':', [
+            'reply_markup' => $this->telegram->courseKeyboard($user, $type),
         ]);
     }
 
-    protected function sendCourseResourceHubMiniAppOpen(User $user, int|string $chatId, Course $course, ResourceHub $hub): void
+    protected function sendCourseResourceTypeMiniAppOpen(User $user, int|string $chatId, Course $course, ResourceType $type): void
     {
-        $this->telegram->sendMessage($chatId, 'Open '.$hub->label().' for '.$course->name.' in the study app:', [
+        $this->telegram->sendMessage($chatId, 'Open '.$type->label().' for '.$course->name.' in the study app:', [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 [
-                    'text' => '📚 Open '.$hub->label(),
+                    'text' => '📚 Open '.$type->label(),
                     'web_app' => ['url' => $this->telegram->miniAppUrl('tg.library.hub', [
-                        'hub' => $hub->value,
+                        'hub' => $type->value,
                         'course' => $course->slug,
                     ])],
                     'style' => TelegramButtonStyle::Success->value,
@@ -684,7 +685,7 @@ class TelegramBotHandler
         ]);
     }
 
-    protected function resourceHubSelectionCacheKey(User $user): string
+    protected function resourceTypeSelectionCacheKey(User $user): string
     {
         return 'telegram.resource_hub_selection.'.$user->id;
     }
@@ -2406,11 +2407,11 @@ class TelegramBotHandler
 
         $rows = [];
 
-        foreach (ResourceHub::cases() as $hub) {
+        foreach (ResourceType::creatableCases() as $type) {
             $count = LearningResource::query()
                 ->published()
                 ->whereIn('course_id', $courseIds)
-                ->whereIn('type', $hub->typeValues())
+                ->where('type', $type->value)
                 ->count();
 
             if ($count === 0) {
@@ -2418,8 +2419,8 @@ class TelegramBotHandler
             }
 
             $rows[] = [[
-                'text' => $hub->label().' ('.$count.')',
-                'callback_data' => 'hub_lib:'.$hub->value,
+                'text' => $type->label().' ('.$count.')',
+                'callback_data' => 'type_lib:'.$type->value,
                 'style' => TelegramButtonStyle::Primary->value,
             ]];
         }
@@ -2437,19 +2438,23 @@ class TelegramBotHandler
         ], $messageId);
     }
 
-    protected function handleLibraryHubCallback(User $user, int|string $chatId, string $data, ?int $messageId = null): ?string
+    protected function handleLibraryTypeCallback(User $user, int|string $chatId, string $data, ?int $messageId = null): ?string
     {
         if ($user->onboarding_step !== OnboardingStep::Complete) {
             return TelegramCopy::for($user)->get('menu.finish_onboarding');
         }
 
-        $hub = ResourceHub::tryFrom(Str::after($data, 'hub_lib:'));
+        $typeValue = str_starts_with($data, 'type_lib:')
+            ? Str::after($data, 'type_lib:')
+            : Str::after($data, 'hub_lib:');
 
-        if ($hub === null) {
+        $type = ResourceType::tryFrom($typeValue);
+
+        if ($type === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $this->listLibraryResources($user, $chatId, $hub, $messageId);
+        $this->listLibraryResources($user, $chatId, $type, $messageId);
 
         return null;
     }
@@ -2457,7 +2462,7 @@ class TelegramBotHandler
     protected function listLibraryResources(
         User $user,
         int|string $chatId,
-        ResourceHub $hub,
+        ResourceType $type,
         ?int $messageId = null,
     ): void {
         $copy = TelegramCopy::for($user);
@@ -2467,7 +2472,7 @@ class TelegramBotHandler
             ->published()
             ->with('course')
             ->whereIn('course_id', $courseIds)
-            ->whereIn('type', $hub->typeValues())
+            ->where('type', $type->value)
             ->orderBy('sort_order')
             ->orderBy('title')
             ->limit(40)
@@ -2476,7 +2481,7 @@ class TelegramBotHandler
         if ($resources->isEmpty()) {
             $this->telegram->replyOrEdit(
                 $chatId,
-                $copy->get('library.hub_empty', ['hub' => strtolower($hub->label())]),
+                $copy->get('library.hub_empty', ['hub' => strtolower($type->label())]),
                 [
                     'reply_markup' => $this->telegram->inlineKeyboard([[
                         ['text' => $copy->get('library.back'), 'callback_data' => 'back:library'],
@@ -2497,7 +2502,7 @@ class TelegramBotHandler
             'callback_data' => 'back:library',
         ]];
 
-        $this->telegram->replyOrEdit($chatId, $hub->label(), [
+        $this->telegram->replyOrEdit($chatId, $type->label(), [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
     }

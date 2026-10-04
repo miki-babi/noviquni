@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Enums\OnboardingStep;
-use App\Enums\ResourceHub;
+use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserRole;
 use App\Models\Course;
@@ -148,15 +148,9 @@ class TelegramService
             'keyboard' => [
                 [
                     [
-                        'text' => $copy->get('keyboard.courses'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                    [
                         'text' => $copy->get('keyboard.resources'),
                         'style' => TelegramButtonStyle::Success->value,
                     ],
-                ],
-                [
                     [
                         'text' => $copy->get('keyboard.saved'),
                         'style' => TelegramButtonStyle::Primary->value,
@@ -180,15 +174,15 @@ class TelegramService
     /**
      * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
      */
-    public function courseKeyboard(User $user, ?ResourceHub $resourceHub = null): array
+    public function courseKeyboard(User $user, ?ResourceType $resourceType = null): array
     {
         $courses = $user->courses()
             ->active()
             ->when(
-                $resourceHub !== null,
+                $resourceType !== null,
                 fn ($query) => $query->whereHas(
                     'learningResources',
-                    fn ($resourceQuery) => $resourceQuery->published()->whereIn('type', $resourceHub->typeValues()),
+                    fn ($resourceQuery) => $resourceQuery->published()->where('type', $resourceType->value),
                 ),
             )
             ->orderBy('courses.name')
@@ -229,10 +223,10 @@ class TelegramService
      */
     public function resourceTypeKeyboard(User $user): array
     {
-        $rows = collect(ResourceHub::cases())
-            ->filter(fn (ResourceHub $hub): bool => $this->userHasResourcesForHub($user, $hub))
-            ->map(fn (ResourceHub $hub): array => [
-                'text' => $this->resourceTypeKeyboardLabel($hub),
+        $rows = collect(ResourceType::creatableCases())
+            ->filter(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type))
+            ->map(fn (ResourceType $type): array => [
+                'text' => $this->resourceTypeKeyboardLabel($type),
                 'style' => TelegramButtonStyle::Primary->value,
             ])
             ->chunk(2)
@@ -250,24 +244,24 @@ class TelegramService
         ];
     }
 
-    public function resourceHubForKeyboardLabel(User $user, string $label): ?ResourceHub
+    public function resourceTypeForKeyboardLabel(User $user, string $label): ?ResourceType
     {
-        return collect(ResourceHub::cases())
-            ->first(fn (ResourceHub $hub): bool => $this->userHasResourcesForHub($user, $hub)
-                && $this->resourceTypeKeyboardLabel($hub) === $label);
+        return collect(ResourceType::creatableCases())
+            ->first(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type)
+                && $this->resourceTypeKeyboardLabel($type) === $label);
     }
 
-    public function resourceTypeKeyboardLabel(ResourceHub $hub): string
+    public function resourceTypeKeyboardLabel(ResourceType $type): string
     {
-        return '📚 '.$hub->label();
+        return '📚 '.$type->label();
     }
 
-    protected function userHasResourcesForHub(User $user, ResourceHub $hub): bool
+    protected function userHasResourcesForType(User $user, ResourceType $type): bool
     {
         return LearningResource::query()
             ->published()
             ->whereIn('course_id', $user->courses()->active()->select('courses.id'))
-            ->whereIn('type', $hub->typeValues())
+            ->where('type', $type->value)
             ->orderBy('sort_order')
             ->exists();
     }

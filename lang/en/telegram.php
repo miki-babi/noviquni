@@ -33,7 +33,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\n📚 Courses · 📖 Resources · 🔖 Quick saved · 👤 Profile · 👥 Refer",
+        'keyboard_hint' => "Your study menu is ready:\n📖 Resources · 🔖 Quick saved · 👤 Profile · 👥 Refer",
     ],
     'refer' => [
         'start_cta' => 'Start now',
