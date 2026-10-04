@@ -3,10 +3,8 @@
 namespace App\Services;
 
 use App\Enums\ReferralStatus;
-use App\Enums\RewardStatus;
 use App\Enums\SubscriptionSource;
 use App\Models\Referral;
-use App\Models\ReferralReward;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -15,6 +13,8 @@ class ReferralService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
+        public ReferralPointService $points,
+        public ChallengeService $challenges,
     ) {}
 
     public function attributeReferral(User $referred, string $referralCode): ?Referral
@@ -42,14 +42,9 @@ class ReferralService
                 'status' => ReferralStatus::Qualified,
             ]);
 
-            ReferralReward::query()->create([
-                'referral_id' => $referral->id,
-                'user_id' => $referrer->id,
-                'amount' => $this->settings->freeReferralReward(),
-                'status' => RewardStatus::Qualified,
-            ]);
-
-            $this->maybeUnlockPremium($referrer);
+            $this->points->creditForReferral($referrer, $referral);
+            $this->maybeUnlockPremium($referrer->fresh());
+            $this->challenges->tryAutoRedeem($referrer->fresh());
 
             return $referral;
         });
@@ -77,24 +72,6 @@ class ReferralService
             ->where('status', ReferralStatus::Qualified)
             ->limit($this->settings->requiredReferrals())
             ->update(['status' => ReferralStatus::Completed]);
-    }
-
-    public function upgradeRewardForPremiumReferral(User $referred): void
-    {
-        $referral = Referral::query()->where('referred_id', $referred->id)->first();
-
-        if ($referral === null || $referral->reward === null) {
-            return;
-        }
-
-        if (in_array($referral->reward->status, [RewardStatus::Paid, RewardStatus::Rejected], true)) {
-            return;
-        }
-
-        $referral->reward->update([
-            'amount' => $this->settings->premiumReferralReward(),
-            'status' => RewardStatus::Qualified,
-        ]);
     }
 
     public function referralLink(User $user): string

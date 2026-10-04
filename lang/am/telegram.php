@@ -36,10 +36,38 @@ return [
     ],
     'refer' => [
         'start_cta' => 'አሁን ጀምር',
-        'stats' => "👥 ግብዣዎች\nሂደት: :count/:required",
-        'forward_hint' => 'ከታች ያለውን የመጀመሪያ መልእክት ለጓደኞችዎ ያስተላልፉ። የአሁን ጀምር ሊንክ አስቀድሞ በውስጡ አለ።',
+        'stats' => '👥 ግብዛዎች
+ሂደት: :count/:required
+ነጥቦች: :points',
+        'forward_hint' => 'ከታች ያለውን የመጀመሪያ መልእክት ለጉአደኞችዎ ያስተላልፉ። የአሁን ጀምር ሊንክ አስቀድሞ በውስጡ አለ። ጉአደኞች ሲቀላቀሉ ለፈተናዎች ነጥብ ያገኛሉ።',
         'share' => '📤 አጋራ',
-        'share_message' => "ሰላም! ለ freshmen የጥናት መርጃዎች Noviq Uni ላይ ተቀላቀሉኝ።\n:link",
+        'share_message' => 'ሰላም! ለ freshmen የጥናት መርጃዎች Noviq Uni ላይ ተቀላቀሉኝ።
+:link',
+    ],
+    'challenges' => [
+        'list_button' => '🏆 ፈተናዎች',
+        'list' => '🏆 ፈተናዎች
+የእርሶ ነጥቦች: <b>:points</b>
+
+ዝርዝር ለማየት ይንኩ። በቂ ነጥብ ሲኖርዎት በራስ-ሰር ይጠናቀቋል።',
+        'empty' => '🏆 ፈተናዎች
+የእርሶ ነጥቦች: <b>:points</b>
+
+አሁን ንቁ ፈተና የለም። ነጥብ ለማግኛት ጉአደኞችን ይጋብዙ።',
+        'item_button' => ':title (:cost ነጥብ)',
+        'detail' => '<b>:title</b>
+
+:description
+
+ዋጋ: <b>:cost</b> ነጥብ
+ቀሪ: <b>:points</b>
+ሽልማት: :reward
+
+:status',
+        'status_completed' => '✅ ይህን ፈተና አጠናቀዋል።',
+        'status_progress' => 'ሂደት: <b>:points</b> / <b>:cost</b> ነጥብ',
+        'not_found' => 'ይህ ፈተና አይገኝም።',
+        'back' => '« ፈተናዎች',
     ],
     'continue' => [
         'title' => "ከቆሙበት ይጀምሩ\n<b>:course</b> · :resource",

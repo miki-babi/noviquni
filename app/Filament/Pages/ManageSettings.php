@@ -53,8 +53,7 @@ class ManageSettings extends Page
         $this->form->fill([
             'premium_price' => $settings->premiumPrice(),
             'required_referrals' => $settings->requiredReferrals(),
-            'free_referral_reward' => $settings->freeReferralReward(),
-            'premium_referral_reward' => $settings->premiumReferralReward(),
+            'points_per_referral' => $settings->pointsPerReferral(),
             'premium_duration_days' => $settings->premiumDurationDays(),
             'payment_instructions' => $settings->paymentInstructions(),
             'telegram_start_image' => $settings->telegramStartImage(),
@@ -94,8 +93,12 @@ class ManageSettings extends Page
                     ->schema([
                         TextInput::make('premium_price')->numeric()->required()->suffix('ETB'),
                         TextInput::make('required_referrals')->numeric()->required()->integer(),
-                        TextInput::make('free_referral_reward')->numeric()->required()->suffix('ETB'),
-                        TextInput::make('premium_referral_reward')->numeric()->required()->suffix('ETB'),
+                        TextInput::make('points_per_referral')
+                            ->label('Points per referral')
+                            ->numeric()
+                            ->required()
+                            ->integer()
+                            ->minValue(1),
                         TextInput::make('premium_duration_days')->numeric()->required()->integer()->suffix('days'),
                         Textarea::make('payment_instructions')
                             ->rows(4)
@@ -191,8 +194,7 @@ class ManageSettings extends Page
 
         $settings->set(SettingsService::PREMIUM_PRICE, (string) $data['premium_price']);
         $settings->set(SettingsService::REQUIRED_REFERRALS, (string) $data['required_referrals']);
-        $settings->set(SettingsService::FREE_REFERRAL_REWARD, (string) $data['free_referral_reward']);
-        $settings->set(SettingsService::PREMIUM_REFERRAL_REWARD, (string) $data['premium_referral_reward']);
+        $settings->set(SettingsService::POINTS_PER_REFERRAL, (string) $data['points_per_referral']);
         $settings->set(SettingsService::PREMIUM_DURATION_DAYS, (string) $data['premium_duration_days']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));

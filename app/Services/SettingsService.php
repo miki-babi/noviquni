@@ -12,9 +12,7 @@ class SettingsService
 
     public const REQUIRED_REFERRALS = 'required_referrals';
 
-    public const FREE_REFERRAL_REWARD = 'free_referral_reward';
-
-    public const PREMIUM_REFERRAL_REWARD = 'premium_referral_reward';
+    public const POINTS_PER_REFERRAL = 'points_per_referral';
 
     public const PREMIUM_DURATION_DAYS = 'premium_duration_days';
 
@@ -36,8 +34,7 @@ class SettingsService
         return [
             self::PREMIUM_PRICE => '30',
             self::REQUIRED_REFERRALS => '3',
-            self::FREE_REFERRAL_REWARD => '2',
-            self::PREMIUM_REFERRAL_REWARD => '10',
+            self::POINTS_PER_REFERRAL => '1',
             self::PREMIUM_DURATION_DAYS => '30',
             self::PAYMENT_INSTRUCTIONS => "Send {amount} ETB to the account provided by support.\nUse payment reference: {reference}",
             self::TELEGRAM_START_IMAGE => '',
@@ -76,14 +73,9 @@ class SettingsService
         return (int) $this->get(self::REQUIRED_REFERRALS, '3');
     }
 
-    public function freeReferralReward(): float
+    public function pointsPerReferral(): int
     {
-        return (float) $this->get(self::FREE_REFERRAL_REWARD, '2');
-    }
-
-    public function premiumReferralReward(): float
-    {
-        return (float) $this->get(self::PREMIUM_REFERRAL_REWARD, '10');
+        return max(1, (int) $this->get(self::POINTS_PER_REFERRAL, '1'));
     }
 
     public function premiumDurationDays(): int

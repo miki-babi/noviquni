@@ -3,11 +3,9 @@
 namespace App\Filament\Widgets;
 
 use App\Enums\PaymentStatus;
-use App\Enums\RewardStatus;
 use App\Enums\UserRole;
 use App\Models\Payment;
 use App\Models\Referral;
-use App\Models\ReferralReward;
 use App\Models\ResourceDownload;
 use App\Models\User;
 use Filament\Widgets\StatsOverviewWidget;
@@ -23,7 +21,7 @@ class StatsOverview extends StatsOverviewWidget
         $activeStudents = (clone $students)->where('is_active', true)->count();
         $premiumUsers = (clone $students)->whereNotNull('premium_until')->where('premium_until', '>', now())->count();
         $revenue = Payment::query()->where('status', PaymentStatus::Verified)->sum('amount');
-        $rewards = ReferralReward::query()->whereIn('status', [RewardStatus::Approved, RewardStatus::Paid])->sum('amount');
+        $referralPoints = (int) (clone $students)->sum('referral_points');
         $referrals = Referral::query()->count();
         $conversion = $totalStudents > 0 ? round(($referrals / $totalStudents) * 100, 1) : 0;
         $downloads = ResourceDownload::query()->count();
@@ -41,7 +39,7 @@ class StatsOverview extends StatsOverviewWidget
             Stat::make('Active students', (string) $activeStudents),
             Stat::make('Premium users', (string) $premiumUsers),
             Stat::make('Revenue', number_format((float) $revenue, 2).' ETB'),
-            Stat::make('Referral rewards', number_format((float) $rewards, 2).' ETB'),
+            Stat::make('Referral points', (string) $referralPoints),
             Stat::make('Referral conversion', $conversion.'%'),
             Stat::make('Resource downloads', (string) $downloads),
         ];

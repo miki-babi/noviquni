@@ -23,6 +23,8 @@ class WithdrawalResource extends Resource
 
     protected static ?int $navigationSort = 3;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Schema $schema): Schema
     {
         return WithdrawalForm::configure($schema);

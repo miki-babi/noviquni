@@ -2,22 +2,20 @@
 
 namespace App\Services;
 
+use App\Enums\ChallengeStatus;
 use App\Enums\OnboardingStep;
 use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
-use App\Enums\RewardStatus;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
-use App\Enums\WithdrawalStatus;
+use App\Models\Challenge;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\ReferralReward;
 use App\Models\ResourceDownload;
 use App\Models\Stream;
 use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
-use App\Models\Withdrawal;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
@@ -37,6 +35,7 @@ class TelegramBotHandler
         public PaymentService $payments,
         public PremiumService $premium,
         public SettingsService $settings,
+        public ChallengeService $challenges,
     ) {}
 
     /**
@@ -287,12 +286,17 @@ class TelegramBotHandler
             $data === 'profile:refer' => $this->guardComplete($user, function () use ($user, $chatId): void {
                 $this->showReferrals($user, $chatId);
             }),
+            $data === 'challenges' => $this->guardComplete($user, function () use ($user, $chatId, $messageId): void {
+                $this->showChallenges($user, $chatId, $messageId);
+            }),
+            str_starts_with($data, 'challenge:') => $this->guardComplete($user, function () use ($user, $chatId, $data, $messageId): void {
+                $this->showChallenge($user, $chatId, (int) Str::after($data, 'challenge:'), $messageId);
+            }),
             $data === 'profile:settings' => $this->guardComplete($user, function () use ($user, $chatId, $messageId): void {
                 $this->showSettings($user, $chatId, $messageId);
             }),
             str_starts_with($data, 'settings:lang:') => $this->handleLanguageSwitch($user, $chatId, Str::after($data, 'settings:lang:')),
             $data === 'premium_pay' => $this->handlePremiumPay($user, $chatId),
-            $data === 'withdraw_request' => $this->handleWithdrawRequestCallback($user, $chatId),
             $this->isMenuOrSlashCommand($data) => $this->handleMenuCallback($user, $chatId, $data),
             default => $copy->get('menu.invalid_button'),
         };
@@ -505,17 +509,6 @@ class TelegramBotHandler
         return null;
     }
 
-    protected function handleWithdrawRequestCallback(User $user, int|string $chatId): ?string
-    {
-        if ($user->onboarding_step !== OnboardingStep::Complete) {
-            return TelegramCopy::for($user)->get('menu.finish_onboarding');
-        }
-
-        $this->handleWithdrawRequest($user, $chatId);
-
-        return null;
-    }
-
     protected function handleMenuCallback(User $user, int|string $chatId, string $data): ?string
     {
         if ($user->onboarding_step !== OnboardingStep::Complete) {
@@ -536,35 +529,6 @@ class TelegramBotHandler
         }
 
         return null;
-    }
-
-    protected function handleWithdrawRequest(User $user, int|string $chatId): void
-    {
-        $balance = ReferralReward::query()
-            ->where('user_id', $user->id)
-            ->where('status', RewardStatus::Approved)
-            ->sum('amount');
-
-        if ($balance <= 0) {
-            $this->telegram->sendMessage($chatId, 'No approved rewards available to withdraw.');
-
-            return;
-        }
-
-        Withdrawal::query()->create([
-            'user_id' => $user->id,
-            'amount' => $balance,
-            'method' => 'pending_details',
-            'details' => 'Requested via Telegram',
-            'status' => WithdrawalStatus::Pending,
-        ]);
-
-        ReferralReward::query()
-            ->where('user_id', $user->id)
-            ->where('status', RewardStatus::Approved)
-            ->update(['status' => RewardStatus::Paid]);
-
-        $this->telegram->sendMessage($chatId, "Withdrawal request submitted for {$balance} ETB.");
     }
 
     protected function isMenuOrSlashCommand(string $data): bool
@@ -1048,7 +1012,8 @@ class TelegramBotHandler
         return $payload === 'bait'
             || $payload === 'web'
             || str_starts_with($payload, 'resource_')
-            || str_starts_with($payload, 'course_');
+            || str_starts_with($payload, 'course_')
+            || str_starts_with($payload, 'challenge_');
     }
 
     protected function pendingStartCacheKey(User $user): string
@@ -1100,6 +1065,16 @@ class TelegramBotHandler
                 }
 
                 $this->showCourseHub($user, $chatId, $course->id);
+
+                return true;
+            }
+        }
+
+        if (str_starts_with($payload, 'challenge_')) {
+            $challengeId = (int) Str::after($payload, 'challenge_');
+
+            if ($challengeId > 0) {
+                $this->showChallenge($user, $chatId, $challengeId);
 
                 return true;
             }
@@ -2581,9 +2556,18 @@ class TelegramBotHandler
         $stats = $copy->get('refer.stats', [
             'count' => $this->referrals->qualifiedCount($user),
             'required' => $this->settings->requiredReferrals(),
+            'points' => $user->referral_points,
         ]);
 
-        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'));
+        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'), [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('challenges.list_button'),
+                    'callback_data' => 'challenges',
+                    'style' => TelegramButtonStyle::Primary->value,
+                ],
+            ]]),
+        ]);
 
         if ($this->settings->hasCustomTelegramStartMessage()) {
             $this->sendCustomStartMessage($user, $chatId, sendReplyKeyboard: false);
@@ -2592,6 +2576,89 @@ class TelegramBotHandler
         }
 
         $this->sendDefaultStartMessage($user, $chatId, sendReplyKeyboard: false);
+    }
+
+    protected function showChallenges(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $challenges = Challenge::query()
+            ->redeemable()
+            ->orderBy('cost_points')
+            ->orderBy('id')
+            ->limit(10)
+            ->get();
+
+        if ($challenges->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('challenges.empty', [
+                'points' => $user->referral_points,
+            ]), [], $messageId);
+
+            return;
+        }
+
+        $rows = $challenges->map(fn (Challenge $challenge): array => [[
+            'text' => $copy->get('challenges.item_button', [
+                'title' => $challenge->title,
+                'cost' => $challenge->cost_points,
+            ]),
+            'callback_data' => 'challenge:'.$challenge->id,
+        ]])->values()->all();
+
+        $this->telegram->replyOrEdit($chatId, $copy->get('challenges.list', [
+            'points' => $user->referral_points,
+        ]), [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    protected function showChallenge(User $user, int|string $chatId, int $challengeId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $challenge = Challenge::query()->find($challengeId);
+
+        if ($challenge === null || $challenge->status !== ChallengeStatus::Active) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('challenges.not_found'), [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    ['text' => $copy->get('challenges.back'), 'callback_data' => 'challenges'],
+                ]]),
+            ], $messageId);
+
+            return;
+        }
+
+        $completed = $challenge->completions()->where('user_id', $user->id)->exists();
+        $description = filled($challenge->description)
+            ? TelegramHtml::escape($challenge->description)
+            : '';
+        $reward = filled($challenge->reward_message)
+            ? TelegramHtml::escape($challenge->reward_message)
+            : TelegramHtml::escape($challenge->title);
+
+        $body = $copy->get('challenges.detail', [
+            'title' => TelegramHtml::escape($challenge->title),
+            'description' => $description,
+            'cost' => $challenge->cost_points,
+            'points' => $user->referral_points,
+            'reward' => $reward,
+            'status' => $completed
+                ? $copy->get('challenges.status_completed')
+                : $copy->get('challenges.status_progress', [
+                    'points' => $user->referral_points,
+                    'cost' => $challenge->cost_points,
+                ]),
+        ]);
+
+        $this->telegram->replyOrEdit($chatId, $body, [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                ['text' => $copy->get('challenges.back'), 'callback_data' => 'challenges'],
+            ]]),
+        ], $messageId);
+
+        if (! $completed) {
+            $this->challenges->tryAutoRedeem($user->fresh());
+        }
     }
 
     protected function toggleNotifications(User $user, int|string $chatId): void

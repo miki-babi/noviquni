@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\BroadcastStatus;
+use App\Enums\ReferralStatus;
 use App\Enums\TelegramButtonStyle;
 use App\Models\Broadcast;
 use App\Models\NotificationDelivery;
+use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -53,6 +55,23 @@ class BroadcastService
             $query->whereHas('courses', fn (Builder $builder) => $builder->where('courses.id', $targeting['course_id']));
         }
 
+        $minReferrals = $targeting['min_referrals'] ?? null;
+        $maxReferrals = $targeting['max_referrals'] ?? null;
+
+        if ($minReferrals !== null && $minReferrals !== '') {
+            $query->whereRaw(
+                '(select count(*) from referrals where referrals.referrer_id = users.id and referrals.status in (?, ?)) >= ?',
+                [ReferralStatus::Qualified->value, ReferralStatus::Completed->value, (int) $minReferrals],
+            );
+        }
+
+        if ($maxReferrals !== null && $maxReferrals !== '') {
+            $query->whereRaw(
+                '(select count(*) from referrals where referrals.referrer_id = users.id and referrals.status in (?, ?)) <= ?',
+                [ReferralStatus::Qualified->value, ReferralStatus::Completed->value, (int) $maxReferrals],
+            );
+        }
+
         return $query;
     }
 
@@ -61,14 +80,20 @@ class BroadcastService
         $user->loadMissing(['university', 'stream', 'courses']);
 
         $firstName = explode(' ', trim($user->name))[0] ?: $user->name;
+        $referralCount = Referral::query()
+            ->where('referrer_id', $user->id)
+            ->whereIn('status', [ReferralStatus::Qualified, ReferralStatus::Completed])
+            ->count();
 
         return str_replace(
-            ['{{first_name}}', '{{university}}', '{{stream}}', '{{course}}'],
+            ['{{first_name}}', '{{university}}', '{{stream}}', '{{course}}', '{{referral_count}}', '{{referral_points}}'],
             [
                 $firstName,
                 $user->university?->name ?? '',
                 $user->stream?->name ?? '',
                 $user->courses->first()?->name ?? '',
+                (string) $referralCount,
+                (string) $user->referral_points,
             ],
             $body,
         );

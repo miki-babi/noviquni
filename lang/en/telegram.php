@@ -37,10 +37,21 @@ return [
     ],
     'refer' => [
         'start_cta' => 'Start now',
-        'stats' => "👥 Referrals\nProgress: :count/:required",
-        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it.',
+        'stats' => "👥 Referrals\nProgress: :count/:required\nPoints: :points",
+        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it. Earn points for challenges when friends join.',
         'share' => '📤 Share',
         'share_message' => "Hey! Join me on Noviq Uni for freshman study resources.\n:link",
+    ],
+    'challenges' => [
+        'list_button' => '🏆 Challenges',
+        'list' => "🏆 Challenges\nYour points: <b>:points</b>\n\nTap a challenge to see details. Challenges complete automatically when you have enough points.",
+        'empty' => "🏆 Challenges\nYour points: <b>:points</b>\n\nNo active challenges right now. Keep referring friends to earn points.",
+        'item_button' => ':title (:cost pts)',
+        'detail' => "<b>:title</b>\n\n:description\n\nCost: <b>:cost</b> points\nYour balance: <b>:points</b>\nPrize: :reward\n\n:status",
+        'status_completed' => '✅ You already completed this challenge.',
+        'status_progress' => 'Progress: <b>:points</b> / <b>:cost</b> points',
+        'not_found' => 'That challenge is not available.',
+        'back' => '« Challenges',
     ],
     'continue' => [
         'title' => "Pick up where you left off\n<b>:course</b> · :resource",

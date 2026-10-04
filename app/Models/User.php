@@ -31,6 +31,7 @@ use Illuminate\Support\Str;
     'theme',
     'referral_code',
     'referred_by_user_id',
+    'referral_points',
     'is_active',
     'onboarding_step',
     'notifications_enabled',
@@ -54,6 +55,7 @@ class User extends Authenticatable implements FilamentUser
         'notifications_enabled' => true,
         'telegram_locale' => 'en',
         'theme' => 'dark',
+        'referral_points' => 0,
     ];
 
     protected static function booted(): void
@@ -145,6 +147,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(ReferralReward::class);
     }
 
+    public function referralPointTransactions(): HasMany
+    {
+        return $this->hasMany(ReferralPointTransaction::class);
+    }
+
+    public function challengeCompletions(): HasMany
+    {
+        return $this->hasMany(ChallengeCompletion::class);
+    }
+
     /**
      * @param  Builder<User>  $query
      * @return Builder<User>
@@ -188,6 +200,7 @@ class User extends Authenticatable implements FilamentUser
             'is_active' => 'boolean',
             'notifications_enabled' => 'boolean',
             'premium_until' => 'datetime',
+            'referral_points' => 'integer',
         ];
     }
 

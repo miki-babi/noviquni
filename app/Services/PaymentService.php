@@ -14,7 +14,6 @@ class PaymentService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
-        public ReferralService $referrals,
     ) {}
 
     public function createPendingPremiumPayment(User $user): Payment
@@ -48,8 +47,6 @@ class PaymentService
                 SubscriptionSource::Payment,
                 $payment->id,
             );
-
-            $this->referrals->upgradeRewardForPremiumReferral($payment->user);
 
             return $payment->refresh();
         });

@@ -26,7 +26,7 @@ class BroadcastForm
                 Textarea::make('body')
                     ->required()
                     ->rows(6)
-                    ->helperText('Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}')
+                    ->helperText('Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}, {{referral_count}}, {{referral_points}}')
                     ->columnSpanFull(),
                 Section::make('Audience')
                     ->schema([
@@ -50,6 +50,18 @@ class BroadcastForm
                             ->label('Course')
                             ->options(fn () => Course::query()->orderBy('name')->pluck('name', 'id'))
                             ->searchable(),
+                        TextInput::make('targeting.min_referrals')
+                            ->label('Min referrals')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->helperText('Qualified referrals — leave empty for no minimum.'),
+                        TextInput::make('targeting.max_referrals')
+                            ->label('Max referrals')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(0)
+                            ->helperText('Qualified referrals — leave empty for no maximum.'),
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
