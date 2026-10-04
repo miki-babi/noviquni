@@ -62,6 +62,14 @@ return [
 
 ዋጋ: <b>:cost</b> ነጥብ
 ቀሪ: <b>:points</b>
+
+:status',
+        'detail_completed' => '<b>:title</b>
+
+:description
+
+ዋጋ: <b>:cost</b> ነጥብ
+ቀሪ: <b>:points</b>
 ሽልማት: :reward
 
 :status',

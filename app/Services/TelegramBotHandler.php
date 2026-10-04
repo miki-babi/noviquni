@@ -2635,23 +2635,29 @@ class TelegramBotHandler
         $description = filled($challenge->description)
             ? TelegramHtml::escape($challenge->description)
             : '';
-        $reward = filled($challenge->reward_message)
-            ? TelegramHtml::escape($challenge->reward_message)
-            : TelegramHtml::escape($challenge->title);
 
-        $body = $copy->get('challenges.detail', [
+        $replacements = [
             'title' => TelegramHtml::escape($challenge->title),
             'description' => $description,
             'cost' => $challenge->cost_points,
             'points' => $user->referral_points,
-            'reward' => $reward,
             'status' => $completed
                 ? $copy->get('challenges.status_completed')
                 : $copy->get('challenges.status_progress', [
                     'points' => $user->referral_points,
                     'cost' => $challenge->cost_points,
                 ]),
-        ]);
+        ];
+
+        if ($completed) {
+            $replacements['reward'] = filled($challenge->reward_message)
+                ? TelegramHtml::escape($challenge->reward_message)
+                : TelegramHtml::escape($challenge->title);
+
+            $body = $copy->get('challenges.detail_completed', $replacements);
+        } else {
+            $body = $copy->get('challenges.detail', $replacements);
+        }
 
         $this->telegram->replyOrEdit($chatId, $body, [
             'reply_markup' => $this->telegram->inlineKeyboard([[

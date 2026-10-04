@@ -4,6 +4,8 @@ use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Bookmark;
+use App\Models\Challenge;
+use App\Models\ChallengeCompletion;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
@@ -1269,5 +1271,57 @@ it('opens active challenges when the Challenges keyboard button is tapped', func
 
         return str_contains($text, 'Challenges')
             && str_contains($text, '2');
+    });
+});
+
+it('hides the prize message until the challenge is completed', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555051',
+        'onboarding_step' => OnboardingStep::Complete,
+        'referral_points' => 0,
+    ]);
+
+    $challenge = Challenge::factory()->create([
+        'title' => 'Mentorship challenge',
+        'description' => 'Invite friends to unlock mentorship.',
+        'cost_points' => 5,
+        'reward_message' => 'Secret scholarship mentorship prize',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555051, 'challenge:'.$challenge->id, 20, 551))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text', '');
+
+        return str_contains($text, 'Mentorship challenge')
+            && ! str_contains($text, 'Secret scholarship mentorship prize')
+            && ! str_contains($text, 'Prize:');
+    });
+
+    ChallengeCompletion::factory()->create([
+        'challenge_id' => $challenge->id,
+        'user_id' => $user->id,
+        'points_spent' => 5,
+        'completed_at' => now(),
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555051, 'challenge:'.$challenge->id, 21, 552))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text', '');
+
+        return str_contains($text, 'Mentorship challenge')
+            && str_contains($text, 'Secret scholarship mentorship prize')
+            && str_contains($text, 'Prize:');
     });
 });
