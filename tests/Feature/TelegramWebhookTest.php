@@ -336,6 +336,13 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
         'title' => 'Motion quiz',
     ]);
 
+    LearningResource::factory()->published()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Motion references',
+        'type' => ResourceType::ReferenceBooks,
+    ]);
+
     $this->postJson('/telegram/webhook', telegramMessagePayload(555025, '📖 Resources'))
         ->assertOk();
 
@@ -351,14 +358,17 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
 
         $notes = $buttons->get('📚 Notes');
         $quiz = $buttons->get('📚 Quiz');
+        $references = $buttons->get('📚 Reference books');
         $back = $buttons->get('← Back');
 
         return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
             && $notes !== null
             && $quiz !== null
+            && $references !== null
             && $back !== null
             && ($notes['style'] ?? null) === 'success'
             && ($quiz['style'] ?? null) === 'primary'
+            && ($references['style'] ?? null) === 'danger'
             && ! array_key_exists('style', $back);
     });
 });

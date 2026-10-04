@@ -227,12 +227,18 @@ class TelegramService
         $rows = collect(ResourceType::creatableCases())
             ->filter(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type))
             ->values()
-            ->map(fn (ResourceType $type, int $index): array => [
-                'text' => $this->resourceTypeKeyboardLabel($type),
-                'style' => ($index % 2 === 0
-                    ? TelegramButtonStyle::Success
-                    : TelegramButtonStyle::Primary)->value,
-            ])
+            ->map(function (ResourceType $type, int $index): array {
+                $style = match (true) {
+                    $type === ResourceType::ReferenceBooks => TelegramButtonStyle::Danger,
+                    $index % 2 === 0 => TelegramButtonStyle::Success,
+                    default => TelegramButtonStyle::Primary,
+                };
+
+                return [
+                    'text' => $this->resourceTypeKeyboardLabel($type),
+                    'style' => $style->value,
+                ];
+            })
             ->chunk(2)
             ->map(fn ($row): array => $row->values()->all())
             ->all();
