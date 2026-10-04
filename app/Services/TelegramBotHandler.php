@@ -2624,7 +2624,6 @@ class TelegramBotHandler
         if (
             $challenge === null
             || $challenge->status !== ChallengeStatus::Active
-            || $challenge->hasEnded()
             || ! $challenge->hasAvailableSlots()
         ) {
             $this->telegram->replyOrEdit($chatId, $copy->get('challenges.not_found'), [
@@ -2641,23 +2640,17 @@ class TelegramBotHandler
             ? TelegramHtml::escape($challenge->description)
             : '';
 
-        $status = match (true) {
-            $completed => $copy->get('challenges.status_completed'),
-            ! $challenge->hasStarted() => $copy->get('challenges.status_starts', [
-                'when' => $challenge->starts_at?->utc()->format('Y-m-d H:i').' UTC',
-            ]),
-            default => $copy->get('challenges.status_progress', [
-                'points' => $user->referral_points,
-                'cost' => $challenge->cost_points,
-            ]),
-        };
-
         $replacements = [
             'title' => TelegramHtml::escape($challenge->title),
             'description' => $description,
             'cost' => $challenge->cost_points,
             'points' => $user->referral_points,
-            'status' => $status,
+            'status' => $completed
+                ? $copy->get('challenges.status_completed')
+                : $copy->get('challenges.status_progress', [
+                    'points' => $user->referral_points,
+                    'cost' => $challenge->cost_points,
+                ]),
         ];
 
         if ($completed) {
@@ -2676,7 +2669,7 @@ class TelegramBotHandler
             ]]),
         ], $messageId);
 
-        if (! $completed && $challenge->hasStarted()) {
+        if (! $completed) {
             $this->challenges->tryAutoRedeem($user->fresh());
         }
     }

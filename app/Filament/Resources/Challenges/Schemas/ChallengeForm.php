@@ -4,7 +4,6 @@ namespace App\Filament\Resources\Challenges\Schemas;
 
 use App\Enums\ChallengeRewardType;
 use App\Enums\ChallengeStatus;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -56,10 +55,6 @@ class ChallengeForm
                     ->required()
                     ->native(false)
                     ->default(ChallengeStatus::Draft->value),
-                DateTimePicker::make('starts_at')
-                    ->helperText('UTC. Leave empty to make the challenge available immediately.'),
-                DateTimePicker::make('ends_at')
-                    ->helperText('UTC. Leave empty for no end date.'),
                 TextInput::make('max_winners')
                     ->label('Max winners')
                     ->numeric()

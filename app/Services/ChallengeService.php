@@ -66,14 +66,6 @@ class ChallengeService
                 return null;
             }
 
-            if ($lockedChallenge->starts_at !== null && $lockedChallenge->starts_at->isFuture()) {
-                return null;
-            }
-
-            if ($lockedChallenge->ends_at !== null && $lockedChallenge->ends_at->isPast()) {
-                return null;
-            }
-
             $alreadyCompleted = ChallengeCompletion::query()
                 ->where('challenge_id', $lockedChallenge->id)
                 ->where('user_id', $user->id)

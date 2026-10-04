@@ -17,14 +17,12 @@ return new class extends Migration
             $table->unsignedInteger('reward_value')->nullable();
             $table->text('reward_message')->nullable();
             $table->string('status')->default('draft');
-            $table->timestamp('starts_at')->nullable();
-            $table->timestamp('ends_at')->nullable();
             $table->unsignedInteger('max_winners')->nullable();
             $table->unsignedInteger('winners_count')->default(0);
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['status', 'starts_at', 'ends_at']);
+            $table->index('status');
         });
     }
 

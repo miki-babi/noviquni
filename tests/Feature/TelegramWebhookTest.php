@@ -1274,7 +1274,7 @@ it('opens active challenges when the Challenges keyboard button is tapped', func
     });
 });
 
-it('lists upcoming active challenges from the Challenges keyboard', function () {
+it('lists active challenges and hides draft ones from the Challenges keyboard', function () {
     User::factory()->student()->create([
         'telegram_id' => '555052',
         'onboarding_step' => OnboardingStep::Complete,
@@ -1282,10 +1282,15 @@ it('lists upcoming active challenges from the Challenges keyboard', function () 
     ]);
 
     Challenge::factory()->create([
-        'title' => 'Upcoming mentorship',
+        'title' => 'Active mentorship',
         'cost_points' => 10,
-        'starts_at' => now()->addDay(),
         'reward_message' => 'Secret prize text',
+    ]);
+
+    Challenge::factory()->draft()->create([
+        'title' => 'Draft mentorship',
+        'cost_points' => 5,
+        'reward_message' => 'Draft prize text',
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555052, '🏆 Challenges', 553))
@@ -1300,7 +1305,8 @@ it('lists upcoming active challenges from the Challenges keyboard', function () 
         $buttons = collect(data_get($request->data(), 'reply_markup.inline_keyboard', []))->flatten(1);
 
         return ! str_contains($text, 'No active challenges')
-            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Upcoming mentorship'))
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Active mentorship'))
+            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), 'Draft mentorship'))
             && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), 'Secret prize text'));
     });
 });

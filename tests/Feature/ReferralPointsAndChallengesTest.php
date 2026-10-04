@@ -140,21 +140,28 @@ it('allows admin point adjustments that trigger auto redeem', function () {
         ->and(ChallengeCompletion::query()->where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('lists upcoming active challenges but does not auto redeem before start', function () {
+it('lists only active challenges and skips draft ones for auto redeem', function () {
     $user = User::factory()->student()->create(['referral_points' => 10]);
 
-    $challenge = Challenge::factory()->create([
+    $active = Challenge::factory()->create([
         'cost_points' => 5,
-        'starts_at' => now()->addHour(),
-        'reward_message' => 'Hidden until complete',
+        'reward_message' => 'Active prize',
     ]);
 
-    expect(Challenge::query()->listed()->pluck('id'))->toContain($challenge->id)
-        ->and(Challenge::query()->redeemable()->pluck('id'))->not->toContain($challenge->id);
+    $draft = Challenge::factory()->draft()->create([
+        'cost_points' => 3,
+        'reward_message' => 'Draft prize',
+    ]);
+
+    expect(Challenge::query()->listed()->pluck('id'))->toContain($active->id)
+        ->and(Challenge::query()->listed()->pluck('id'))->not->toContain($draft->id)
+        ->and(Challenge::query()->redeemable()->pluck('id'))->toContain($active->id)
+        ->and(Challenge::query()->redeemable()->pluck('id'))->not->toContain($draft->id);
 
     $completions = app(ChallengeService::class)->tryAutoRedeem($user);
 
-    expect($completions)->toHaveCount(0)
-        ->and($user->fresh()->referral_points)->toBe(10)
-        ->and(ChallengeCompletion::query()->where('challenge_id', $challenge->id)->exists())->toBeFalse();
+    expect($completions)->toHaveCount(1)
+        ->and(ChallengeCompletion::query()->where('challenge_id', $active->id)->exists())->toBeTrue()
+        ->and(ChallengeCompletion::query()->where('challenge_id', $draft->id)->exists())->toBeFalse()
+        ->and($user->fresh()->referral_points)->toBe(5);
 });

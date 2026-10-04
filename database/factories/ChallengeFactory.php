@@ -26,8 +26,6 @@ class ChallengeFactory extends Factory
             'reward_value' => null,
             'reward_message' => 'You unlocked a scholarship mentorship session.',
             'status' => ChallengeStatus::Active,
-            'starts_at' => null,
-            'ends_at' => null,
             'max_winners' => null,
             'winners_count' => 0,
             'created_by' => User::factory()->admin(),

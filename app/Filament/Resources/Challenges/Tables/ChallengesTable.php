@@ -32,8 +32,6 @@ class ChallengesTable
                 TextColumn::make('status')->badge(),
                 TextColumn::make('winners_count')->label('Winners'),
                 TextColumn::make('max_winners')->label('Max')->placeholder('∞'),
-                TextColumn::make('starts_at')->dateTime()->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('ends_at')->dateTime()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([

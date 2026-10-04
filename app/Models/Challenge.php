@@ -21,8 +21,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'reward_value',
     'reward_message',
     'status',
-    'starts_at',
-    'ends_at',
     'max_winners',
     'winners_count',
     'created_by',
@@ -51,7 +49,7 @@ class Challenge extends Model
     }
 
     /**
-     * Active challenges students can browse (includes upcoming starts).
+     * Active challenges students can browse.
      *
      * @param  Builder<Challenge>  $query
      * @return Builder<Challenge>
@@ -61,10 +59,6 @@ class Challenge extends Model
     {
         return $query
             ->where('status', ChallengeStatus::Active)
-            ->where(function (Builder $builder): void {
-                $builder->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', now());
-            })
             ->where(function (Builder $builder): void {
                 $builder->whereNull('max_winners')
                     ->orWhereColumn('winners_count', '<', 'max_winners');
@@ -80,27 +74,12 @@ class Challenge extends Model
     #[Scope]
     protected function redeemable(Builder $query): Builder
     {
-        return $query
-            ->listed()
-            ->where(function (Builder $builder): void {
-                $builder->whereNull('starts_at')
-                    ->orWhere('starts_at', '<=', now());
-            });
+        return $query->listed();
     }
 
     public function hasAvailableSlots(): bool
     {
         return $this->max_winners === null || $this->winners_count < $this->max_winners;
-    }
-
-    public function hasStarted(): bool
-    {
-        return $this->starts_at === null || ! $this->starts_at->isFuture();
-    }
-
-    public function hasEnded(): bool
-    {
-        return $this->ends_at !== null && $this->ends_at->isPast();
     }
 
     /**
@@ -113,8 +92,6 @@ class Challenge extends Model
             'reward_value' => 'integer',
             'reward_type' => ChallengeRewardType::class,
             'status' => ChallengeStatus::class,
-            'starts_at' => 'datetime',
-            'ends_at' => 'datetime',
             'max_winners' => 'integer',
             'winners_count' => 'integer',
         ];
