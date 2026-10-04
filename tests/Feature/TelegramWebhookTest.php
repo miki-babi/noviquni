@@ -166,16 +166,19 @@ it('completes onboarding when a stream inline button is tapped', function () {
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 Resources'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 Refer'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 Challenges'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '👤 Profile'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === '👥 Refer'
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
             && data_get($data, 'reply_markup.keyboard.1.0.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.2.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.2.1.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.3.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.3.1.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.1.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.2.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.2.1.web_app') === null;
+            && data_get($data, 'reply_markup.keyboard.3.0.web_app') === null
+            && data_get($data, 'reply_markup.keyboard.3.1.web_app') === null;
     });
 
     Http::assertSent(function ($request) {
@@ -309,7 +312,8 @@ it('restores the main reply keyboard when Back is tapped from courses', function
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 Resources'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 Challenges'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '👤 Profile';
     });
 });
 
@@ -721,8 +725,9 @@ it('switches language and refreshes keyboard labels', function () {
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 መርጃዎች'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 መገለጫ'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 ይጋብዙ';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 ፈተናዎች'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '👤 መገለጫ'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === '👥 ይጋብዙ';
     });
 });
 
@@ -1242,5 +1247,27 @@ it('paginates quick saved with next and back callbacks', function () {
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:0'
                 && ($button['text'] ?? '') === '‹ Back')
             && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:1');
+    });
+});
+
+it('opens active challenges when the Challenges keyboard button is tapped', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555050',
+        'onboarding_step' => OnboardingStep::Complete,
+        'referral_points' => 2,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555050, '🏆 Challenges', 550))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text', '');
+
+        return str_contains($text, 'Challenges')
+            && str_contains($text, '2');
     });
 });

@@ -557,6 +557,7 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.courses')] = 'courses';
             $map[$copy->get('keyboard.resources')] = 'resources';
             $map[$copy->get('keyboard.saved')] = 'saved';
+            $map[$copy->get('keyboard.challenges')] = 'challenges';
             $map[$copy->get('keyboard.profile')] = 'profile';
             $map[$copy->get('keyboard.refer')] = 'refer';
             // Legacy reply-keyboard labels until users refresh via /start.
@@ -567,6 +568,7 @@ class TelegramBotHandler
 
         $map['📚 My Courses'] = 'courses';
         $map['📖 Resources'] = 'resources';
+        $map['🏆 Challenges'] = 'challenges';
         $map['👤 My Profile'] = 'profile';
         $map['👥 Refer & Earn'] = 'refer';
         $map['👥 Refer and earn'] = 'refer';
@@ -582,6 +584,7 @@ class TelegramBotHandler
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
             'saved' => $this->showSaved($user, $chatId),
+            'challenges' => $this->showChallenges($user, $chatId),
             'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
             'continue' => $this->showContinue($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),

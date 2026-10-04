@@ -182,6 +182,9 @@ class BroadcastService
 
                     $result = $this->telegram->sendMessage($user->telegram_id, $body, $payload);
                     $delivered = $result !== null;
+                    $messageId = $delivered && isset($result['message_id'])
+                        ? (int) $result['message_id']
+                        : null;
 
                     NotificationDelivery::query()->create([
                         'broadcast_id' => $broadcast->id,
@@ -190,6 +193,7 @@ class BroadcastService
                         'status' => $delivered ? 'sent' : 'failed',
                         'body' => $body,
                         'sent_at' => $delivered ? now() : null,
+                        'telegram_message_id' => $messageId,
                     ]);
                 }
             });
@@ -198,5 +202,47 @@ class BroadcastService
             'status' => BroadcastStatus::Sent,
             'sent_at' => now(),
         ]);
+    }
+
+    /**
+     * @return array{deleted: int, failed: int, skipped: int}
+     */
+    public function deleteFromTelegram(Broadcast $broadcast): array
+    {
+        $counts = [
+            'deleted' => 0,
+            'failed' => 0,
+            'skipped' => 0,
+        ];
+
+        $broadcast->deliveries()
+            ->with('user')
+            ->where('status', 'sent')
+            ->orderBy('id')
+            ->chunkById(100, function (Collection $deliveries) use (&$counts): void {
+                foreach ($deliveries as $delivery) {
+                    if ($delivery->telegram_message_id === null || blank($delivery->user?->telegram_id)) {
+                        $counts['skipped']++;
+
+                        continue;
+                    }
+
+                    $result = $this->telegram->deleteMessage(
+                        $delivery->user->telegram_id,
+                        (int) $delivery->telegram_message_id,
+                    );
+
+                    if ($result === null) {
+                        $counts['failed']++;
+
+                        continue;
+                    }
+
+                    $delivery->update(['status' => 'deleted']);
+                    $counts['deleted']++;
+                }
+            });
+
+        return $counts;
     }
 }

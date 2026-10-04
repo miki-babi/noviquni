@@ -55,7 +55,8 @@ it('sends broadcasts synchronously without queueing jobs', function () {
         ->and($delivery->user_id)->toBe($user->id)
         ->and($delivery->status)->toBe('sent')
         ->and($delivery->body)->toBe('Hi Abebe — Natural updates are ready.')
-        ->and($delivery->sent_at)->not->toBeNull();
+        ->and($delivery->sent_at)->not->toBeNull()
+        ->and($delivery->telegram_message_id)->toBe(1);
 
     Queue::assertNothingPushed();
     Queue::assertNotPushed(SendBroadcastJob::class);

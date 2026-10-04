@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Broadcasts\Tables;
 
 use App\Enums\BroadcastStatus;
+use App\Models\Broadcast;
 use App\Services\BroadcastService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -51,6 +52,27 @@ class BroadcastsTable
 
                         Notification::make()
                             ->title('Broadcast sent')
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('deleteFromTelegram')
+                    ->label('Delete from Telegram')
+                    ->color('danger')
+                    ->icon('heroicon-o-trash')
+                    ->visible(fn (Broadcast $record): bool => $record->status === BroadcastStatus::Sent
+                        && $record->deliveries()
+                            ->where('status', 'sent')
+                            ->whereNotNull('telegram_message_id')
+                            ->exists())
+                    ->requiresConfirmation()
+                    ->modalHeading('Delete this broadcast from Telegram?')
+                    ->modalDescription('Removes this message from users’ Telegram chats. Only works for messages sent after message IDs were stored, and within Telegram’s ~48h delete window.')
+                    ->action(function (Broadcast $record, BroadcastService $broadcasts): void {
+                        $counts = $broadcasts->deleteFromTelegram($record);
+
+                        Notification::make()
+                            ->title('Telegram delete finished')
+                            ->body("Deleted: {$counts['deleted']}. Failed: {$counts['failed']}. Skipped: {$counts['skipped']}.")
                             ->success()
                             ->send();
                     }),

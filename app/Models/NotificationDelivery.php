@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'status',
     'body',
     'sent_at',
+    'telegram_message_id',
 ])]
 class NotificationDelivery extends Model
 {
@@ -47,6 +48,7 @@ class NotificationDelivery extends Model
     {
         return [
             'sent_at' => 'datetime',
+            'telegram_message_id' => 'integer',
         ];
     }
 }

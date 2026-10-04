@@ -160,6 +160,12 @@ class TelegramService
                 ],
                 [
                     [
+                        'text' => $copy->get('keyboard.challenges'),
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ],
+                [
+                    [
                         'text' => $copy->get('keyboard.profile'),
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
@@ -323,6 +329,17 @@ class TelegramService
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function deleteMessage(int|string $chatId, int $messageId): ?array
+    {
+        return $this->call('deleteMessage', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+        ]);
+    }
+
+    /**
      * @param  array<string, mixed>  $replyMarkup
      * @return array<string, mixed>|null
      */
@@ -466,6 +483,10 @@ class TelegramService
 
         $result = $response->json('result');
         $this->logStartOutbound($method, $params, true, is_array($result) ? $result : null);
+
+        if ($result === true) {
+            return [];
+        }
 
         return is_array($result) ? $result : null;
     }
