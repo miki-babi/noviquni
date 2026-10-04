@@ -36,15 +36,15 @@ it('builds main keyboard buttons with resources saved profile and refer', functi
     expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('📖 Resources')
         ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.0.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.0.1.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('👤 Profile')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('🔖 Quick saved')
         ->and(data_get($keyboard, 'keyboard.1.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('👥 Refer')
-        ->and(data_get($keyboard, 'keyboard.1.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.1.1.style'))->toBe('primary');
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('👤 Profile')
+        ->and(data_get($keyboard, 'keyboard.2.0.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('👥 Refer')
+        ->and(data_get($keyboard, 'keyboard.2.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.2.1.style'))->toBe('primary');
 });
 
 it('shows the bootstrap page for guests on mini app routes', function () {

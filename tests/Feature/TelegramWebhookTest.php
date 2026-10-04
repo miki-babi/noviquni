@@ -165,17 +165,17 @@ it('completes onboarding when a stream inline button is tapped', function () {
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 Resources'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '👤 Profile'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === '👥 Refer'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 Refer'
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.0.1.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.1.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.1.1.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.2.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.2.1.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.0.1.web_app') === null
             && data_get($data, 'reply_markup.keyboard.1.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.1.1.web_app') === null;
+            && data_get($data, 'reply_markup.keyboard.2.0.web_app') === null
+            && data_get($data, 'reply_markup.keyboard.2.1.web_app') === null;
     });
 
     Http::assertSent(function ($request) {
@@ -308,7 +308,8 @@ it('restores the main reply keyboard when Back is tapped from courses', function
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 Resources'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === '🔖 Quick saved';
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 Profile';
     });
 });
 
@@ -703,9 +704,9 @@ it('switches language and refreshes keyboard labels', function () {
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📖 መርጃዎች'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '👤 መገለጫ'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === '👥 ይጋብዙ';
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '👤 መገለጫ'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === '👥 ይጋብዙ';
     });
 });
 

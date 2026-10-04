@@ -151,6 +151,8 @@ class TelegramService
                         'text' => $copy->get('keyboard.resources'),
                         'style' => TelegramButtonStyle::Success->value,
                     ],
+                ],
+                [
                     [
                         'text' => $copy->get('keyboard.saved'),
                         'style' => TelegramButtonStyle::Primary->value,
