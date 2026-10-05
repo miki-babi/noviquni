@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Students;
 
+use App\Enums\ReferralStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\Students\Pages\EditStudent;
 use App\Filament\Resources\Students\Pages\ListStudents;
@@ -34,7 +35,12 @@ class StudentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->where('role', UserRole::Student);
+        return parent::getEloquentQuery()
+            ->where('role', UserRole::Student)
+            ->withCount([
+                'referralsMade as referrals_count' => fn (Builder $query) => $query
+                    ->whereIn('status', [ReferralStatus::Qualified, ReferralStatus::Completed]),
+            ]);
     }
 
     public static function form(Schema $schema): Schema

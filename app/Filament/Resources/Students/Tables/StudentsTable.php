@@ -21,6 +21,14 @@ class StudentsTable
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('telegram_username')->toggleable(),
+                TextColumn::make('referrals_count')
+                    ->label('Referrals')
+                    ->sortable()
+                    ->toggleable(),
+                TextColumn::make('referral_points')
+                    ->label('Points')
+                    ->sortable()
+                    ->toggleable(),
                 TextColumn::make('stream.name')->toggleable(),
                 TextColumn::make('university.name')->toggleable(),
                 TextColumn::make('premium_until')->dateTime()->sortable(),

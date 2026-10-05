@@ -18,6 +18,13 @@ class StudentForm
                 TextInput::make('telegram_id')->disabled(),
                 TextInput::make('telegram_username')->disabled(),
                 TextInput::make('referral_code')->disabled(),
+                TextInput::make('referrals_count')
+                    ->label('Referrals')
+                    ->disabled()
+                    ->dehydrated(false),
+                TextInput::make('referral_points')
+                    ->label('Referral points')
+                    ->disabled(),
                 Select::make('stream_id')->relationship('stream', 'name')->searchable()->preload(),
                 Select::make('university_id')->relationship('university', 'name')->searchable()->preload(),
                 Select::make('semester_id')->relationship('semester', 'name')->searchable()->preload(),
