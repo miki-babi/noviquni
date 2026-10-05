@@ -20,6 +20,10 @@ class TelegramService
 
     public const string OnboardingPromptRateLimitKey = 'telegram.onboarding_prompt.';
 
+    public function __construct(
+        public NewStudentAdminNotifier $newStudentAdminNotifier,
+    ) {}
+
     public function token(): ?string
     {
         return config('services.telegram.bot_token');
@@ -601,7 +605,7 @@ class TelegramService
             return $user->refresh();
         }
 
-        return User::query()->create([
+        $user = User::query()->create([
             'name' => $name,
             'telegram_id' => (string) $telegramId,
             'telegram_username' => $username,
@@ -609,5 +613,9 @@ class TelegramService
             'onboarding_step' => OnboardingStep::Start,
             'is_active' => true,
         ]);
+
+        $this->newStudentAdminNotifier->notify($user);
+
+        return $user;
     }
 }
