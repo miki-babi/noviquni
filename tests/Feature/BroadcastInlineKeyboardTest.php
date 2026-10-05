@@ -108,3 +108,48 @@ it('returns null when buttons are empty', function () {
     expect(app(BroadcastService::class)->inlineKeyboard([]))->toBeNull()
         ->and(app(BroadcastService::class)->inlineKeyboard(null))->toBeNull();
 });
+
+it('builds text reply buttons using the label as callback payload', function () {
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => '⭐ Premium',
+            'type' => BroadcastButtonType::Text->value,
+        ],
+    ]);
+
+    expect($markup['inline_keyboard'][0][0])->toMatchArray([
+        'text' => '⭐ Premium',
+        'callback_data' => 'reply:⭐ Premium',
+    ]);
+});
+
+it('builds text reply buttons with optional reply text override', function () {
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => 'Get help',
+            'type' => BroadcastButtonType::Text->value,
+            'command' => '/help',
+        ],
+    ]);
+
+    expect($markup['inline_keyboard'][0][0])->toMatchArray([
+        'text' => 'Get help',
+        'callback_data' => 'reply:/help',
+    ]);
+});
+
+it('passes through style on text reply buttons', function () {
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => 'Courses',
+            'type' => BroadcastButtonType::Text->value,
+            'style' => TelegramButtonStyle::Primary->value,
+        ],
+    ]);
+
+    expect($markup['inline_keyboard'][0][0])->toMatchArray([
+        'text' => 'Courses',
+        'callback_data' => 'reply:Courses',
+        'style' => 'primary',
+    ]);
+});

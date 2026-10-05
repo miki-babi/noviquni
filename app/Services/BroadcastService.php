@@ -12,9 +12,16 @@ use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class BroadcastService
 {
+    public const string InlineTextReplyCallbackPrefix = 'reply:';
+
+    public const int InlineTextReplyCallbackMaxBytes = 64;
+
+    public const int InlineTextReplyPayloadMaxBytes = 58;
+
     public function __construct(public TelegramService $telegram) {}
 
     /**
@@ -126,6 +133,10 @@ class BroadcastService
                     'text' => $label,
                     'callback_data' => mb_substr(trim((string) ($button['command'] ?? '')), 0, 64),
                 ],
+                BroadcastButtonType::Text => [
+                    'text' => $label,
+                    'callback_data' => self::InlineTextReplyCallbackPrefix.$this->inlineTextReplyPayload($button, $label),
+                ],
                 BroadcastButtonType::Url => [
                     'text' => $label,
                     'url' => trim((string) ($button['url'] ?? '')),
@@ -140,10 +151,19 @@ class BroadcastService
 
             if (
                 ($type === BroadcastButtonType::Command && blank($telegramButton['callback_data']))
+                || ($type === BroadcastButtonType::Text && blank(Str::after($telegramButton['callback_data'], self::InlineTextReplyCallbackPrefix)))
                 || ($type === BroadcastButtonType::Url && blank($telegramButton['url']))
                 || ($type === BroadcastButtonType::MiniApp && blank($telegramButton['web_app']['url']))
             ) {
                 continue;
+            }
+
+            if ($type === BroadcastButtonType::Text) {
+                $telegramButton['callback_data'] = mb_substr(
+                    $telegramButton['callback_data'],
+                    0,
+                    self::InlineTextReplyCallbackMaxBytes,
+                );
             }
 
             $style = TelegramButtonStyle::tryFrom((string) ($button['style'] ?? ''));
@@ -160,6 +180,20 @@ class BroadcastService
         }
 
         return ['inline_keyboard' => $rows];
+    }
+
+    /**
+     * @param  array{label?: string, command?: string}  $button
+     */
+    protected function inlineTextReplyPayload(array $button, string $label): string
+    {
+        $reply = trim((string) ($button['command'] ?? ''));
+
+        if ($reply === '') {
+            $reply = $label;
+        }
+
+        return mb_substr($reply, 0, self::InlineTextReplyPayloadMaxBytes);
     }
 
     public function send(Broadcast $broadcast): void

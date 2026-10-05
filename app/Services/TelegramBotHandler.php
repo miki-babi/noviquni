@@ -142,6 +142,11 @@ class TelegramBotHandler
             return;
         }
 
+        $this->handleTextReply($user, $chatId, $text);
+    }
+
+    protected function handleTextReply(User $user, int|string $chatId, string $text): void
+    {
         if ($this->tryHandleCustomCommand($user, $chatId, $text)) {
             return;
         }
@@ -195,7 +200,7 @@ class TelegramBotHandler
         $action = $this->resolveMenuAction($user, $text);
 
         if ($action === null) {
-            $this->telegram->sendMessage($chatId, $copy->get('menu.choose'), [
+            $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('menu.choose'), [
                 'reply_markup' => $this->telegram->mainKeyboard($user),
             ]);
 
@@ -297,6 +302,16 @@ class TelegramBotHandler
             }),
             str_starts_with($data, 'settings:lang:') => $this->handleLanguageSwitch($user, $chatId, Str::after($data, 'settings:lang:')),
             $data === 'premium_pay' => $this->handlePremiumPay($user, $chatId),
+            str_starts_with($data, BroadcastService::InlineTextReplyCallbackPrefix) => $this->guardComplete(
+                $user,
+                function () use ($user, $chatId, $data): void {
+                    $this->handleTextReply(
+                        $user,
+                        $chatId,
+                        Str::after($data, BroadcastService::InlineTextReplyCallbackPrefix),
+                    );
+                },
+            ),
             $this->isMenuOrSlashCommand($data) => $this->handleMenuCallback($user, $chatId, $data),
             default => $copy->get('menu.invalid_button'),
         };

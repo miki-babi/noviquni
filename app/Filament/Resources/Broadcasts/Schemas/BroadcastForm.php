@@ -91,11 +91,18 @@ class BroadcastForm
                                     ->placeholder('Default')
                                     ->native(false),
                                 TextInput::make('command')
-                                    ->label('Command / callback')
-                                    ->helperText('Sent as callback_data. Examples: premium_pay, ⭐ Premium, /start')
+                                    ->label(fn (Get $get): string => $get('type') === BroadcastButtonType::Text->value
+                                        ? 'Reply text'
+                                        : 'Command / callback')
+                                    ->helperText(fn (Get $get): string => $get('type') === BroadcastButtonType::Text->value
+                                        ? 'Sent to the bot as if the student typed this. Leave empty to use the button label.'
+                                        : 'Sent as callback_data. Examples: premium_pay, ⭐ Premium, /start')
                                     ->maxLength(64)
                                     ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Command->value)
-                                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Command->value),
+                                    ->visible(fn (Get $get): bool => in_array($get('type'), [
+                                        BroadcastButtonType::Command->value,
+                                        BroadcastButtonType::Text->value,
+                                    ], true)),
                                 TextInput::make('url')
                                     ->label('URL')
                                     ->url()

@@ -156,11 +156,18 @@ class ManageSettings extends Page
                                     ->placeholder('Default')
                                     ->native(false),
                                 TextInput::make('command')
-                                    ->label('Command / callback')
-                                    ->helperText('Examples: start:continue, premium_pay, setup:courses')
+                                    ->label(fn (Get $get): string => $get('type') === BroadcastButtonType::Text->value
+                                        ? 'Reply text'
+                                        : 'Command / callback')
+                                    ->helperText(fn (Get $get): string => $get('type') === BroadcastButtonType::Text->value
+                                        ? 'Sent to the bot as if the student typed this. Leave empty to use the button label.'
+                                        : 'Examples: start:continue, premium_pay, setup:courses')
                                     ->maxLength(64)
                                     ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Command->value)
-                                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Command->value),
+                                    ->visible(fn (Get $get): bool => in_array($get('type'), [
+                                        BroadcastButtonType::Command->value,
+                                        BroadcastButtonType::Text->value,
+                                    ], true)),
                                 TextInput::make('url')
                                     ->label('URL')
                                     ->url()
