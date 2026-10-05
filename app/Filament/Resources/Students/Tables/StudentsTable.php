@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Students\Tables;
 
 use App\Enums\SubscriptionSource;
+use App\Filament\Actions\SendStudentTelegramMessageAction;
 use App\Services\PremiumService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -42,6 +43,7 @@ class StudentsTable
             ])
             ->recordActions([
                 EditAction::make(),
+                SendStudentTelegramMessageAction::make(),
                 Action::make('grantPremium')
                     ->label('Grant premium')
                     ->requiresConfirmation()

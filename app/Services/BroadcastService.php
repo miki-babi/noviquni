@@ -196,6 +196,43 @@ class BroadcastService
         return mb_substr($reply, 0, self::InlineTextReplyPayloadMaxBytes);
     }
 
+    /**
+     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, style?: string|null}>|null  $buttons
+     */
+    public function sendToUser(User $user, string $body, ?array $buttons = null): bool
+    {
+        if (blank($user->telegram_id) || ! $this->telegram->isConfigured()) {
+            return false;
+        }
+
+        $body = $this->personalize($body, $user);
+
+        $payload = [];
+        $replyMarkup = $this->inlineKeyboard($buttons);
+
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $result = $this->telegram->sendMessage($user->telegram_id, $body, $payload);
+        $delivered = $result !== null;
+        $messageId = $delivered && isset($result['message_id'])
+            ? (int) $result['message_id']
+            : null;
+
+        NotificationDelivery::query()->create([
+            'broadcast_id' => null,
+            'user_id' => $user->id,
+            'channel' => 'telegram',
+            'status' => $delivered ? 'sent' : 'failed',
+            'body' => $body,
+            'sent_at' => $delivered ? now() : null,
+            'telegram_message_id' => $messageId,
+        ]);
+
+        return $delivered;
+    }
+
     public function send(Broadcast $broadcast): void
     {
         $broadcast->update(['status' => BroadcastStatus::Sending, 'scheduled_at' => null]);

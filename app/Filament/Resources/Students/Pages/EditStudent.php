@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Students\Pages;
 
+use App\Filament\Actions\SendStudentTelegramMessageAction;
 use App\Filament\Resources\Students\StudentResource;
 use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\EditRecord;
@@ -13,6 +14,7 @@ class EditStudent extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            SendStudentTelegramMessageAction::make(),
             DeleteAction::make(),
         ];
     }
