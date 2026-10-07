@@ -171,7 +171,7 @@ it('sends the admin start photo caption and inline buttons on /start', function 
             && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '👥 Invite friends';
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === '👥 Invite friends';
     });
 });
 
@@ -241,7 +241,7 @@ it('logs the outbound telegram payloads sent after /start', function () {
         ->and(data_get($startLogs[0]->context, 'reply_markup.inline_keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
         ->and((string) ($startLogs[1]->context['text'] ?? ''))->toContain('Your study menu is ready')
         ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.0.0.text'))->toBe('📚 Freshman resources')
-        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.4.0.text'))->toBe('👥 Invite friends');
+        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.5.1.text'))->toBe('👥 Invite friends');
 });
 
 it('logs the start photo caption when a custom start image is sent', function () {
