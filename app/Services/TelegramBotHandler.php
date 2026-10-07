@@ -313,7 +313,7 @@ class TelegramBotHandler
             ),
             str_starts_with($data, BroadcastService::InlineChoiceCallbackPrefix) => $this->guardComplete(
                 $user,
-                fn (): ?string => $this->handleBroadcastChoice($user, $chatId, $data),
+                fn (): ?string => $this->handleBroadcastChoice($user, $chatId, $data, $messageId),
             ),
             str_starts_with($data, BroadcastService::InlineTextReplyCallbackPrefix) => $this->guardComplete(
                 $user,
@@ -343,8 +343,12 @@ class TelegramBotHandler
         return is_string($result) ? $result : null;
     }
 
-    protected function handleBroadcastChoice(User $user, int|string $chatId, string $data): ?string
-    {
+    protected function handleBroadcastChoice(
+        User $user,
+        int|string $chatId,
+        string $data,
+        ?int $messageId,
+    ): ?string {
         $broadcasts = app(BroadcastService::class);
         $parsed = $broadcasts->parseChoiceCallback($data);
 
@@ -352,32 +356,13 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $broadcast = Broadcast::query()->find($parsed['broadcast_id']);
-
-        if ($broadcast === null) {
-            return TelegramCopy::for($user)->get('menu.invalid_button');
-        }
-
-        $response = $broadcasts->choiceResponse($broadcast, $parsed['choice_index']);
-
-        if ($response === null) {
-            return TelegramCopy::for($user)->get('menu.invalid_button');
-        }
-
-        $copy = TelegramCopy::for($user);
-
-        $this->telegram->sendMessage(
+        return $this->deliverBroadcastChoiceAnswer(
+            $user,
             $chatId,
-            $broadcasts->personalize($response, $user),
-            [
-                'reply_markup' => $broadcasts->choiceAnswerKeyboard(
-                    $broadcast,
-                    $copy->get('broadcast.choice_back'),
-                ),
-            ],
+            $parsed['broadcast_id'],
+            $parsed['choice_index'],
+            $messageId,
         );
-
-        return null;
     }
 
     protected function handleBroadcastChoiceBack(
@@ -403,7 +388,7 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $replyMarkup = $broadcasts->choiceRepromptKeyboard($broadcast);
+        $replyMarkup = $broadcasts->inlineKeyboard($broadcast->buttons, $broadcast);
 
         if ($replyMarkup === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
@@ -412,7 +397,7 @@ class TelegramBotHandler
         $this->telegram->editMessageText(
             $chatId,
             $messageId,
-            TelegramCopy::for($user)->get('broadcast.choice_prompt'),
+            $broadcasts->personalize($broadcast->body, $user),
             ['reply_markup' => $replyMarkup],
         );
 
@@ -425,10 +410,6 @@ class TelegramBotHandler
         string $data,
         ?int $messageId,
     ): ?string {
-        if ($messageId === null) {
-            return TelegramCopy::for($user)->get('menu.invalid_button');
-        }
-
         $broadcasts = app(BroadcastService::class);
         $parsed = $broadcasts->parseChoiceChangeCallback($data);
 
@@ -436,31 +417,49 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $broadcast = Broadcast::query()->find($parsed['broadcast_id']);
+        return $this->deliverBroadcastChoiceAnswer(
+            $user,
+            $chatId,
+            $parsed['broadcast_id'],
+            $parsed['choice_index'],
+            $messageId,
+        );
+    }
+
+    protected function deliverBroadcastChoiceAnswer(
+        User $user,
+        int|string $chatId,
+        int $broadcastId,
+        int $choiceIndex,
+        ?int $messageId,
+    ): ?string {
+        $broadcasts = app(BroadcastService::class);
+        $broadcast = Broadcast::query()->find($broadcastId);
 
         if ($broadcast === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $response = $broadcasts->choiceResponse($broadcast, $parsed['choice_index']);
+        $response = $broadcasts->choiceResponse($broadcast, $choiceIndex);
 
         if ($response === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
         $copy = TelegramCopy::for($user);
+        $text = $broadcasts->personalize($response, $user);
+        $payload = [
+            'reply_markup' => $broadcasts->choiceAnswerKeyboard(
+                $broadcast,
+                $copy->get('broadcast.choice_back'),
+            ),
+        ];
 
-        $this->telegram->editMessageText(
-            $chatId,
-            $messageId,
-            $broadcasts->personalize($response, $user),
-            [
-                'reply_markup' => $broadcasts->choiceAnswerKeyboard(
-                    $broadcast,
-                    $copy->get('broadcast.choice_back'),
-                ),
-            ],
-        );
+        if ($messageId !== null) {
+            $this->telegram->editMessageText($chatId, $messageId, $text, $payload);
+        } else {
+            $this->telegram->sendMessage($chatId, $text, $payload);
+        }
 
         return null;
     }
