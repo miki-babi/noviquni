@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Cache;
 
 class OpportunityGuidanceService
 {
+    public function __construct(public SettingsService $settings) {}
+
     /**
      * @return array{notified: bool, support_url: ?string}
      */
@@ -50,7 +52,7 @@ class OpportunityGuidanceService
 
     public function supportDeepLink(User $student, Opportunity $opportunity): ?string
     {
-        $username = $this->supportUsername();
+        $username = $this->supportUsername($opportunity);
 
         if ($username === null) {
             return null;
@@ -63,11 +65,19 @@ class OpportunityGuidanceService
 
     public function prefilledStudentMessage(User $student, Opportunity $opportunity): string
     {
-        $username = filled($student->telegram_username)
+        $template = filled($opportunity->guidance_opening_message)
+            ? (string) $opportunity->guidance_opening_message
+            : $this->settings->opportunityGuidanceOpeningMessage();
+
+        $studentLabel = filled($student->telegram_username)
             ? '@'.ltrim((string) $student->telegram_username, '@')
             : $student->name;
 
-        return "Hi, I'd like guidance on {$opportunity->title} (partner: {$opportunity->partner_name}).\n\nFrom: {$username}";
+        return strtr($template, [
+            '{title}' => $opportunity->title,
+            '{partner}' => (string) $opportunity->partner_name,
+            '{student}' => $studentLabel,
+        ]);
     }
 
     public function adminNotificationText(User $student, Opportunity $opportunity): string
@@ -83,16 +93,21 @@ class OpportunityGuidanceService
             ."\nPartner: ".TelegramHtml::escape((string) $opportunity->partner_name);
     }
 
-    public function supportUsername(): ?string
+    public function supportUsername(Opportunity $opportunity): ?string
     {
-        $raw = (string) config('services.telegram.file_admin_username', '');
+        if (filled($opportunity->guidance_contact_username)) {
+            $username = ltrim(trim((string) $opportunity->guidance_contact_username), '@');
 
-        $username = collect(explode(',', $raw))
-            ->map(fn (string $value): string => ltrim(trim($value), '@'))
-            ->filter()
-            ->first();
+            return $username !== '' ? $username : null;
+        }
 
-        return filled($username) ? $username : null;
+        $fromSettings = $this->settings->opportunityGuidanceUsername();
+
+        if ($fromSettings !== null) {
+            return $fromSettings;
+        }
+
+        return $this->firstFileAdminUsername();
     }
 
     /**
@@ -111,6 +126,13 @@ class OpportunityGuidanceService
             ->unique()
             ->values()
             ->all();
+    }
+
+    protected function firstFileAdminUsername(): ?string
+    {
+        $username = $this->fileAdminUsernames()[0] ?? null;
+
+        return filled($username) ? $username : null;
     }
 
     /**

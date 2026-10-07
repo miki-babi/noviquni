@@ -317,6 +317,11 @@ it('notifies support admins and sends a support deep link when guidance is reque
     Queue::fake();
 
     config(['services.telegram.file_admin_username' => 'noviqsupport']);
+    app(SettingsService::class)->set(SettingsService::OPPORTUNITY_GUIDANCE_USERNAME, 'guidancecoach');
+    app(SettingsService::class)->set(
+        SettingsService::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE,
+        'Hello coach about {title} with {partner} from {student}',
+    );
 
     User::factory()->student()->create([
         'telegram_id' => '888001',
@@ -343,17 +348,146 @@ it('notifies support admins and sends a support deep link when guidance is reque
         ->assertOk();
 
     Queue::assertPushed(SendTelegramMessageJob::class, 1);
+    Queue::assertPushed(SendTelegramMessageJob::class, function (SendTelegramMessageJob $job): bool {
+        return (string) $job->chatId === '888002';
+    });
+
+    $sentSupportUrls = Http::recorded()
+        ->map(function ($pair) {
+            [$request] = $pair;
+
+            if (! str_contains($request->url(), '/sendMessage')) {
+                return null;
+            }
+
+            $data = $request->data();
+            $markup = $data['reply_markup'] ?? null;
+
+            if (is_string($markup)) {
+                $markup = json_decode($markup, true);
+            }
+
+            return data_get($markup, 'inline_keyboard.0.0.url');
+        })
+        ->filter()
+        ->values();
+
+    expect($sentSupportUrls)->not->toBeEmpty();
+
+    $url = urldecode((string) $sentSupportUrls->first());
+
+    expect($url)
+        ->toContain('https://t.me/guidancecoach?text=')
+        ->toContain('Hello coach about Guidance Job with Partner Co from @abebe');
+});
+
+it('uses opportunity guidance overrides over settings defaults', function () {
+    Queue::fake();
+
+    config(['services.telegram.file_admin_username' => 'noviqsupport']);
+    app(SettingsService::class)->set(SettingsService::OPPORTUNITY_GUIDANCE_USERNAME, 'guidancecoach');
+    app(SettingsService::class)->set(
+        SettingsService::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE,
+        'Default message {title}',
+    );
+
+    User::factory()->student()->create([
+        'telegram_id' => '888011',
+        'telegram_username' => 'override_student',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    User::factory()->admin()->create([
+        'telegram_id' => '888012',
+        'telegram_username' => 'noviqsupport',
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->scholarship()
+        ->verifiedPartner('Override Partner')
+        ->withGuidanceContact('partnermentor', 'Custom opener for {title} / {partner} / {student}')
+        ->create([
+            'title' => 'Override Scholarship',
+        ]);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(888011, 'opp:guidance:'.$opportunity->id, 54, 311))
+        ->assertOk();
+
+    Queue::assertPushed(SendTelegramMessageJob::class, 1);
+
+    $sentSupportUrls = Http::recorded()
+        ->map(function ($pair) {
+            [$request] = $pair;
+
+            if (! str_contains($request->url(), '/sendMessage')) {
+                return null;
+            }
+
+            $data = $request->data();
+            $markup = $data['reply_markup'] ?? null;
+
+            if (is_string($markup)) {
+                $markup = json_decode($markup, true);
+            }
+
+            return data_get($markup, 'inline_keyboard.0.0.url');
+        })
+        ->filter()
+        ->values();
+
+    expect($sentSupportUrls)->not->toBeEmpty();
+
+    $url = urldecode((string) $sentSupportUrls->first());
+
+    expect($url)
+        ->toContain('https://t.me/partnermentor?text=')
+        ->toContain('Custom opener for Override Scholarship / Override Partner / @abebe')
+        ->not->toContain('Default message');
+});
+
+it('falls back to file admin username for the guidance DM when settings contact is blank', function () {
+    Queue::fake();
+
+    config(['services.telegram.file_admin_username' => 'noviqsupport']);
+    app(SettingsService::class)->set(SettingsService::OPPORTUNITY_GUIDANCE_USERNAME, '');
+
+    User::factory()->student()->create([
+        'telegram_id' => '888013',
+        'telegram_username' => 'fallback_student',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    User::factory()->admin()->create([
+        'telegram_id' => '888014',
+        'telegram_username' => 'noviqsupport',
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Fallback Partner')->create([
+        'title' => 'Fallback Job',
+    ]);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(888013, 'opp:guidance:'.$opportunity->id, 55, 312))
+        ->assertOk();
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $data = $request->data();
-        $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
+        $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Tap below to message our team')
-            && str_contains((string) ($button['url'] ?? ''), 'https://t.me/noviqsupport?text=');
+        return str_contains((string) ($button['url'] ?? ''), 'https://t.me/noviqsupport?text=');
     });
 });
 

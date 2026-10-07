@@ -23,6 +23,8 @@ use Illuminate\Support\Str;
     'is_published',
     'is_verified_partner',
     'partner_name',
+    'guidance_contact_username',
+    'guidance_opening_message',
     'sort_order',
 ])]
 class Opportunity extends Model

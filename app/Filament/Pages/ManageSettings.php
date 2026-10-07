@@ -60,6 +60,8 @@ class ManageSettings extends Page
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
             'cohort_urgency_copy' => $settings->cohortUrgencyCopy(),
+            'opportunity_guidance_username' => $settings->opportunityGuidanceUsername() ?? '',
+            'opportunity_guidance_opening_message' => $settings->opportunityGuidanceOpeningMessage(),
         ]);
     }
 
@@ -108,6 +110,20 @@ class ManageSettings extends Page
                             ->label('Cohort urgency copy')
                             ->rows(2)
                             ->helperText('Shown on the Mini App premium screen.')
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2),
+                Section::make('Opportunity guidance')
+                    ->description('Default contact and opening DM for verified-partner “Request guidance”. Opportunities can override these.')
+                    ->schema([
+                        TextInput::make('opportunity_guidance_username')
+                            ->label('Guidance Telegram username')
+                            ->helperText('Without @. Used for the student support chat link. Admin notify still uses TELEGRAM_FILE_ADMIN_USERNAME.')
+                            ->maxLength(255),
+                        Textarea::make('opportunity_guidance_opening_message')
+                            ->label('Default opening message')
+                            ->rows(4)
+                            ->helperText('Placeholders: {title}, {partner}, {student}')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -205,6 +221,14 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PREMIUM_DURATION_DAYS, (string) $data['premium_duration_days']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
+        $settings->set(
+            SettingsService::OPPORTUNITY_GUIDANCE_USERNAME,
+            ltrim(trim((string) ($data['opportunity_guidance_username'] ?? '')), '@'),
+        );
+        $settings->set(
+            SettingsService::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE,
+            (string) ($data['opportunity_guidance_opening_message'] ?? ''),
+        );
 
         $image = $data['telegram_start_image'] ?? null;
         if (is_array($image)) {

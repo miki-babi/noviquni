@@ -26,6 +26,10 @@ class SettingsService
 
     public const COHORT_URGENCY_COPY = 'cohort_urgency_copy';
 
+    public const OPPORTUNITY_GUIDANCE_USERNAME = 'opportunity_guidance_username';
+
+    public const OPPORTUNITY_GUIDANCE_OPENING_MESSAGE = 'opportunity_guidance_opening_message';
+
     /**
      * @return array<string, string>
      */
@@ -41,6 +45,8 @@ class SettingsService
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
             self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock full resources this week — 30 ETB or invite 3 friends.',
+            self::OPPORTUNITY_GUIDANCE_USERNAME => '',
+            self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE => "Hi, I'd like guidance on {title} (partner: {partner}).\n\nFrom: {student}",
         ];
     }
 
@@ -120,6 +126,25 @@ class SettingsService
     public function cohortUrgencyCopy(): string
     {
         return $this->get(self::COHORT_URGENCY_COPY);
+    }
+
+    public function opportunityGuidanceUsername(): ?string
+    {
+        $username = ltrim(trim($this->get(self::OPPORTUNITY_GUIDANCE_USERNAME, '')), '@');
+
+        return $username !== '' ? $username : null;
+    }
+
+    public function opportunityGuidanceOpeningMessage(): string
+    {
+        $message = trim($this->get(
+            self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE,
+            $this->defaults()[self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE],
+        ));
+
+        return $message !== ''
+            ? $message
+            : $this->defaults()[self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE];
     }
 
     public function seedDefaults(): void

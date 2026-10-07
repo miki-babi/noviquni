@@ -73,4 +73,12 @@ class OpportunityFactory extends Factory
             'partner_name' => $partnerName ?? fake()->company(),
         ]);
     }
+
+    public function withGuidanceContact(string $username, ?string $openingMessage = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'guidance_contact_username' => ltrim($username, '@'),
+            'guidance_opening_message' => $openingMessage,
+        ]);
+    }
 }
