@@ -20,6 +20,10 @@ class BroadcastService
 
     public const string InlineChoiceCallbackPrefix = 'bcq:';
 
+    public const string InlineChoiceBackCallbackPrefix = 'bcqb:';
+
+    public const string InlineChoiceChangeCallbackPrefix = 'bcqc:';
+
     public const int InlineTextReplyCallbackMaxBytes = 64;
 
     public const int InlineTextReplyPayloadMaxBytes = 58;
@@ -234,21 +238,116 @@ class BroadcastService
      */
     public function parseChoiceCallback(string $data): ?array
     {
-        if (! str_starts_with($data, self::InlineChoiceCallbackPrefix)) {
+        if (
+            str_starts_with($data, self::InlineChoiceBackCallbackPrefix)
+            || str_starts_with($data, self::InlineChoiceChangeCallbackPrefix)
+            || ! str_starts_with($data, self::InlineChoiceCallbackPrefix)
+        ) {
             return null;
         }
 
-        $payload = Str::after($data, self::InlineChoiceCallbackPrefix);
-        $parts = explode(':', $payload, 2);
+        return $this->parseBroadcastChoiceIndexPayload(
+            Str::after($data, self::InlineChoiceCallbackPrefix),
+        );
+    }
 
-        if (count($parts) !== 2 || ! ctype_digit($parts[0]) || ! ctype_digit($parts[1])) {
+    /**
+     * @return array{broadcast_id: int}|null
+     */
+    public function parseChoiceBackCallback(string $data): ?array
+    {
+        if (! str_starts_with($data, self::InlineChoiceBackCallbackPrefix)) {
             return null;
         }
 
+        $broadcastId = Str::after($data, self::InlineChoiceBackCallbackPrefix);
+
+        if ($broadcastId === '' || ! ctype_digit($broadcastId)) {
+            return null;
+        }
+
+        return ['broadcast_id' => (int) $broadcastId];
+    }
+
+    /**
+     * @return array{broadcast_id: int, choice_index: int}|null
+     */
+    public function parseChoiceChangeCallback(string $data): ?array
+    {
+        if (! str_starts_with($data, self::InlineChoiceChangeCallbackPrefix)) {
+            return null;
+        }
+
+        return $this->parseBroadcastChoiceIndexPayload(
+            Str::after($data, self::InlineChoiceChangeCallbackPrefix),
+        );
+    }
+
+    /**
+     * @return array{inline_keyboard: array<int, array<int, array<string, mixed>>>}
+     */
+    public function choiceAnswerKeyboard(Broadcast $broadcast, string $backLabel): array
+    {
         return [
-            'broadcast_id' => (int) $parts[0],
-            'choice_index' => (int) $parts[1],
+            'inline_keyboard' => [[
+                [
+                    'text' => $backLabel,
+                    'callback_data' => self::InlineChoiceBackCallbackPrefix.$broadcast->id,
+                ],
+            ]],
         ];
+    }
+
+    /**
+     * @return array{inline_keyboard: array<int, array<int, array<string, mixed>>>}|null
+     */
+    public function choiceRepromptKeyboard(Broadcast $broadcast): ?array
+    {
+        $choiceRow = [];
+        $choiceIndex = 0;
+
+        foreach ($broadcast->buttons ?? [] as $button) {
+            if (! is_array($button)) {
+                continue;
+            }
+
+            $label = trim((string) ($button['label'] ?? ''));
+            $type = BroadcastButtonType::tryFrom((string) ($button['type'] ?? ''));
+
+            if ($label === '' || $type !== BroadcastButtonType::Choice) {
+                continue;
+            }
+
+            if ($choiceIndex >= self::MaxChoiceButtons) {
+                break;
+            }
+
+            $response = trim((string) ($button['response'] ?? ''));
+
+            if ($response === '') {
+                continue;
+            }
+
+            $telegramButton = [
+                'text' => $label,
+                'callback_data' => self::InlineChoiceChangeCallbackPrefix.$broadcast->id.':'.$choiceIndex,
+            ];
+
+            $style = TelegramButtonStyle::tryFrom((string) ($button['style'] ?? ''));
+
+            if ($style !== null) {
+                $telegramButton['style'] = $style->value;
+            }
+
+            $choiceRow[] = $telegramButton;
+            $choiceIndex++;
+        }
+
+        if ($choiceRow === []) {
+            return null;
+        }
+
+        return ['inline_keyboard' => [$choiceRow]];
     }
 
     public function choiceResponse(Broadcast $broadcast, int $choiceIndex): ?string
@@ -272,6 +371,23 @@ class BroadcastService
         $response = trim((string) ($button['response'] ?? ''));
 
         return $response !== '' ? $response : null;
+    }
+
+    /**
+     * @return array{broadcast_id: int, choice_index: int}|null
+     */
+    protected function parseBroadcastChoiceIndexPayload(string $payload): ?array
+    {
+        $parts = explode(':', $payload, 2);
+
+        if (count($parts) !== 2 || ! ctype_digit($parts[0]) || ! ctype_digit($parts[1])) {
+            return null;
+        }
+
+        return [
+            'broadcast_id' => (int) $parts[0],
+            'choice_index' => (int) $parts[1],
+        ];
     }
 
     /**

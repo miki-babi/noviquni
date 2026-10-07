@@ -189,4 +189,8 @@ return [
         'saved_status' => 'Saved to Quick saved.',
         'removed_status' => 'Removed from Quick saved.',
     ],
+    'broadcast' => [
+        'choice_prompt' => 'Choose an option:',
+        'choice_back' => '‹ Back',
+    ],
 ];

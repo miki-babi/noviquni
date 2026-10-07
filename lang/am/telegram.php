@@ -219,4 +219,8 @@ return [
         'saved_status' => 'ወደ በፍጥነት የተቀመጡ ታክሏል።',
         'removed_status' => 'ከበፍጥነት የተቀመጡ ተወግዷል።',
     ],
+    'broadcast' => [
+        'choice_prompt' => 'አንድ አማራጭ ይምረጡ፦',
+        'choice_back' => '‹ ተመለስ',
+    ],
 ];

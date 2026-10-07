@@ -303,6 +303,14 @@ class TelegramBotHandler
             }),
             str_starts_with($data, 'settings:lang:') => $this->handleLanguageSwitch($user, $chatId, Str::after($data, 'settings:lang:')),
             $data === 'premium_pay' => $this->handlePremiumPay($user, $chatId),
+            str_starts_with($data, BroadcastService::InlineChoiceBackCallbackPrefix) => $this->guardComplete(
+                $user,
+                fn (): ?string => $this->handleBroadcastChoiceBack($user, $chatId, $data, $messageId),
+            ),
+            str_starts_with($data, BroadcastService::InlineChoiceChangeCallbackPrefix) => $this->guardComplete(
+                $user,
+                fn (): ?string => $this->handleBroadcastChoiceChange($user, $chatId, $data, $messageId),
+            ),
             str_starts_with($data, BroadcastService::InlineChoiceCallbackPrefix) => $this->guardComplete(
                 $user,
                 fn (): ?string => $this->handleBroadcastChoice($user, $chatId, $data),
@@ -356,9 +364,102 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
+        $copy = TelegramCopy::for($user);
+
         $this->telegram->sendMessage(
             $chatId,
             $broadcasts->personalize($response, $user),
+            [
+                'reply_markup' => $broadcasts->choiceAnswerKeyboard(
+                    $broadcast,
+                    $copy->get('broadcast.choice_back'),
+                ),
+            ],
+        );
+
+        return null;
+    }
+
+    protected function handleBroadcastChoiceBack(
+        User $user,
+        int|string $chatId,
+        string $data,
+        ?int $messageId,
+    ): ?string {
+        if ($messageId === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $broadcasts = app(BroadcastService::class);
+        $parsed = $broadcasts->parseChoiceBackCallback($data);
+
+        if ($parsed === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $broadcast = Broadcast::query()->find($parsed['broadcast_id']);
+
+        if ($broadcast === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $replyMarkup = $broadcasts->choiceRepromptKeyboard($broadcast);
+
+        if ($replyMarkup === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->telegram->editMessageText(
+            $chatId,
+            $messageId,
+            TelegramCopy::for($user)->get('broadcast.choice_prompt'),
+            ['reply_markup' => $replyMarkup],
+        );
+
+        return null;
+    }
+
+    protected function handleBroadcastChoiceChange(
+        User $user,
+        int|string $chatId,
+        string $data,
+        ?int $messageId,
+    ): ?string {
+        if ($messageId === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $broadcasts = app(BroadcastService::class);
+        $parsed = $broadcasts->parseChoiceChangeCallback($data);
+
+        if ($parsed === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $broadcast = Broadcast::query()->find($parsed['broadcast_id']);
+
+        if ($broadcast === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $response = $broadcasts->choiceResponse($broadcast, $parsed['choice_index']);
+
+        if ($response === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $copy = TelegramCopy::for($user);
+
+        $this->telegram->editMessageText(
+            $chatId,
+            $messageId,
+            $broadcasts->personalize($response, $user),
+            [
+                'reply_markup' => $broadcasts->choiceAnswerKeyboard(
+                    $broadcast,
+                    $copy->get('broadcast.choice_back'),
+                ),
+            ],
         );
 
         return null;
