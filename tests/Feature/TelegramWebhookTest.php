@@ -167,23 +167,25 @@ it('completes onboarding when a stream inline button is tapped', function () {
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 Challenges'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🎓 Scholarship opportunities'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 Scholarship opportunities'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 Challenges'
             && data_get($data, 'reply_markup.keyboard.4.0.text') === '💼 Internships'
             && data_get($data, 'reply_markup.keyboard.4.1.text') === '🌍 Opportunities'
             && data_get($data, 'reply_markup.keyboard.5.0.text') === '🎤 Mentorship'
             && data_get($data, 'reply_markup.keyboard.6.0.text') === '👤 Profile'
             && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 Invite friends'
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.1.0.style') === null
-            && data_get($data, 'reply_markup.keyboard.2.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.1.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.2.0.style') === null
             && data_get($data, 'reply_markup.keyboard.3.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.4.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.4.1.style') === 'success'
             && data_get($data, 'reply_markup.keyboard.5.0.style') === 'success'
             && data_get($data, 'reply_markup.keyboard.6.0.style') === null
             && data_get($data, 'reply_markup.keyboard.6.1.style') === null
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.1.0.web_app') === null
+            && data_get($data, 'reply_markup.keyboard.2.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.6.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.6.1.web_app') === null;
     });
@@ -318,9 +320,9 @@ it('restores the main reply keyboard when Back is tapped from courses', function
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 Challenges'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🎓 Scholarship opportunities'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 Scholarship opportunities'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 Challenges'
             && data_get($data, 'reply_markup.keyboard.6.0.text') === '👤 Profile'
             && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 Invite friends';
     });
@@ -733,9 +735,9 @@ it('switches language and refreshes keyboard labels', function () {
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 የመጀመሪያ ዓመት መርጃዎች'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🏆 ፈተናዎች'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🎓 የስኮላርሺፕ እድሎች'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 የስኮላርሺፕ እድሎች'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 ፈተናዎች'
             && data_get($data, 'reply_markup.keyboard.4.0.text') === '💼 የስራ ልምምዶች'
             && data_get($data, 'reply_markup.keyboard.4.1.text') === '🌍 እድሎች'
             && data_get($data, 'reply_markup.keyboard.5.0.text') === '🎤 አማካሪነት'
