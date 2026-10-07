@@ -104,8 +104,10 @@ class TelegramBotHandler
                 $opportunityShare = app(TelegramDeepLink::class)->parseOpportunitySharePayload($payload);
 
                 if ($opportunityShare !== null) {
-                    $this->referrals->attributeReferral($user, $opportunityShare['referral_code']);
-                    $user->refresh();
+                    if ($user->wasRecentlyCreated) {
+                        $this->referrals->attributeReferral($user, $opportunityShare['referral_code']);
+                        $user->refresh();
+                    }
                 } elseif (! $this->isNavigationStartPayload($payload)) {
                     $this->referrals->attributeReferral($user, $payload);
                     $user->refresh();

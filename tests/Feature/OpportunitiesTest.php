@@ -535,6 +535,45 @@ it('prompts onboarding when an incomplete user tries to save a shared opportunit
     });
 });
 
+it('does not attribute a referral when an existing user opens an opportunity share link', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $referrer = User::factory()->student()->create([
+        'referral_code' => 'EXISTREF1',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $existing = User::factory()->student()->create([
+        'telegram_id' => '555404',
+        'referred_by_user_id' => null,
+        'onboarding_step' => OnboardingStep::Year,
+        'is_active' => true,
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->scholarship()->create([
+        'title' => 'Existing User Shared Scholarship',
+    ]);
+
+    $this->postJson(
+        '/telegram/webhook',
+        telegramMessagePayload(555404, '/start opp_'.$opportunity->id.'_'.$referrer->referral_code, 404),
+    )->assertOk();
+
+    expect($existing->fresh()->referred_by_user_id)->toBeNull();
+    expect(Referral::query()->where('referred_id', $existing->id)->exists())->toBeFalse();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'Existing User Shared Scholarship');
+    });
+});
+
 it('opens a shared opportunity for a complete user without overwriting an existing referrer', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
