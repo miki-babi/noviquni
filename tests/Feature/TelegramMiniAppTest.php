@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\OnboardingStep;
+use App\Enums\YearSlug;
 use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -8,6 +9,7 @@ use App\Models\Semester;
 use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
+use App\Models\Year;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Services\TelegramService;
@@ -30,6 +32,7 @@ it('builds main keyboard buttons with freshman resources career rows and invite 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
@@ -55,6 +58,20 @@ it('builds main keyboard buttons with freshman resources career rows and invite 
         ->and(data_get($keyboard, 'keyboard.6.1.text'))->toBe('👥 Invite friends')
         ->and(data_get($keyboard, 'keyboard.6.1.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.6.1.style'))->toBeNull();
+});
+
+it('hides freshman resources on the main keyboard for non-freshman students', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Second->value)->firstOrFail());
+
+    $keyboard = app(TelegramService::class)->mainKeyboard($user);
+    $labels = collect($keyboard['keyboard'])->flatten(1)->pluck('text');
+
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('🎓 Scholarship opportunities')
+        ->and($labels)->not->toContain('📚 Freshman resources')
+        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('👥 Invite friends');
 });
 
 it('shows the bootstrap page for guests on mini app routes', function () {

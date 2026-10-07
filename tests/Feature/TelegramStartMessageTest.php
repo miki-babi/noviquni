@@ -144,6 +144,7 @@ it('sends the admin start photo caption and inline buttons on /start', function 
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555900, 9001))->assertOk();
 
@@ -227,6 +228,7 @@ it('logs the outbound telegram payloads sent after /start', function () {
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555902, 9003))->assertOk();
 

@@ -148,56 +148,61 @@ class TelegramService
     {
         $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
 
-        return [
-            'keyboard' => [
+        $rows = [];
+
+        if ($user?->isFreshman()) {
+            $rows[] = [
                 [
-                    [
-                        'text' => $copy->get('keyboard.resources'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
+                    'text' => $copy->get('keyboard.resources'),
+                    'style' => TelegramButtonStyle::Success->value,
                 ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.scholarships'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.saved'),
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.challenges'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.internships'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.opportunities'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.mentorship'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.profile'),
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.refer'),
-                    ],
-                ],
+            ];
+        }
+
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.scholarships'),
+                'style' => TelegramButtonStyle::Success->value,
             ],
+        ];
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.saved'),
+            ],
+        ];
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.challenges'),
+                'style' => TelegramButtonStyle::Success->value,
+            ],
+        ];
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.internships'),
+                'style' => TelegramButtonStyle::Success->value,
+            ],
+            [
+                'text' => $copy->get('keyboard.opportunities'),
+                'style' => TelegramButtonStyle::Success->value,
+            ],
+        ];
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.mentorship'),
+                'style' => TelegramButtonStyle::Success->value,
+            ],
+        ];
+        $rows[] = [
+            [
+                'text' => $copy->get('keyboard.profile'),
+            ],
+            [
+                'text' => $copy->get('keyboard.refer'),
+            ],
+        ];
+
+        return [
+            'keyboard' => $rows,
             'resize_keyboard' => true,
         ];
     }

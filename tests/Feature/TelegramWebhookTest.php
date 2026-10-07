@@ -239,6 +239,19 @@ it('completes onboarding without stream when a non-Freshman year is tapped', fun
     Http::assertNotSent(function ($request) {
         return str_contains((string) data_get($request->data(), 'text'), 'Tap your stream');
     });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $labels = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1)->pluck('text');
+
+        return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === '🎓 Scholarship opportunities'
+            && ! $labels->contains('📚 Freshman resources');
+    });
 });
 
 it('treats legacy university and course onboarding callbacks as stale', function () {
@@ -341,11 +354,12 @@ it('shows enrolled courses in a reply keyboard when Courses is tapped', function
 });
 
 it('restores the main reply keyboard when Back is tapped from courses', function () {
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '555024',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555024, '← Back'))
         ->assertOk();
@@ -752,12 +766,13 @@ it('shows profile submenu with notifications refer and settings', function () {
 });
 
 it('switches language and refreshes keyboard labels', function () {
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '555026',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'telegram_locale' => 'en',
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555026, 'settings:lang:am', 30, 406))
         ->assertOk();
@@ -785,11 +800,12 @@ it('switches language and refreshes keyboard labels', function () {
 });
 
 it('replies with coming soon when Scholarship opportunities is tapped', function () {
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '555226',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555226, '🎓 Scholarship opportunities', 426))
         ->assertOk();
