@@ -97,14 +97,8 @@ class OpportunityController extends Controller
                 ->with('show_onboarding_link', true);
         }
 
-        $result = $guidance->requestGuidance($user, $opportunity);
+        $guidance->requestGuidance($user, $opportunity);
 
-        $redirect = back()->with('status', $copy->get('opportunities.guidance_sent'));
-
-        if ($result['support_url'] !== null) {
-            return $redirect->with('support_url', $result['support_url']);
-        }
-
-        return $redirect->with('guidance_warning', $copy->get('opportunities.guidance_unavailable'));
+        return back()->with('status', $copy->get('opportunities.guidance_sent'));
     }
 }

@@ -31,10 +31,6 @@
             <p class="text-sm font-semibold text-primary-300">{{ session('status') }}</p>
         @endif
 
-        @if (session('guidance_warning'))
-            <p class="text-sm tg-hint">{{ session('guidance_warning') }}</p>
-        @endif
-
         @if (session('show_onboarding_link'))
             <a href="{{ $botOnboardingUrl }}" target="_blank" rel="noopener noreferrer" class="tg-btn">
                 {{ $copy->get('opportunities.open_bot_to_onboard') }}
@@ -64,17 +60,6 @@
                         {{ $copy->get('opportunities.request_guidance') }}
                     </button>
                 </form>
-
-                @if (session('support_url'))
-                    <a
-                        href="{{ session('support_url') }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="tg-btn"
-                    >
-                        {{ $copy->get('opportunities.guidance_open_support') }}
-                    </a>
-                @endif
             @endif
 
             <form method="post" action="{{ route('tg.saved.opportunities.toggle', $opportunity) }}">

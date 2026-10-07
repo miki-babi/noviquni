@@ -3206,22 +3206,7 @@ class TelegramBotHandler
             return $copy->get('opportunities.not_found');
         }
 
-        $result = $this->opportunityGuidance->requestGuidance($user, $opportunity);
-        $supportUrl = $result['support_url'];
-
-        if ($supportUrl !== null) {
-            $this->telegram->sendMessage($chatId, $copy->get('opportunities.guidance_follow_up'), [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    [
-                        'text' => $copy->get('opportunities.guidance_open_support'),
-                        'url' => $supportUrl,
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ],
-                ]]),
-            ]);
-        } else {
-            $this->telegram->sendMessage($chatId, $copy->get('opportunities.guidance_unavailable'));
-        }
+        $this->opportunityGuidance->requestGuidance($user, $opportunity);
 
         return $copy->get('opportunities.guidance_sent');
     }

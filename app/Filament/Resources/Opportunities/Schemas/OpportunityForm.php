@@ -63,16 +63,9 @@ class OpportunityForm
                     ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
                     ->required(fn (Get $get): bool => (bool) $get('is_verified_partner'))
                     ->columnSpanFull(),
-                TextInput::make('guidance_contact_username')
-                    ->label('Guidance contact username')
-                    ->helperText('Optional. Leave blank to use Settings default. Without @.')
-                    ->maxLength(255)
-                    ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
-                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? ltrim(trim($state), '@') : null)
-                    ->columnSpanFull(),
                 Textarea::make('guidance_opening_message')
                     ->label('Guidance opening message')
-                    ->helperText('Optional. Leave blank to use Settings default. Placeholders: {title}, {partner}, {student}')
+                    ->helperText('Optional. Used when a guide is assigned. Leave blank for Settings default. Placeholders: {title}, {partner}, {student}')
                     ->rows(4)
                     ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
                     ->columnSpanFull(),

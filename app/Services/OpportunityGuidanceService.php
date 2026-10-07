@@ -2,39 +2,84 @@
 
 namespace App\Services;
 
+use App\Enums\GuidanceRequestStatus;
+use App\Enums\TelegramButtonStyle;
 use App\Jobs\SendTelegramMessageJob;
 use App\Models\Opportunity;
+use App\Models\OpportunityGuidanceRequest;
 use App\Models\User;
+use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
-use Illuminate\Support\Facades\Cache;
+use InvalidArgumentException;
 
 class OpportunityGuidanceService
 {
     public function __construct(public SettingsService $settings) {}
 
     /**
-     * @return array{notified: bool, support_url: ?string}
+     * @return array{notified: bool, request: OpportunityGuidanceRequest}
      */
     public function requestGuidance(User $student, Opportunity $opportunity): array
     {
+        if (! $opportunity->hasVerifiedPartner()) {
+            throw new InvalidArgumentException('Opportunity does not have a verified partner.');
+        }
+
+        $existingPending = OpportunityGuidanceRequest::query()
+            ->where('user_id', $student->id)
+            ->where('opportunity_id', $opportunity->id)
+            ->where('status', GuidanceRequestStatus::Pending)
+            ->first();
+
+        if ($existingPending !== null) {
+            return [
+                'notified' => false,
+                'request' => $existingPending,
+            ];
+        }
+
+        $request = OpportunityGuidanceRequest::query()->create([
+            'user_id' => $student->id,
+            'opportunity_id' => $opportunity->id,
+            'status' => GuidanceRequestStatus::Pending,
+        ]);
+
         return [
             'notified' => $this->notifyAdmins($student, $opportunity),
-            'support_url' => $this->supportDeepLink($student, $opportunity),
+            'request' => $request,
         ];
+    }
+
+    public function assign(OpportunityGuidanceRequest $request, User $assignee): OpportunityGuidanceRequest
+    {
+        $username = ltrim(trim((string) $assignee->telegram_username), '@');
+
+        if ($username === '') {
+            throw new InvalidArgumentException('Assignee must have a Telegram username.');
+        }
+
+        $request->loadMissing(['user', 'opportunity']);
+
+        $student = $request->user;
+        $opportunity = $request->opportunity;
+
+        if ($student === null || $opportunity === null) {
+            throw new InvalidArgumentException('Guidance request is missing student or opportunity.');
+        }
+
+        $request->update([
+            'status' => GuidanceRequestStatus::Assigned,
+            'assigned_to_user_id' => $assignee->id,
+            'assigned_at' => now(),
+        ]);
+
+        $this->notifyStudentAssigned($student, $opportunity, $username);
+
+        return $request->fresh(['user', 'opportunity', 'assignee']) ?? $request;
     }
 
     public function notifyAdmins(User $student, Opportunity $opportunity): bool
     {
-        if (! $opportunity->hasVerifiedPartner()) {
-            return false;
-        }
-
-        $cacheKey = $this->cacheKey($student, $opportunity);
-
-        if (! Cache::add($cacheKey, true, now()->addDay())) {
-            return false;
-        }
-
         $recipientTelegramIds = $this->adminTelegramIds();
 
         if ($recipientTelegramIds === []) {
@@ -50,15 +95,9 @@ class OpportunityGuidanceService
         return true;
     }
 
-    public function supportDeepLink(User $student, Opportunity $opportunity): ?string
+    public function assigneeDeepLink(User $student, Opportunity $opportunity, string $assigneeUsername): string
     {
-        $username = $this->supportUsername($opportunity);
-
-        if ($username === null) {
-            return null;
-        }
-
-        return 'https://t.me/'.$username.'?text='.rawurlencode(
+        return 'https://t.me/'.ltrim($assigneeUsername, '@').'?text='.rawurlencode(
             $this->prefilledStudentMessage($student, $opportunity)
         );
     }
@@ -93,21 +132,34 @@ class OpportunityGuidanceService
             ."\nPartner: ".TelegramHtml::escape((string) $opportunity->partner_name);
     }
 
-    public function supportUsername(Opportunity $opportunity): ?string
-    {
-        if (filled($opportunity->guidance_contact_username)) {
-            $username = ltrim(trim((string) $opportunity->guidance_contact_username), '@');
-
-            return $username !== '' ? $username : null;
+    protected function notifyStudentAssigned(
+        User $student,
+        Opportunity $opportunity,
+        string $assigneeUsername,
+    ): void {
+        if (blank($student->telegram_id)) {
+            return;
         }
 
-        $fromSettings = $this->settings->opportunityGuidanceUsername();
+        $copy = TelegramCopy::for($student);
+        $assigneeLabel = '@'.$assigneeUsername;
+        $text = $copy->get('opportunities.guidance_assigned', [
+            'title' => $opportunity->title,
+            'assignee' => $assigneeLabel,
+        ]);
+        $deepLink = $this->assigneeDeepLink($student, $opportunity, $assigneeUsername);
 
-        if ($fromSettings !== null) {
-            return $fromSettings;
-        }
-
-        return $this->firstFileAdminUsername();
+        SendTelegramMessageJob::dispatch($student->telegram_id, $text, [
+            'reply_markup' => [
+                'inline_keyboard' => [[
+                    [
+                        'text' => $copy->get('opportunities.guidance_open_chat'),
+                        'url' => $deepLink,
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]],
+            ],
+        ]);
     }
 
     /**
@@ -128,13 +180,6 @@ class OpportunityGuidanceService
             ->all();
     }
 
-    protected function firstFileAdminUsername(): ?string
-    {
-        $username = $this->fileAdminUsernames()[0] ?? null;
-
-        return filled($username) ? $username : null;
-    }
-
     /**
      * @return list<string>
      */
@@ -147,10 +192,5 @@ class OpportunityGuidanceService
             ->filter()
             ->values()
             ->all();
-    }
-
-    protected function cacheKey(User $student, Opportunity $opportunity): string
-    {
-        return "opportunity_guidance:{$student->id}:{$opportunity->id}";
     }
 }

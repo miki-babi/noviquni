@@ -178,6 +178,16 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Bookmark::class);
     }
 
+    public function opportunityGuidanceRequests(): HasMany
+    {
+        return $this->hasMany(OpportunityGuidanceRequest::class);
+    }
+
+    public function assignedOpportunityGuidanceRequests(): HasMany
+    {
+        return $this->hasMany(OpportunityGuidanceRequest::class, 'assigned_to_user_id');
+    }
+
     public function referralRewards(): HasMany
     {
         return $this->hasMany(ReferralReward::class);

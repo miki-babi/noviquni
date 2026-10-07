@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -56,6 +57,14 @@ class Opportunity extends Model
     public function bookmarks(): MorphMany
     {
         return $this->morphMany(Bookmark::class, 'bookmarkable');
+    }
+
+    /**
+     * @return HasMany<OpportunityGuidanceRequest, $this>
+     */
+    public function guidanceRequests(): HasMany
+    {
+        return $this->hasMany(OpportunityGuidanceRequest::class);
     }
 
     /**
