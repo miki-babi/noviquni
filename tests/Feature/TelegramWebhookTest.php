@@ -178,9 +178,10 @@ it('completes onboarding when a stream inline button is tapped', function () {
             && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
             && data_get($data, 'reply_markup.keyboard.1.0.style') === 'primary'
             && data_get($data, 'reply_markup.keyboard.2.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.3.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.6.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.6.1.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.3.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.5.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.6.0.style') === null
+            && data_get($data, 'reply_markup.keyboard.6.1.style') === null
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.1.0.web_app') === null
             && data_get($data, 'reply_markup.keyboard.6.0.web_app') === null
