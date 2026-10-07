@@ -747,11 +747,17 @@ class TelegramBotHandler
             $copy = new TelegramCopy($locale->value);
             $map[$copy->get('keyboard.courses')] = 'courses';
             $map[$copy->get('keyboard.resources')] = 'resources';
-            $map[$copy->get('keyboard.saved')] = 'saved';
+            $map[$copy->get('keyboard.scholarships')] = 'scholarships';
             $map[$copy->get('keyboard.challenges')] = 'challenges';
+            $map[$copy->get('keyboard.internships')] = 'internships';
+            $map[$copy->get('keyboard.opportunities')] = 'opportunities';
+            $map[$copy->get('keyboard.mentorship')] = 'mentorship';
+            $map[$copy->get('keyboard.saved')] = 'saved';
             $map[$copy->get('keyboard.profile')] = 'profile';
             $map[$copy->get('keyboard.refer')] = 'refer';
             // Legacy reply-keyboard labels until users refresh via /start.
+            $map[$copy->get('keyboard.resources_legacy')] = 'resources';
+            $map[$copy->get('keyboard.refer_legacy')] = 'refer';
             $map[$copy->get('keyboard.continue')] = 'continue';
             $map[$copy->get('keyboard.browse')] = 'courses';
             $map[$copy->get('keyboard.premium')] = 'premium';
@@ -761,6 +767,7 @@ class TelegramBotHandler
         $map['📖 Resources'] = 'resources';
         $map['🏆 Challenges'] = 'challenges';
         $map['👤 My Profile'] = 'profile';
+        $map['👥 Refer'] = 'refer';
         $map['👥 Refer & Earn'] = 'refer';
         $map['👥 Refer and earn'] = 'refer';
         $map['🔔 Notifications'] = 'notify';
@@ -781,8 +788,16 @@ class TelegramBotHandler
             'premium' => $this->showPremium($user, $chatId),
             'refer' => $this->showReferrals($user, $chatId),
             'notify' => $this->toggleNotifications($user, $chatId),
+            'scholarships', 'internships', 'opportunities', 'mentorship' => $this->showComingSoon($user, $chatId),
             default => null,
         };
+    }
+
+    protected function showComingSoon(User $user, int|string $chatId): void
+    {
+        $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('menu.coming_soon'), [
+            'reply_markup' => $this->telegram->mainKeyboard($user),
+        ]);
     }
 
     protected function showCourseKeyboard(User $user, int|string $chatId): void

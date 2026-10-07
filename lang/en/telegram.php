@@ -3,12 +3,18 @@
 return [
     'keyboard' => [
         'courses' => '📚 Courses',
-        'resources' => '📖 Resources',
-        'saved' => '🔖 Quick saved',
+        'resources' => '📚 Freshman resources',
+        'scholarships' => '🎓 Scholarships',
         'challenges' => '🏆 Challenges',
+        'internships' => '💼 Internships',
+        'opportunities' => '🌍 Opportunities',
+        'mentorship' => '🎤 Mentorship',
+        'saved' => '🔖 Quick saved',
         'profile' => '👤 Profile',
-        'refer' => '👥 Refer',
+        'refer' => '👥 Invite friends',
         // Legacy labels kept for old reply keyboards until /start refresh.
+        'resources_legacy' => '📖 Resources',
+        'refer_legacy' => '👥 Refer',
         'continue' => '📚 Continue',
         'browse' => '📖 Browse',
         'premium' => '⭐ Premium',
@@ -34,7 +40,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\n📖 Resources · 🔖 Quick saved · 🏆 Challenges · 👤 Profile · 👥 Refer",
+        'keyboard_hint' => "Your study menu is ready:\n📚 Freshman resources · 🎓 Scholarships · 🏆 Challenges · 💼 Internships · 🌍 Opportunities · 🎤 Mentorship · 🔖 Quick saved · 👤 Profile · 👥 Invite friends",
     ],
     'refer' => [
         'start_cta' => 'Start now',
@@ -151,6 +157,7 @@ return [
         'onboarding_profile_hint' => 'Set or change your university, semester, and courses anytime in Profile.',
         'onboarding_profile_button' => '👤 Edit study profile',
         'setup_finished' => '✅ Setup finished.',
+        'coming_soon' => 'Coming soon — we are building this for you. Check back soon.',
     ],
     'nav' => [
         'label' => 'Page navigation',

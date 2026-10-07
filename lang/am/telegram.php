@@ -3,11 +3,17 @@
 return [
     'keyboard' => [
         'courses' => '📚 ኮርሶች',
-        'resources' => '📖 መርጃዎች',
-        'saved' => '🔖 በፍጥነት የተቀመጡ',
+        'resources' => '📚 የመጀመሪያ ዓመት መርጃዎች',
+        'scholarships' => '🎓 ስኮላርሺፖች',
         'challenges' => '🏆 ፈተናዎች',
+        'internships' => '💼 የስራ ልምምዶች',
+        'opportunities' => '🌍 እድሎች',
+        'mentorship' => '🎤 አማካሪነት',
+        'saved' => '🔖 በፍጥነት የተቀመጡ',
         'profile' => '👤 መገለጫ',
-        'refer' => '👥 ይጋብዙ',
+        'refer' => '👥 ጓደኞችን ይጋብዙ',
+        'resources_legacy' => '📖 መርጃዎች',
+        'refer_legacy' => '👥 ይጋብዙ',
         'continue' => '📚 ቀጥል',
         'browse' => '📖 ያስሱ',
         'premium' => '⭐ ፕሪሚየም',
@@ -33,7 +39,7 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን በመገለጫ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 በመገለጫ አዋቅር',
-        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📖 መርጃዎች · 🔖 በፍጥነት የተቀመጡ · 🏆 ፈተናዎች · 👤 መገለጫ · 👥 ይጋብዙ",
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 የመጀመሪያ ዓመት መርጃዎች · 🎓 ስኮላርሺፖች · 🏆 ፈተናዎች · 💼 የስራ ልምምዶች · 🌍 እድሎች · 🎤 አማካሪነት · 🔖 በፍጥነት የተቀመጡ · 👤 መገለጫ · 👥 ጓደኞችን ይጋብዙ",
     ],
     'refer' => [
         'start_cta' => 'አሁን ጀምር',
@@ -174,6 +180,7 @@ return [
         'onboarding_profile_hint' => 'ዩኒቨርሲቲ፣ ሴሚስተር እና ኮርሶችዎን በመገለጫ በማንኛውም ጊዜ ማዋቀር ወይም መቀየር ይችላሉ።',
         'onboarding_profile_button' => '👤 የጥናት መገለጫ አርትዕ',
         'setup_finished' => '✅ Setup finished.',
+        'coming_soon' => 'በቅርቡ ይመጣል — እየገነባን ነው። ቆይተው ይመልከቱ።',
     ],
     'nav' => [
         'label' => 'የገጽ አሰሳ',
