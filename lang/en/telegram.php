@@ -192,6 +192,5 @@ return [
     'broadcast' => [
         'choice_prompt' => 'Choose an option:',
         'choice_back' => '‹ Back',
-        'choice_command_ack' => 'Selected: :label',
     ],
 ];

@@ -440,61 +440,20 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $button = $broadcasts->choiceButton($broadcast, $choiceIndex);
+        $response = $broadcasts->choiceResponse($broadcast, $choiceIndex);
 
-        if ($button === null) {
+        if ($response === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
         $copy = TelegramCopy::for($user);
+        $text = $broadcasts->personalize($response, $user);
         $payload = [
             'reply_markup' => $broadcasts->choiceAnswerKeyboard(
                 $broadcast,
                 $copy->get('broadcast.choice_back'),
             ),
         ];
-
-        if ($broadcasts->choiceAction($button) === 'command') {
-            $slug = $broadcasts->choiceCommandSlug($broadcast, $choiceIndex);
-
-            if ($slug === null) {
-                return $copy->get('menu.invalid_button');
-            }
-
-            $command = TelegramCommand::query()
-                ->active()
-                ->where('command', $slug)
-                ->with(['fileAssets'])
-                ->first();
-
-            if ($command === null) {
-                return $copy->get('menu.invalid_button');
-            }
-
-            $text = $copy->get('broadcast.choice_command_ack', [
-                'label' => trim((string) ($button['label'] ?? '')),
-                'command' => $command->slashCommand(),
-            ]);
-
-            if ($messageId !== null) {
-                $this->telegram->editMessageText($chatId, $messageId, $text, $payload);
-            } else {
-                $this->telegram->sendMessage($chatId, $text, $payload);
-            }
-
-            Context::add('telegram_command', $command->command);
-            $this->sendCustomCommandResponse($user, $chatId, $command);
-
-            return null;
-        }
-
-        $response = $broadcasts->choiceResponse($broadcast, $choiceIndex);
-
-        if ($response === null) {
-            return $copy->get('menu.invalid_button');
-        }
-
-        $text = $broadcasts->personalize($response, $user);
 
         if ($messageId !== null) {
             $this->telegram->editMessageText($chatId, $messageId, $text, $payload);

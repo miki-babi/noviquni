@@ -3,7 +3,6 @@
 use App\Enums\BroadcastButtonType;
 use App\Enums\OnboardingStep;
 use App\Models\Broadcast;
-use App\Models\TelegramCommand;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -208,76 +207,6 @@ it('edits the same message to the other answer when a new choice is tapped', fun
         }
 
         return ($markup['inline_keyboard'][0][0]['callback_data'] ?? null) === 'bcqb:'.$broadcast->id;
-    });
-});
-
-it('edits an ack and delivers a telegram command when a command choice is tapped', function () {
-    $user = User::factory()->student()->create([
-        'name' => 'Ada Lovelace',
-        'telegram_id' => '555906',
-        'onboarding_step' => OnboardingStep::Complete,
-        'is_active' => true,
-    ]);
-
-    TelegramCommand::factory()->messageOnly('<b>Syllabus pack</b>')->create([
-        'command' => 'syllabus',
-    ]);
-
-    $broadcast = Broadcast::factory()->create([
-        'buttons' => [
-            [
-                'label' => 'Get syllabus',
-                'type' => BroadcastButtonType::Choice->value,
-                'action' => 'command',
-                'command' => 'syllabus',
-            ],
-            [
-                'label' => 'Not now',
-                'type' => BroadcastButtonType::Choice->value,
-                'action' => 'message',
-                'response' => 'Maybe later.',
-            ],
-        ],
-    ]);
-
-    $this->postJson('/telegram/webhook', [
-        'update_id' => 9025,
-        'callback_query' => [
-            'id' => 'callback-9025',
-            'data' => 'bcq:'.$broadcast->id.':0',
-            'from' => [
-                'id' => (int) $user->telegram_id,
-                'first_name' => 'Ada',
-                'username' => 'ada',
-            ],
-            'message' => [
-                'message_id' => 50,
-                'chat' => ['id' => (int) $user->telegram_id],
-            ],
-        ],
-    ])->assertOk();
-
-    Http::assertSent(function ($request) use ($broadcast) {
-        if (! str_contains($request->url(), '/editMessageText')) {
-            return false;
-        }
-
-        if (($request->data()['text'] ?? '') !== 'Selected: Get syllabus') {
-            return false;
-        }
-
-        $markup = $request->data()['reply_markup'] ?? null;
-
-        if (is_string($markup)) {
-            $markup = json_decode($markup, true);
-        }
-
-        return ($markup['inline_keyboard'][0][0]['callback_data'] ?? null) === 'bcqb:'.$broadcast->id;
-    });
-
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/sendMessage')
-            && ($request->data()['text'] ?? '') === '<b>Syllabus pack</b>';
     });
 });
 
