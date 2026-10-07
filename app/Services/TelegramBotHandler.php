@@ -440,20 +440,61 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
-        $response = $broadcasts->choiceResponse($broadcast, $choiceIndex);
+        $button = $broadcasts->choiceButton($broadcast, $choiceIndex);
 
-        if ($response === null) {
+        if ($button === null) {
             return TelegramCopy::for($user)->get('menu.invalid_button');
         }
 
         $copy = TelegramCopy::for($user);
-        $text = $broadcasts->personalize($response, $user);
         $payload = [
             'reply_markup' => $broadcasts->choiceAnswerKeyboard(
                 $broadcast,
                 $copy->get('broadcast.choice_back'),
             ),
         ];
+
+        if ($broadcasts->choiceAction($button) === 'command') {
+            $slug = $broadcasts->choiceCommandSlug($broadcast, $choiceIndex);
+
+            if ($slug === null) {
+                return $copy->get('menu.invalid_button');
+            }
+
+            $command = TelegramCommand::query()
+                ->active()
+                ->where('command', $slug)
+                ->with(['fileAssets'])
+                ->first();
+
+            if ($command === null) {
+                return $copy->get('menu.invalid_button');
+            }
+
+            $text = $copy->get('broadcast.choice_command_ack', [
+                'label' => trim((string) ($button['label'] ?? '')),
+                'command' => $command->slashCommand(),
+            ]);
+
+            if ($messageId !== null) {
+                $this->telegram->editMessageText($chatId, $messageId, $text, $payload);
+            } else {
+                $this->telegram->sendMessage($chatId, $text, $payload);
+            }
+
+            Context::add('telegram_command', $command->command);
+            $this->sendCustomCommandResponse($user, $chatId, $command);
+
+            return null;
+        }
+
+        $response = $broadcasts->choiceResponse($broadcast, $choiceIndex);
+
+        if ($response === null) {
+            return $copy->get('menu.invalid_button');
+        }
+
+        $text = $broadcasts->personalize($response, $user);
 
         if ($messageId !== null) {
             $this->telegram->editMessageText($chatId, $messageId, $text, $payload);
@@ -671,6 +712,10 @@ class TelegramBotHandler
             return null;
         }
 
+        if ($this->tryHandleCustomCommandCallback($user, $chatId, $data)) {
+            return null;
+        }
+
         $action = $this->resolveMenuAction($user, $data);
 
         if ($action !== null) {
@@ -680,13 +725,51 @@ class TelegramBotHandler
         return null;
     }
 
+    protected function tryHandleCustomCommandCallback(User $user, int|string $chatId, string $data): bool
+    {
+        if (str_starts_with($data, '/')) {
+            return $this->tryHandleCustomCommand($user, $chatId, $data);
+        }
+
+        $slug = TelegramCommand::normalizeCommand($data);
+
+        if ($slug === '' || TelegramCommand::isReservedCommand($slug) || ! preg_match('/^[a-z0-9_]{1,32}$/', $slug)) {
+            return false;
+        }
+
+        $command = TelegramCommand::query()
+            ->active()
+            ->where('command', $slug)
+            ->with(['fileAssets'])
+            ->first();
+
+        if ($command === null) {
+            return false;
+        }
+
+        Context::add('telegram_command', $command->command);
+        $this->sendCustomCommandResponse($user, $chatId, $command);
+
+        return true;
+    }
+
     protected function isMenuOrSlashCommand(string $data): bool
     {
         if ($data === '' || str_contains($data, ':')) {
             return false;
         }
 
-        return str_starts_with($data, '/') || array_key_exists($data, $this->menuLabelMap());
+        if (str_starts_with($data, '/') || array_key_exists($data, $this->menuLabelMap())) {
+            return true;
+        }
+
+        $slug = TelegramCommand::normalizeCommand($data);
+
+        if ($slug === '' || TelegramCommand::isReservedCommand($slug) || ! preg_match('/^[a-z0-9_]{1,32}$/', $slug)) {
+            return false;
+        }
+
+        return TelegramCommand::query()->active()->where('command', $slug)->exists();
     }
 
     protected function resolveMenuAction(User $user, string $text): ?string

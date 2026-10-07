@@ -222,5 +222,6 @@ return [
     'broadcast' => [
         'choice_prompt' => 'አንድ አማራጭ ይምረጡ፦',
         'choice_back' => '‹ ተመለስ',
+        'choice_command_ack' => 'ተመርጧል፦ :label',
     ],
 ];

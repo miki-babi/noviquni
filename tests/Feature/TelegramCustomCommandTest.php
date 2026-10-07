@@ -310,3 +310,73 @@ it('matches commands with bot username suffix', function () {
     Http::assertSent(fn ($request) => str_contains($request->url(), '/sendMessage')
         && ($request->data()['text'] ?? null) === 'Mention works');
 });
+
+it('delivers a managed command from an inline command button callback', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true], 200),
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 10]], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $user = customCommandUser(600109);
+
+    TelegramCommand::factory()->messageOnly('From button tap')->create([
+        'command' => 'officehours',
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9209,
+        'callback_query' => [
+            'id' => 'callback-9209',
+            'data' => '/officehours',
+            'from' => [
+                'id' => (int) $user->telegram_id,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 10,
+                'chat' => ['id' => (int) $user->telegram_id],
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/sendMessage')
+        && ($request->data()['text'] ?? null) === 'From button tap');
+});
+
+it('delivers a managed command from a bare command slug callback', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true], 200),
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 11]], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $user = customCommandUser(600110);
+
+    TelegramCommand::factory()->messageOnly('Bare slug works')->create([
+        'command' => 'faq',
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9210,
+        'callback_query' => [
+            'id' => 'callback-9210',
+            'data' => 'faq',
+            'from' => [
+                'id' => (int) $user->telegram_id,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 10,
+                'chat' => ['id' => (int) $user->telegram_id],
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(fn ($request) => str_contains($request->url(), '/sendMessage')
+        && ($request->data()['text'] ?? null) === 'Bare slug works');
+});

@@ -230,3 +230,32 @@ it('omits choice buttons without a response message', function () {
 
     expect($markup)->toBeNull();
 });
+
+it('builds choice buttons that run a telegram command', function () {
+    $broadcast = Broadcast::factory()->create();
+
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => 'Get syllabus',
+            'type' => BroadcastButtonType::Choice->value,
+            'action' => 'command',
+            'command' => 'syllabus',
+        ],
+        [
+            'label' => 'Not now',
+            'type' => BroadcastButtonType::Choice->value,
+            'action' => 'message',
+            'response' => 'Maybe later.',
+        ],
+    ], $broadcast);
+
+    expect($markup['inline_keyboard'][0])->toHaveCount(2)
+        ->and($markup['inline_keyboard'][0][0])->toMatchArray([
+            'text' => 'Get syllabus',
+            'callback_data' => 'bcq:'.$broadcast->id.':0',
+        ])
+        ->and($markup['inline_keyboard'][0][1])->toMatchArray([
+            'text' => 'Not now',
+            'callback_data' => 'bcq:'.$broadcast->id.':1',
+        ]);
+});

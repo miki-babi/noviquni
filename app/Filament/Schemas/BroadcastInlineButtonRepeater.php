@@ -4,6 +4,7 @@ namespace App\Filament\Schemas;
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\TelegramButtonStyle;
+use App\Models\TelegramCommand;
 use App\Services\BroadcastService;
 use Closure;
 use Filament\Forms\Components\Repeater;
@@ -11,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 
 class BroadcastInlineButtonRepeater
 {
@@ -46,6 +48,26 @@ class BroadcastInlineButtonRepeater
                     )
                     ->placeholder('Default')
                     ->native(false),
+                Select::make('action')
+                    ->label('When tapped')
+                    ->options([
+                        'message' => 'Reply message',
+                        'command' => 'Telegram command',
+                    ])
+                    ->default('message')
+                    ->required()
+                    ->live()
+                    ->native(false)
+                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value)
+                    ->afterStateUpdated(function (Set $set, ?string $state): void {
+                        if ($state === 'message') {
+                            $set('command', null);
+                        }
+
+                        if ($state === 'command') {
+                            $set('response', null);
+                        }
+                    }),
                 TextInput::make('command')
                     ->label(fn (Get $get): string => $get('type') === BroadcastButtonType::Text->value
                         ? 'Reply text'
@@ -58,7 +80,41 @@ class BroadcastInlineButtonRepeater
                     ->visible(fn (Get $get): bool => in_array($get('type'), [
                         BroadcastButtonType::Command->value,
                         BroadcastButtonType::Text->value,
-                    ], true)),
+                    ], true))
+                    ->dehydrated(fn (Get $get): bool => in_array($get('type'), [
+                        BroadcastButtonType::Command->value,
+                        BroadcastButtonType::Text->value,
+                    ], true)
+                        || ($get('type') === BroadcastButtonType::Choice->value && $get('action') === 'command')),
+                Select::make('telegram_command')
+                    ->label('Telegram command')
+                    ->options(fn (): array => TelegramCommand::query()
+                        ->active()
+                        ->orderBy('command')
+                        ->pluck('command', 'command')
+                        ->mapWithKeys(fn (string $command): array => [$command => '/'.$command])
+                        ->all())
+                    ->searchable()
+                    ->native(false)
+                    ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value
+                        && $get('action') === 'command')
+                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value
+                        && $get('action') === 'command')
+                    ->helperText('Manage under Content → Telegram commands.')
+                    ->live()
+                    ->afterStateHydrated(function (Select $component, Get $get, Set $set): void {
+                        $slug = $get('command') ?? $get('telegram_command');
+
+                        if (($get('action') ?? null) === 'command' && filled($slug)) {
+                            $normalized = TelegramCommand::normalizeCommand((string) $slug);
+                            $component->state($normalized);
+                            $set('command', $normalized);
+                        }
+                    })
+                    ->afterStateUpdated(function (Set $set, ?string $state): void {
+                        $set('command', filled($state) ? TelegramCommand::normalizeCommand($state) : null);
+                    })
+                    ->dehydrated(false),
                 TextInput::make('url')
                     ->label('URL')
                     ->url()
@@ -77,9 +133,13 @@ class BroadcastInlineButtonRepeater
                 Textarea::make('response')
                     ->label('Reply message')
                     ->rows(3)
-                    ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value)
-                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value)
+                    ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value
+                        && ($get('action') ?? 'message') === 'message')
+                    ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value
+                        && ($get('action') ?? 'message') === 'message')
                     ->helperText('Sent to the student when they tap this choice. Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}, {{referral_count}}, {{referral_points}}')
+                    ->dehydrated(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value
+                        && ($get('action') ?? 'message') === 'message')
                     ->columnSpanFull(),
             ])
             ->defaultItems(0)

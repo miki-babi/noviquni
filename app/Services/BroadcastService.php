@@ -9,6 +9,7 @@ use App\Enums\TelegramButtonStyle;
 use App\Models\Broadcast;
 use App\Models\NotificationDelivery;
 use App\Models\Referral;
+use App\Models\TelegramCommand;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -139,13 +140,7 @@ class BroadcastService
             }
 
             if ($type === BroadcastButtonType::Choice) {
-                if ($broadcast === null || $choiceIndex >= self::MaxChoiceButtons) {
-                    continue;
-                }
-
-                $response = trim((string) ($button['response'] ?? ''));
-
-                if ($response === '') {
+                if ($broadcast === null || $choiceIndex >= self::MaxChoiceButtons || ! $this->isValidChoiceButton($button)) {
                     continue;
                 }
 
@@ -314,18 +309,12 @@ class BroadcastService
             $label = trim((string) ($button['label'] ?? ''));
             $type = BroadcastButtonType::tryFrom((string) ($button['type'] ?? ''));
 
-            if ($label === '' || $type !== BroadcastButtonType::Choice) {
+            if ($label === '' || $type !== BroadcastButtonType::Choice || ! $this->isValidChoiceButton($button)) {
                 continue;
             }
 
             if ($choiceIndex >= self::MaxChoiceButtons) {
                 break;
-            }
-
-            $response = trim((string) ($button['response'] ?? ''));
-
-            if ($response === '') {
-                continue;
             }
 
             $telegramButton = [
@@ -350,27 +339,99 @@ class BroadcastService
         return ['inline_keyboard' => [$choiceRow]];
     }
 
-    public function choiceResponse(Broadcast $broadcast, int $choiceIndex): ?string
+    /**
+     * @return array{label?: string, type?: string, action?: string, command?: string, response?: string, style?: string|null}|null
+     */
+    public function choiceButton(Broadcast $broadcast, int $choiceIndex): ?array
     {
         if ($choiceIndex < 0 || $choiceIndex >= self::MaxChoiceButtons) {
             return null;
         }
 
-        $choices = collect($broadcast->buttons ?? [])
-            ->filter(fn (mixed $button): bool => is_array($button)
-                && ($button['type'] ?? null) === BroadcastButtonType::Choice->value
-                && filled(trim((string) ($button['response'] ?? ''))))
-            ->values();
+        $button = collect($broadcast->buttons ?? [])
+            ->filter(fn (mixed $row): bool => is_array($row) && $this->isValidChoiceButton($row))
+            ->values()
+            ->get($choiceIndex);
 
-        $button = $choices->get($choiceIndex);
+        return is_array($button) ? $button : null;
+    }
 
-        if (! is_array($button)) {
+    public function choiceResponse(Broadcast $broadcast, int $choiceIndex): ?string
+    {
+        $button = $this->choiceButton($broadcast, $choiceIndex);
+
+        if ($button === null || $this->choiceAction($button) !== 'message') {
             return null;
         }
 
         $response = trim((string) ($button['response'] ?? ''));
 
         return $response !== '' ? $response : null;
+    }
+
+    public function choiceCommandSlug(Broadcast $broadcast, int $choiceIndex): ?string
+    {
+        $button = $this->choiceButton($broadcast, $choiceIndex);
+
+        if ($button === null || $this->choiceAction($button) !== 'command') {
+            return null;
+        }
+
+        return $this->choiceCommandSlugFromButton($button);
+    }
+
+    /**
+     * @param  array{label?: string, type?: string, action?: string, command?: string, response?: string}  $button
+     */
+    public function isValidChoiceButton(array $button): bool
+    {
+        if (($button['type'] ?? null) !== BroadcastButtonType::Choice->value) {
+            return false;
+        }
+
+        if (trim((string) ($button['label'] ?? '')) === '') {
+            return false;
+        }
+
+        return match ($this->choiceAction($button)) {
+            'command' => $this->choiceCommandSlugFromButton($button) !== null,
+            'message' => trim((string) ($button['response'] ?? '')) !== '',
+            default => false,
+        };
+    }
+
+    /**
+     * @param  array{action?: string, response?: string, command?: string, telegram_command?: string}  $button
+     */
+    public function choiceAction(array $button): string
+    {
+        $action = (string) ($button['action'] ?? '');
+
+        if (in_array($action, ['message', 'command'], true)) {
+            return $action;
+        }
+
+        if (trim((string) ($button['response'] ?? '')) !== '') {
+            return 'message';
+        }
+
+        if ($this->choiceCommandSlugFromButton($button) !== null) {
+            return 'command';
+        }
+
+        return 'message';
+    }
+
+    /**
+     * @param  array{command?: string, telegram_command?: string}  $button
+     */
+    protected function choiceCommandSlugFromButton(array $button): ?string
+    {
+        $slug = TelegramCommand::normalizeCommand((string) (
+            $button['command'] ?? $button['telegram_command'] ?? ''
+        ));
+
+        return $slug !== '' ? $slug : null;
     }
 
     /**
