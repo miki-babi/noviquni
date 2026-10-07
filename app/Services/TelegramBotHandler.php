@@ -43,6 +43,7 @@ class TelegramBotHandler
         public PremiumService $premium,
         public SettingsService $settings,
         public ChallengeService $challenges,
+        public OpportunityGuidanceService $opportunityGuidance,
     ) {}
 
     /**
@@ -99,13 +100,22 @@ class TelegramBotHandler
             $parts = explode(' ', $text, 2);
             $payload = filled($parts[1] ?? null) ? trim((string) $parts[1]) : null;
 
-            if (filled($payload) && $user->referred_by_user_id === null && ! $this->isNavigationStartPayload($payload)) {
-                $this->referrals->attributeReferral($user, $payload);
-                $user->refresh();
+            if (filled($payload) && $user->referred_by_user_id === null) {
+                $opportunityShare = app(TelegramDeepLink::class)->parseOpportunitySharePayload($payload);
+
+                if ($opportunityShare !== null) {
+                    $this->referrals->attributeReferral($user, $opportunityShare['referral_code']);
+                    $user->refresh();
+                } elseif (! $this->isNavigationStartPayload($payload)) {
+                    $this->referrals->attributeReferral($user, $payload);
+                    $user->refresh();
+                }
             }
 
             if ($user->onboarding_step !== OnboardingStep::Complete) {
-                if ($this->isNavigationStartPayload($payload)) {
+                $isOpportunityShare = app(TelegramDeepLink::class)->parseOpportunitySharePayload($payload) !== null;
+
+                if ($this->isNavigationStartPayload($payload) && ! $isOpportunityShare) {
                     Cache::put($this->pendingStartCacheKey($user), $payload, now()->addDay());
                 }
 
@@ -119,6 +129,10 @@ class TelegramBotHandler
 
                     $this->sendHome($user, $chatId);
 
+                    return;
+                }
+
+                if ($isOpportunityShare && $this->resumeStartPayload($user, $chatId, $payload)) {
                     return;
                 }
 
@@ -298,9 +312,21 @@ class TelegramBotHandler
                 (int) Str::after($data, 'save:opp:'),
                 $messageId,
             ),
-            str_starts_with($data, 'open_opp:') => $this->guardComplete(
+            str_starts_with($data, 'opp:guidance:') => $this->handleOpportunityGuidanceRequest(
                 $user,
-                fn () => $this->showOpportunity($user, $chatId, (int) Str::after($data, 'open_opp:'), $messageId),
+                $chatId,
+                (int) Str::after($data, 'opp:guidance:'),
+            ),
+            str_starts_with($data, 'opp:apply:') => $this->handleOpportunityApply(
+                $user,
+                $chatId,
+                (int) Str::after($data, 'opp:apply:'),
+            ),
+            str_starts_with($data, 'open_opp:') => $this->showOpportunity(
+                $user,
+                $chatId,
+                (int) Str::after($data, 'open_opp:'),
+                $messageId,
             ),
             str_starts_with($data, 'opp:page:') => $this->guardComplete(
                 $user,
@@ -1274,7 +1300,8 @@ class TelegramBotHandler
             || $payload === 'web'
             || str_starts_with($payload, 'resource_')
             || str_starts_with($payload, 'course_')
-            || str_starts_with($payload, 'challenge_');
+            || str_starts_with($payload, 'challenge_')
+            || str_starts_with($payload, 'opp_');
     }
 
     protected function pendingStartCacheKey(User $user): string
@@ -1339,6 +1366,14 @@ class TelegramBotHandler
 
                 return true;
             }
+        }
+
+        $opportunityShare = app(TelegramDeepLink::class)->parseOpportunitySharePayload($payload);
+
+        if ($opportunityShare !== null && $opportunityShare['opportunity_id'] > 0) {
+            $this->showOpportunity($user, $chatId, $opportunityShare['opportunity_id']);
+
+            return true;
         }
 
         return false;
@@ -2988,6 +3023,9 @@ class TelegramBotHandler
 
         $body = '<b>'.TelegramHtml::escape($opportunity->title)."</b>\n\n"
             .($description !== '' ? $description."\n\n" : '')
+            .($opportunity->hasVerifiedPartner()
+                ? $copy->get('opportunities.verified_partner', ['partner' => TelegramHtml::escape($opportunity->partner_name)])."\n\n"
+                : '')
             .$deadline;
 
         $this->telegram->replyOrEdit($chatId, $body, [
@@ -3001,6 +3039,7 @@ class TelegramBotHandler
     protected function opportunityDetailKeyboard(User $user, Opportunity $opportunity): array
     {
         $copy = TelegramCopy::for($user);
+        $isComplete = $user->onboarding_step === OnboardingStep::Complete;
         $isSaved = $user->bookmarks()
             ->whereMorphedTo('bookmarkable', $opportunity)
             ->exists();
@@ -3014,17 +3053,46 @@ class TelegramBotHandler
             $saveButton['style'] = TelegramButtonStyle::Success->value;
         }
 
+        $deepLink = app(TelegramDeepLink::class)->forOpportunity($opportunity->id, $user);
+        $shareText = $copy->get('opportunities.share_message', [
+            'title' => $opportunity->title,
+            'link' => $deepLink,
+        ]);
+        $shareText = trim(preg_replace("/\n{3,}/", "\n\n", $shareText) ?? $shareText);
+        $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
+
+        $shareButton = [
+            'text' => $copy->get('opportunities.share'),
+            'url' => $shareUrl,
+        ];
+
         $rows = [];
 
         if (filled($opportunity->url)) {
+            if ($isComplete) {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.open_url'),
+                    'url' => $opportunity->url,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            } else {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.open_url'),
+                    'callback_data' => 'opp:apply:'.$opportunity->id,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            }
+        }
+
+        if ($opportunity->hasVerifiedPartner()) {
             $rows[] = [[
-                'text' => $copy->get('opportunities.open_url'),
-                'url' => $opportunity->url,
-                'style' => TelegramButtonStyle::Primary->value,
+                'text' => $copy->get('opportunities.request_guidance'),
+                'callback_data' => 'opp:guidance:'.$opportunity->id,
+                'style' => TelegramButtonStyle::Success->value,
             ]];
         }
 
-        $rows[] = [$saveButton];
+        $rows[] = [$saveButton, $shareButton];
         $rows[] = [[
             'text' => $copy->get('opportunities.back'),
             'callback_data' => 'opp:page:'.$opportunity->type->value.':0',
@@ -3042,6 +3110,8 @@ class TelegramBotHandler
         $copy = TelegramCopy::for($user);
 
         if ($user->onboarding_step !== OnboardingStep::Complete) {
+            $this->promptCurrentOnboardingStep($user, $chatId);
+
             return $copy->get('menu.finish_onboarding');
         }
 
@@ -3075,6 +3145,77 @@ class TelegramBotHandler
         }
 
         return $status;
+    }
+
+    protected function handleOpportunityApply(
+        User $user,
+        int|string $chatId,
+        int $opportunityId,
+    ): ?string {
+        $copy = TelegramCopy::for($user);
+
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            $this->promptCurrentOnboardingStep($user, $chatId);
+
+            return $copy->get('menu.finish_onboarding');
+        }
+
+        $opportunity = Opportunity::query()->published()->find($opportunityId);
+
+        if ($opportunity === null || blank($opportunity->url)) {
+            return $copy->get('opportunities.not_found');
+        }
+
+        $this->telegram->sendMessage($chatId, $copy->get('opportunities.open_url'), [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => $copy->get('opportunities.open_url'),
+                    'url' => $opportunity->url,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ],
+            ]]),
+        ]);
+
+        return null;
+    }
+
+    protected function handleOpportunityGuidanceRequest(
+        User $user,
+        int|string $chatId,
+        int $opportunityId,
+    ): ?string {
+        $copy = TelegramCopy::for($user);
+
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            $this->promptCurrentOnboardingStep($user, $chatId);
+
+            return $copy->get('menu.finish_onboarding');
+        }
+
+        $opportunity = Opportunity::query()->published()->find($opportunityId);
+
+        if ($opportunity === null || ! $opportunity->hasVerifiedPartner()) {
+            return $copy->get('opportunities.not_found');
+        }
+
+        $result = $this->opportunityGuidance->requestGuidance($user, $opportunity);
+        $supportUrl = $result['support_url'];
+
+        if ($supportUrl !== null) {
+            $this->telegram->sendMessage($chatId, $copy->get('opportunities.guidance_follow_up'), [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
+                        'text' => $copy->get('opportunities.guidance_open_support'),
+                        'url' => $supportUrl,
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]]),
+            ]);
+        } else {
+            $this->telegram->sendMessage($chatId, $copy->get('opportunities.guidance_unavailable'));
+        }
+
+        return $copy->get('opportunities.guidance_sent');
     }
 
     protected function showReferrals(User $user, int|string $chatId): void

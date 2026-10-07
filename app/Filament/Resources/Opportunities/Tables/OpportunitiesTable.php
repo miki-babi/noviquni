@@ -25,6 +25,8 @@ class OpportunitiesTable
                     ->badge()
                     ->formatStateUsing(fn (OpportunityType $state): string => $state->label()),
                 IconColumn::make('is_published')->boolean()->label('Published'),
+                IconColumn::make('is_verified_partner')->boolean()->label('Verified'),
+                TextColumn::make('partner_name')->placeholder('—')->toggleable(),
                 TextColumn::make('deadline')->date()->placeholder('—')->sortable(),
                 TextColumn::make('sort_order')->sortable()->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')->dateTime()->sortable()->since(),

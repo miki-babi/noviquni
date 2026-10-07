@@ -8,6 +8,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Str;
@@ -52,6 +53,16 @@ class OpportunityForm
                     ->required(),
                 Toggle::make('is_published')
                     ->default(false),
+                Toggle::make('is_verified_partner')
+                    ->label('Verified NOViQ Uni partner')
+                    ->default(false)
+                    ->live(),
+                TextInput::make('partner_name')
+                    ->label('Partner name')
+                    ->maxLength(255)
+                    ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
+                    ->required(fn (Get $get): bool => (bool) $get('is_verified_partner'))
+                    ->columnSpanFull(),
             ]);
     }
 }

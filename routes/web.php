@@ -63,6 +63,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('saved/{resource:slug}', [SavedController::class, 'toggle'])->name('saved.toggle');
         Route::get('opportunities/{opportunity:slug}', [OpportunityController::class, 'show'])->name('opportunities.show');
         Route::post('opportunities/{opportunity:slug}/save', [OpportunityController::class, 'toggle'])->name('saved.opportunities.toggle');
+        Route::post('opportunities/{opportunity:slug}/guidance', [OpportunityController::class, 'requestGuidance'])->name('opportunities.guidance');
         Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
         Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
             ->whereIn('hub', ResourceHub::miniAppRouteSlugs())

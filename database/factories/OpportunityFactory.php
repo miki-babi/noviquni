@@ -65,4 +65,12 @@ class OpportunityFactory extends Factory
             'type' => OpportunityType::Mentorship,
         ]);
     }
+
+    public function verifiedPartner(?string $partnerName = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'is_verified_partner' => true,
+            'partner_name' => $partnerName ?? fake()->company(),
+        ]);
+    }
 }

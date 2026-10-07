@@ -21,6 +21,8 @@ use Illuminate\Support\Str;
     'url',
     'deadline',
     'is_published',
+    'is_verified_partner',
+    'partner_name',
     'sort_order',
 ])]
 class Opportunity extends Model
@@ -33,6 +35,7 @@ class Opportunity extends Model
      */
     protected $attributes = [
         'is_published' => false,
+        'is_verified_partner' => false,
         'sort_order' => 0,
     ];
 
@@ -82,8 +85,14 @@ class Opportunity extends Model
             'type' => OpportunityType::class,
             'deadline' => 'date',
             'is_published' => 'boolean',
+            'is_verified_partner' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    public function hasVerifiedPartner(): bool
+    {
+        return $this->is_verified_partner && filled($this->partner_name);
     }
 
     public static function uniqueSlugFromTitle(string $title, ?int $ignoreId = null): string

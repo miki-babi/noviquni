@@ -19,6 +19,8 @@ class OpportunitySeeder extends Seeder
                 'url' => 'https://example.com/opportunities/mastercard-scholars',
                 'deadline' => now()->addMonths(3)->toDateString(),
                 'sort_order' => 1,
+                'is_verified_partner' => true,
+                'partner_name' => 'Mastercard Foundation',
             ],
             [
                 'slug' => 'moe-need-based-tuition-grant',
@@ -55,6 +57,8 @@ class OpportunitySeeder extends Seeder
                 'url' => 'https://example.com/opportunities/safaricom-graduate',
                 'deadline' => now()->addMonth()->toDateString(),
                 'sort_order' => 1,
+                'is_verified_partner' => true,
+                'partner_name' => 'Safaricom Ethiopia',
             ],
             [
                 'slug' => 'addis-software-house-junior-dev',
