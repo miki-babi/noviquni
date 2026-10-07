@@ -4,7 +4,8 @@ return [
     'keyboard' => [
         'courses' => '📚 Courses',
         'resources' => '📚 Freshman resources',
-        'scholarships' => '🎓 Scholarships',
+        'scholarships' => '🎓 Scholarship opportunities',
+        'scholarships_legacy' => '🎓 Scholarships',
         'challenges' => '🏆 Challenges',
         'internships' => '💼 Internships',
         'opportunities' => '🌍 Opportunities',
@@ -40,7 +41,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\n📚 Freshman resources · 🔖 Quick saved · 🏆 Challenges · 🎓 Scholarships · 💼 Internships · 🌍 Opportunities · 🎤 Mentorship · 👤 Profile · 👥 Invite friends",
+        'keyboard_hint' => "Your study menu is ready:\n📚 Freshman resources · 🔖 Quick saved · 🏆 Challenges · 🎓 Scholarship opportunities · 💼 Internships · 🌍 Opportunities · 🎤 Mentorship · 👤 Profile · 👥 Invite friends",
     ],
     'refer' => [
         'start_cta' => 'Start now',

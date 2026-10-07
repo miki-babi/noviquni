@@ -41,20 +41,20 @@ it('builds main keyboard buttons with freshman resources career rows and invite 
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('primary')
         ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('🏆 Challenges')
         ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🎓 Scholarships')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🎓 Scholarship opportunities')
         ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.3.1.text'))->toBe('💼 Internships')
-        ->and(data_get($keyboard, 'keyboard.3.1.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('🌍 Opportunities')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('💼 Internships')
         ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('🎤 Mentorship')
+        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('🌍 Opportunities')
         ->and(data_get($keyboard, 'keyboard.4.1.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('👤 Profile')
-        ->and(data_get($keyboard, 'keyboard.5.0.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('🎤 Mentorship')
         ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('👥 Invite friends')
-        ->and(data_get($keyboard, 'keyboard.5.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.5.1.style'))->toBe('primary');
+        ->and(data_get($keyboard, 'keyboard.6.0.text'))->toBe('👤 Profile')
+        ->and(data_get($keyboard, 'keyboard.6.0.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.6.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.6.1.text'))->toBe('👥 Invite friends')
+        ->and(data_get($keyboard, 'keyboard.6.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.6.1.style'))->toBe('primary');
 });
 
 it('shows the bootstrap page for guests on mini app routes', function () {

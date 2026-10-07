@@ -173,16 +173,18 @@ class TelegramService
                         'text' => $copy->get('keyboard.scholarships'),
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
+                ],
+                [
                     [
                         'text' => $copy->get('keyboard.internships'),
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
-                ],
-                [
                     [
                         'text' => $copy->get('keyboard.opportunities'),
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
+                ],
+                [
                     [
                         'text' => $copy->get('keyboard.mentorship'),
                         'style' => TelegramButtonStyle::Primary->value,

@@ -757,6 +757,7 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.refer')] = 'refer';
             // Legacy reply-keyboard labels until users refresh via /start.
             $map[$copy->get('keyboard.resources_legacy')] = 'resources';
+            $map[$copy->get('keyboard.scholarships_legacy')] = 'scholarships';
             $map[$copy->get('keyboard.refer_legacy')] = 'refer';
             $map[$copy->get('keyboard.continue')] = 'continue';
             $map[$copy->get('keyboard.browse')] = 'courses';
