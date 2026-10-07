@@ -40,7 +40,7 @@ it('builds main keyboard buttons with freshman resources career rows and invite 
         ->and(data_get($keyboard, 'keyboard.1.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('🏆 Challenges')
-        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🎓 Scholarship opportunities')
         ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('success')
         ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('💼 Internships')

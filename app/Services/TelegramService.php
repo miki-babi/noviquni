@@ -164,7 +164,7 @@ class TelegramService
                 [
                     [
                         'text' => $copy->get('keyboard.challenges'),
-                        'style' => TelegramButtonStyle::Primary->value,
+                        'style' => TelegramButtonStyle::Success->value,
                     ],
                 ],
                 [
