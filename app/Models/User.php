@@ -40,6 +40,7 @@ use Illuminate\Support\Str;
     'university_id',
     'stream_id',
     'semester_id',
+    'department_name',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
@@ -138,6 +139,11 @@ class User extends Authenticatable implements FilamentUser
     public function isFreshman(): bool
     {
         return $this->year()?->slug === YearSlug::Freshman->value;
+    }
+
+    public function hasDepartment(): bool
+    {
+        return filled($this->department_name);
     }
 
     public function syncYear(Year|int $year): void

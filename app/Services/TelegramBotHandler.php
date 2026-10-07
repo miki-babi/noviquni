@@ -156,6 +156,12 @@ class TelegramBotHandler
             return;
         }
 
+        if ($user->onboarding_step === OnboardingStep::Department) {
+            $this->handleDepartmentReply($user, $chatId, $text);
+
+            return;
+        }
+
         if ($user->onboarding_step !== OnboardingStep::Complete && $user->onboarding_step !== null) {
             $this->repromptOnboarding($user, $chatId);
 
@@ -3356,15 +3362,25 @@ class TelegramBotHandler
     {
         $copy = TelegramCopy::for($user);
         $user->load(['stream', 'university', 'semester', 'courses']);
-        $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
 
-        $this->telegram->sendMessage($chatId, $copy->get('profile.body', [
-            'name' => $user->name,
-            'stream' => $user->stream?->name ?? '-',
-            'university' => $user->university?->name ?? '-',
-            'semester' => $user->semester?->name ?? '-',
-            'courses' => $courses,
-        ]), [
+        if ($user->isFreshman()) {
+            $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
+            $body = $copy->get('profile.body', [
+                'name' => $user->name,
+                'stream' => $user->stream?->name ?? '-',
+                'university' => $user->university?->name ?? '-',
+                'semester' => $user->semester?->name ?? '-',
+                'courses' => $courses,
+            ]);
+        } else {
+            $body = $copy->get('profile.body_department', [
+                'department' => $user->department_name ?: $copy->get('profile.none'),
+                'university' => $user->university?->name ?? '-',
+                'semester' => $user->semester?->name ?? '-',
+            ]);
+        }
+
+        $this->telegram->sendMessage($chatId, $body, [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 ['text' => $copy->get('profile.notifications'), 'callback_data' => 'profile:notify'],
                 ['text' => $copy->get('profile.refer'), 'callback_data' => 'profile:refer'],
@@ -3418,6 +3434,7 @@ class TelegramBotHandler
             OnboardingStep::Start,
             OnboardingStep::Year,
             OnboardingStep::Stream,
+            OnboardingStep::Department,
         ], true)) {
             return false;
         }
@@ -3428,7 +3445,9 @@ class TelegramBotHandler
 
         $year = $user->year();
 
-        return $year !== null && $year->slug !== YearSlug::Freshman->value;
+        return $year !== null
+            && $year->slug !== YearSlug::Freshman->value
+            && filled($user->department_name);
     }
 
     protected function promptCurrentOnboardingStep(User $user, int|string $chatId, ?int $messageId = null): void
@@ -3445,6 +3464,13 @@ class TelegramBotHandler
         if ($year->slug === YearSlug::Freshman->value && $user->stream_id === null) {
             $user->update(['onboarding_step' => OnboardingStep::Stream]);
             $this->askStream($user, $chatId, $messageId);
+
+            return;
+        }
+
+        if ($year->slug !== YearSlug::Freshman->value && blank($user->department_name)) {
+            $user->update(['onboarding_step' => OnboardingStep::Department]);
+            $this->askDepartment($user, $chatId, $messageId);
 
             return;
         }
@@ -3511,6 +3537,36 @@ class TelegramBotHandler
         $this->sendOnboardingPrompt($user, $chatId, $copy->get('onboarding.stream_prompt'), $rows, $messageId);
     }
 
+    protected function askDepartment(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $result = $this->telegram->replyOrEdit($chatId, $copy->get('onboarding.department_prompt'), [
+            'reply_markup' => $this->telegram->inlineKeyboard([]),
+        ], $messageId);
+
+        $this->telegram->rememberInlineMessage($user->id, $result, $messageId);
+    }
+
+    protected function handleDepartmentReply(User $user, int|string $chatId, string $text): void
+    {
+        $copy = TelegramCopy::for($user);
+        $department = trim($text);
+
+        if ($department === '' || mb_strlen($department) > 255) {
+            $this->telegram->sendMessage($chatId, $copy->get('onboarding.department_invalid'));
+            $this->askDepartment($user, $chatId);
+
+            return;
+        }
+
+        $user->update([
+            'department_name' => $department,
+        ]);
+
+        $this->finishOnboarding($user->fresh() ?? $user, $chatId);
+    }
+
     protected function handleOnboardingCallback(User $user, int|string $chatId, string $data, ?int $messageId): ?string
     {
         $copy = TelegramCopy::for($user);
@@ -3563,13 +3619,15 @@ class TelegramBotHandler
         }
 
         $user->update([
+            'onboarding_step' => OnboardingStep::Department,
             'stream_id' => null,
             'university_id' => null,
             'semester_id' => null,
+            'department_name' => null,
         ]);
         cache()->forget("onboarding.courses.{$user->id}");
 
-        $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
+        $this->askDepartment($user->fresh() ?? $user, $chatId, $messageId);
 
         return null;
     }
@@ -3610,8 +3668,12 @@ class TelegramBotHandler
     protected function finishOnboarding(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $copy = TelegramCopy::for($user);
+        $isFreshman = $user->isFreshman();
 
-        $this->onboarding->syncAllActiveCourses($user);
+        if ($isFreshman) {
+            $this->onboarding->syncAllActiveCourses($user);
+        }
+
         $this->onboarding->complete($user);
         cache()->forget("onboarding.courses.{$user->id}");
         cache()->forget(TelegramService::InlineMessageCacheKey.$user->id);
@@ -3622,11 +3684,14 @@ class TelegramBotHandler
             ]);
         }
 
-        $this->telegram->sendMessage($chatId, $copy->get('menu.onboarding_done'), [
+        $doneKey = $isFreshman ? 'menu.onboarding_done' : 'menu.onboarding_done_department';
+        $hintKey = $isFreshman ? 'menu.onboarding_profile_hint' : 'menu.onboarding_profile_hint_department';
+
+        $this->telegram->sendMessage($chatId, $copy->get($doneKey), [
             'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
 
-        $this->telegram->sendMessage($chatId, $copy->get('menu.onboarding_profile_hint'), [
+        $this->telegram->sendMessage($chatId, $copy->get($hintKey), [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 [
                     'text' => $copy->get('menu.onboarding_profile_button'),

@@ -242,6 +242,7 @@ it('shows profile course and saved-file bot deep links', function () {
         'is_active' => true,
         'name' => 'Abebe Kebede',
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
@@ -318,6 +319,7 @@ it('shows the study profile edit form', function () {
         'semester_id' => $semester->id,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
     $user->courses()->sync([$course->id]);
 
     $this->actingAs($user)
@@ -350,6 +352,7 @@ it('preselects every active course on the study profile when none are enrolled',
         'stream_id' => $natural->id,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $response = $this->actingAs($user)
         ->get(route('tg.profile.edit'))
@@ -387,6 +390,7 @@ it('updates academic profile fields from the mini app', function () {
         'semester_id' => $semester->id,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
     $user->courses()->sync([$math->id]);
 
     $this->actingAs($user)
@@ -425,6 +429,7 @@ it('allows courses from another stream on the study profile', function () {
         'stream_id' => $natural->id,
         'is_active' => true,
     ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
     $user->courses()->sync([$math->id]);
 
     $this->actingAs($user)
@@ -435,6 +440,41 @@ it('allows courses from another stream on the study profile', function () {
         ->assertRedirect(route('tg.profile'));
 
     expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
+});
+
+it('lets non-freshman students update department without attaching courses', function () {
+    $stream = Stream::factory()->create(['name' => 'Natural']);
+    Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Mathematics',
+        'is_active' => true,
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'department_name' => 'Old Department',
+        'is_active' => true,
+    ]);
+    $user->syncYear(Year::query()->where('slug', YearSlug::Second->value)->firstOrFail());
+
+    $this->actingAs($user)
+        ->get(route('tg.profile.edit'))
+        ->assertOk()
+        ->assertSee('Department', false)
+        ->assertDontSee('name="course_ids[]"', false);
+
+    $this->actingAs($user)
+        ->post(route('tg.profile.academic'), [
+            'department_name' => 'Electrical Engineering',
+            'university_id' => '',
+            'semester_id' => '',
+        ])
+        ->assertRedirect(route('tg.profile'));
+
+    $user->refresh();
+
+    expect($user->department_name)->toBe('Electrical Engineering')
+        ->and($user->courses()->count())->toBe(0);
 });
 
 it('opens course hubs inside the mini app', function () {

@@ -59,6 +59,9 @@ class StudentForm
                     ->searchable()
                     ->preload(),
                 Select::make('stream_id')->relationship('stream', 'name')->searchable()->preload(),
+                TextInput::make('department_name')
+                    ->label('Department')
+                    ->maxLength(255),
                 Select::make('university_id')->relationship('university', 'name')->searchable()->preload(),
                 Select::make('semester_id')->relationship('semester', 'name')->searchable()->preload(),
                 Select::make('courses')

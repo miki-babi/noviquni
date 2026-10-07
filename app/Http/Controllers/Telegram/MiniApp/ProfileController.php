@@ -30,7 +30,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
-        $user->load(['stream', 'university', 'semester', 'courses']);
+        $user->load(['stream', 'university', 'semester', 'courses', 'years']);
 
         $bookmarks = $user->bookmarks()
             ->with(['bookmarkable' => function (MorphTo $morphTo) {
@@ -69,7 +69,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
-        $user->load(['courses']);
+        $user->load(['courses', 'years']);
 
         $streams = Stream::query()->active()->orderBy('name')->get();
         $universities = University::query()->active()->orderBy('sort_order')->orderBy('name')->get();
@@ -82,7 +82,7 @@ class ProfileController extends Controller
 
         $selectedCourseIds = $user->courses->pluck('id')->map(fn ($id) => (int) $id)->all();
 
-        if ($selectedCourseIds === []) {
+        if ($user->isFreshman() && $selectedCourseIds === []) {
             $selectedCourseIds = $courses->pluck('id')->map(fn ($id) => (int) $id)->all();
         }
 
@@ -94,6 +94,7 @@ class ProfileController extends Controller
             'semesters' => $semesters,
             'courses' => $courses,
             'selectedCourseIds' => $selectedCourseIds,
+            'isFreshman' => $user->isFreshman(),
             'activeNav' => 'profile',
         ]);
     }
@@ -103,6 +104,35 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
+        $user->loadMissing('years');
+
+        if (! $user->isFreshman()) {
+            $validated = $request->validate([
+                'department_name' => ['required', 'string', 'max:255'],
+                'university_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('universities', 'id')->where(fn ($query) => $query->where('is_active', true)),
+                ],
+                'semester_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('semesters', 'id'),
+                ],
+            ]);
+
+            $user->update([
+                'department_name' => trim($validated['department_name']),
+                'university_id' => isset($validated['university_id']) ? (int) $validated['university_id'] : null,
+                'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
+            ]);
+
+            $onboarding->syncCourses($user->fresh(), []);
+
+            return redirect()
+                ->route('tg.profile')
+                ->with('status', $copy->get('settings.academic_saved'));
+        }
 
         $validated = $request->validate([
             'stream_id' => [

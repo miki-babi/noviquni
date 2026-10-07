@@ -179,10 +179,10 @@ it('completes onboarding when Freshman year then stream is tapped', function () 
     });
 });
 
-it('completes onboarding without stream when a non-Freshman year is tapped', function () {
+it('asks for department when a non-Freshman year is tapped and completes after the reply', function () {
     $stream = Stream::factory()->create(['name' => 'Natural']);
     $second = Year::query()->where('slug', YearSlug::Second->value)->firstOrFail();
-    $math = Course::factory()->create([
+    Course::factory()->create([
         'stream_id' => $stream->id,
         'name' => 'Mathematics',
         'is_active' => true,
@@ -194,14 +194,31 @@ it('completes onboarding without stream when a non-Freshman year is tapped', fun
 
     $user = User::query()->where('telegram_id', '555212')->firstOrFail();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+    expect($user->onboarding_step)->toBe(OnboardingStep::Department)
         ->and($user->stream_id)->toBeNull()
         ->and($user->year()?->slug)->toBe(YearSlug::Second->value)
-        ->and($user->courses()->pluck('courses.id')->all())->toBe([$math->id]);
+        ->and($user->courses()->count())->toBe(0);
 
     Http::assertNotSent(function ($request) {
         return str_contains((string) data_get($request->data(), 'text'), 'Tap your stream');
     });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'What is your department');
+    });
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555212, 'Computer Science', 214))
+        ->assertOk();
+
+    $user->refresh();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->department_name)->toBe('Computer Science')
+        ->and($user->courses()->count())->toBe(0);
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
@@ -214,6 +231,30 @@ it('completes onboarding without stream when a non-Freshman year is tapped', fun
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '🎓 Scholarship opportunities'
             && ! $labels->contains('📚 Freshman resources');
+    });
+});
+
+it('reprompts when department text is empty during onboarding', function () {
+    $second = Year::query()->where('slug', YearSlug::Second->value)->firstOrFail();
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555213, '/start', 215))->assertOk();
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555213, "ob:year:{$second->id}", 216, 2150))
+        ->assertOk();
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555213, '   ', 217))
+        ->assertOk();
+
+    $user = User::query()->where('telegram_id', '555213')->firstOrFail();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::Department)
+        ->and($user->department_name)->toBeNull();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) data_get($request->data(), 'text'), 'Please send your department name');
     });
 });
 

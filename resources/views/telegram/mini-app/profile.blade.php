@@ -61,10 +61,17 @@
         </div>
 
         <div class="study-card study-continue">
-            <div class="study-profile-row">
-                <span class="study-profile-label">{{ $copy->get('profile.stream') }}</span>
-                <span class="study-profile-value">{{ $user->stream?->name ?? $copy->get('profile.none') }}</span>
-            </div>
+            @if ($user->isFreshman())
+                <div class="study-profile-row">
+                    <span class="study-profile-label">{{ $copy->get('profile.stream') }}</span>
+                    <span class="study-profile-value">{{ $user->stream?->name ?? $copy->get('profile.none') }}</span>
+                </div>
+            @else
+                <div class="study-profile-row">
+                    <span class="study-profile-label">{{ $copy->get('profile.department') }}</span>
+                    <span class="study-profile-value">{{ $user->department_name ?: $copy->get('profile.none') }}</span>
+                </div>
+            @endif
             <div class="study-profile-row">
                 <span class="study-profile-label">{{ $copy->get('profile.university') }}</span>
                 <span class="study-profile-value">{{ $user->university?->name ?? $copy->get('profile.none') }}</span>
@@ -73,28 +80,30 @@
                 <span class="study-profile-label">{{ $copy->get('profile.semester') }}</span>
                 <span class="study-profile-value">{{ $user->semester?->name ?? $copy->get('profile.none') }}</span>
             </div>
-            <div class="study-profile-row study-profile-row--stack">
-                <span class="study-profile-label">{{ $copy->get('profile.courses') }}</span>
-                @if ($courses->isEmpty())
-                    <span class="study-profile-value">{{ $copy->get('profile.none') }}</span>
-                @else
-                    <div class="study-chip-wrap">
-                        @foreach ($courses as $course)
-                            @php
-                                $accent = $accentCycle[($loop->index) % count($accentCycle)];
-                            @endphp
-                            <x-telegram.mini-app.bot-link
-                                :href="$deepLinks->forCourse($course->slug)"
-                                :confirm-title="$copy->get('bot_confirm.title')"
-                                :confirm-message="$copy->get('bot_confirm.course', ['title' => $course->name])"
-                                class="study-chip study-chip--{{ $accent }}"
-                            >
-                                {{ $course->name }}
-                            </x-telegram.mini-app.bot-link>
-                        @endforeach
-                    </div>
-                @endif
-            </div>
+            @if ($user->isFreshman())
+                <div class="study-profile-row study-profile-row--stack">
+                    <span class="study-profile-label">{{ $copy->get('profile.courses') }}</span>
+                    @if ($courses->isEmpty())
+                        <span class="study-profile-value">{{ $copy->get('profile.none') }}</span>
+                    @else
+                        <div class="study-chip-wrap">
+                            @foreach ($courses as $course)
+                                @php
+                                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                                @endphp
+                                <x-telegram.mini-app.bot-link
+                                    :href="$deepLinks->forCourse($course->slug)"
+                                    :confirm-title="$copy->get('bot_confirm.title')"
+                                    :confirm-message="$copy->get('bot_confirm.course', ['title' => $course->name])"
+                                    class="study-chip study-chip--{{ $accent }}"
+                                >
+                                    {{ $course->name }}
+                                </x-telegram.mini-app.bot-link>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+            @endif
         </div>
 
         <div class="study-card study-continue">
