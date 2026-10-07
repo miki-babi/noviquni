@@ -8,6 +8,7 @@ use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
+use App\Enums\YearSlug;
 use App\Models\Broadcast;
 use App\Models\Challenge;
 use App\Models\Course;
@@ -17,6 +18,7 @@ use App\Models\Stream;
 use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
+use App\Models\Year;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
@@ -103,9 +105,7 @@ class TelegramBotHandler
                     Cache::put($this->pendingStartCacheKey($user), $payload, now()->addDay());
                 }
 
-                if ($user->stream_id !== null
-                    && $user->onboarding_step !== OnboardingStep::Stream
-                    && $user->onboarding_step !== OnboardingStep::Start) {
+                if ($this->canAutoCompleteOnboarding($user)) {
                     $this->onboarding->complete($user);
                     $user->refresh();
 
@@ -122,8 +122,7 @@ class TelegramBotHandler
                     $this->sendCustomStartMessage($user, $chatId);
                 }
 
-                $user->update(['onboarding_step' => OnboardingStep::Stream]);
-                $this->askStream($user, $chatId);
+                $this->promptCurrentOnboardingStep($user, $chatId);
 
                 return;
             }
@@ -2943,17 +2942,53 @@ class TelegramBotHandler
 
         Cache::put($rateLimitKey, true, now()->addSeconds(3));
 
-        if ($user->stream_id !== null
-            && $user->onboarding_step !== OnboardingStep::Stream
-            && $user->onboarding_step !== OnboardingStep::Start) {
-            $this->finishOnboardingAfterStream($user, $chatId);
+        if ($this->canAutoCompleteOnboarding($user)) {
+            $this->finishOnboarding($user, $chatId);
 
             return;
         }
 
-        $messageId = $this->telegram->cachedInlineMessageId($user->id);
-        $user->update(['onboarding_step' => OnboardingStep::Stream]);
-        $this->askStream($user, $chatId, $messageId);
+        $this->promptCurrentOnboardingStep($user, $chatId, $this->telegram->cachedInlineMessageId($user->id));
+    }
+
+    protected function canAutoCompleteOnboarding(User $user): bool
+    {
+        if (in_array($user->onboarding_step, [
+            OnboardingStep::Start,
+            OnboardingStep::Year,
+            OnboardingStep::Stream,
+        ], true)) {
+            return false;
+        }
+
+        if ($user->stream_id !== null) {
+            return true;
+        }
+
+        $year = $user->year();
+
+        return $year !== null && $year->slug !== YearSlug::Freshman->value;
+    }
+
+    protected function promptCurrentOnboardingStep(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $year = $user->year();
+
+        if ($year === null) {
+            $user->update(['onboarding_step' => OnboardingStep::Year]);
+            $this->askYear($user, $chatId, $messageId);
+
+            return;
+        }
+
+        if ($year->slug === YearSlug::Freshman->value && $user->stream_id === null) {
+            $user->update(['onboarding_step' => OnboardingStep::Stream]);
+            $this->askStream($user, $chatId, $messageId);
+
+            return;
+        }
+
+        $this->finishOnboarding($user, $chatId, $messageId);
     }
 
     /**
@@ -2968,8 +3003,32 @@ class TelegramBotHandler
         $this->telegram->rememberInlineMessage($user->id, $result, $messageId);
     }
 
+    protected function askYear(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $copy = TelegramCopy::for($user);
+        $years = Year::query()->orderBy('sort_order')->orderBy('name')->get();
+
+        if ($years->isEmpty()) {
+            $result = $this->telegram->replyOrEdit($chatId, $copy->get('onboarding.year_unavailable'), messageId: $messageId);
+            $this->telegram->rememberInlineMessage($user->id, $result, $messageId);
+
+            return;
+        }
+
+        $rows = $years->map(fn (Year $year): array => [[
+            'text' => $copy->get('onboarding.years.'.$year->slug),
+            'callback_data' => "ob:year:{$year->id}",
+            'style' => $year->slug === YearSlug::Freshman->value
+                ? TelegramButtonStyle::Success->value
+                : TelegramButtonStyle::Primary->value,
+        ]])->values()->all();
+
+        $this->sendOnboardingPrompt($user, $chatId, $copy->get('onboarding.year_prompt'), $rows, $messageId);
+    }
+
     protected function askStream(User $user, int|string $chatId, ?int $messageId = null): void
     {
+        $copy = TelegramCopy::for($user);
         $streams = Stream::query()->active()->orderBy('name')->get();
 
         if ($streams->isEmpty()) {
@@ -2988,7 +3047,7 @@ class TelegramBotHandler
             },
         ]])->values()->all();
 
-        $this->sendOnboardingPrompt($user, $chatId, '📚 Tap your stream:', $rows, $messageId);
+        $this->sendOnboardingPrompt($user, $chatId, $copy->get('onboarding.stream_prompt'), $rows, $messageId);
     }
 
     protected function handleOnboardingCallback(User $user, int|string $chatId, string $data, ?int $messageId): ?string
@@ -2999,11 +3058,59 @@ class TelegramBotHandler
             return $copy->get('menu.onboarding_complete_menu');
         }
 
+        if (str_starts_with($data, 'ob:year:')) {
+            return $this->selectYear($user, $chatId, (int) Str::after($data, 'ob:year:'), $messageId);
+        }
+
         if (str_starts_with($data, 'ob:stream:')) {
             return $this->selectStream($user, $chatId, (int) Str::after($data, 'ob:stream:'), $messageId);
         }
 
         return $copy->get('menu.stale_callback');
+    }
+
+    protected function selectYear(User $user, int|string $chatId, int $yearId, ?int $messageId): ?string
+    {
+        $copy = TelegramCopy::for($user);
+
+        if (! in_array($user->onboarding_step, [OnboardingStep::Year, OnboardingStep::Start], true)) {
+            return $copy->get('menu.stale_callback');
+        }
+
+        $year = Year::query()->find($yearId);
+
+        if ($year === null) {
+            $this->askYear($user, $chatId, $messageId);
+
+            return $copy->get('onboarding.year_unavailable');
+        }
+
+        $user->syncYear($year);
+        $user->unsetRelation('years');
+
+        if ($year->slug === YearSlug::Freshman->value) {
+            $user->update([
+                'onboarding_step' => OnboardingStep::Stream,
+                'stream_id' => null,
+                'university_id' => null,
+                'semester_id' => null,
+            ]);
+            cache()->forget("onboarding.courses.{$user->id}");
+            $this->askStream($user->fresh() ?? $user, $chatId, $messageId);
+
+            return null;
+        }
+
+        $user->update([
+            'stream_id' => null,
+            'university_id' => null,
+            'semester_id' => null,
+        ]);
+        cache()->forget("onboarding.courses.{$user->id}");
+
+        $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
+
+        return null;
     }
 
     protected function selectStream(User $user, int|string $chatId, int $streamId, ?int $messageId): ?string
@@ -3029,12 +3136,17 @@ class TelegramBotHandler
         ]);
         cache()->forget("onboarding.courses.{$user->id}");
 
-        $this->finishOnboardingAfterStream($user->fresh() ?? $user, $chatId, $messageId);
+        $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
 
         return null;
     }
 
     protected function finishOnboardingAfterStream(User $user, int|string $chatId, ?int $messageId = null): void
+    {
+        $this->finishOnboarding($user, $chatId, $messageId);
+    }
+
+    protected function finishOnboarding(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $copy = TelegramCopy::for($user);
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OnboardingStep;
 use App\Enums\UserRole;
+use App\Enums\YearSlug;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -115,6 +116,35 @@ class User extends Authenticatable implements FilamentUser
     public function courses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'user_courses')->withTimestamps();
+    }
+
+    /**
+     * @return BelongsToMany<Year, $this>
+     */
+    public function years(): BelongsToMany
+    {
+        return $this->belongsToMany(Year::class, 'user_year')->withTimestamps();
+    }
+
+    public function year(): ?Year
+    {
+        if ($this->relationLoaded('years')) {
+            return $this->years->first();
+        }
+
+        return $this->years()->first();
+    }
+
+    public function isFreshman(): bool
+    {
+        return $this->year()?->slug === YearSlug::Freshman->value;
+    }
+
+    public function syncYear(Year|int $year): void
+    {
+        $yearId = $year instanceof Year ? $year->id : $year;
+
+        $this->years()->sync([$yearId]);
     }
 
     public function subscriptions(): HasMany

@@ -3,9 +3,11 @@
 use App\Enums\BroadcastButtonType;
 use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
+use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\Stream;
 use App\Models\User;
+use App\Models\Year;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -63,12 +65,13 @@ it('sends the custom start message to new users before the stream onboarding pro
         ],
     ], JSON_THROW_ON_ERROR));
 
-    $stream = Stream::factory()->create(['name' => 'Natural']);
+    Stream::factory()->create(['name' => 'Natural']);
+    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555910, 9010))->assertOk();
 
     $user = User::query()->where('telegram_id', '555910')->firstOrFail();
-    expect($user->onboarding_step)->toBe(OnboardingStep::Stream);
+    expect($user->onboarding_step)->toBe(OnboardingStep::Year);
 
     Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendPhoto')) {
@@ -89,15 +92,15 @@ it('sends the custom start message to new users before the stream onboarding pro
             && data_get($markup, 'inline_keyboard.0.0.url') === 'https://noviquni.test/about';
     });
 
-    Http::assertSent(function ($request) use ($stream) {
+    Http::assertSent(function ($request) use ($freshman) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Tap your stream')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:stream:{$stream->id}";
+        return str_contains((string) ($data['text'] ?? ''), 'What year are you in')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:year:{$freshman->id}";
     });
 
     Http::assertNotSent(function ($request) {

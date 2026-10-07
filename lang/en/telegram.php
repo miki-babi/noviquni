@@ -132,6 +132,18 @@ return [
         'on' => 'ON',
         'off' => 'OFF',
     ],
+    'onboarding' => [
+        'year_prompt' => '🎓 What year are you in?',
+        'year_unavailable' => 'Year options are unavailable right now. Please try again later.',
+        'stream_prompt' => '📚 Tap your stream:',
+        'years' => [
+            'freshman' => 'Freshman',
+            '2nd' => '2nd',
+            '3rd' => '3rd',
+            '4th_and_above' => '4th and above',
+            'graduate' => 'Graduate',
+        ],
+    ],
     'menu' => [
         'choose' => 'Choose an option from the menu.',
         'open' => 'Menu',

@@ -155,6 +155,18 @@ return [
         'on' => 'ON',
         'off' => 'OFF',
     ],
+    'onboarding' => [
+        'year_prompt' => '🎓 በየትኛው ዓመት ነዎት?',
+        'year_unavailable' => 'የዓመት አማራጮች አሁን አይገኙም። ቆይተው እንደገና ይሞክሩ።',
+        'stream_prompt' => '📚 የትምህርት ዥረትዎን ይምረጡ፦',
+        'years' => [
+            'freshman' => 'የመጀመሪያ ዓመት',
+            '2nd' => '2ኛ',
+            '3rd' => '3ኛ',
+            '4th_and_above' => '4ኛ እና ከዚያ በላይ',
+            'graduate' => 'ተመራቂ',
+        ],
+    ],
     'menu' => [
         'choose' => 'Choose an option from the menu.',
         'open' => 'ምናሌ',

@@ -47,6 +47,17 @@ class StudentForm
 
                         return $record->referrer->name.$username;
                     }),
+                Select::make('years')
+                    ->label('Year')
+                    ->relationship(
+                        name: 'years',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
+                    )
+                    ->multiple()
+                    ->maxItems(1)
+                    ->searchable()
+                    ->preload(),
                 Select::make('stream_id')->relationship('stream', 'name')->searchable()->preload(),
                 Select::make('university_id')->relationship('university', 'name')->searchable()->preload(),
                 Select::make('semester_id')->relationship('semester', 'name')->searchable()->preload(),
