@@ -63,7 +63,7 @@ class BroadcastForm
                     ->columns(2)
                     ->columnSpanFull(),
                 Section::make('Inline keyboard buttons')
-                    ->description('Optional Telegram buttons under the message. Each row is one button (stacked).')
+                    ->description('Optional Telegram buttons under the message. Choice buttons (max 2) share one row side-by-side and each needs a reply message; other types stack one per row.')
                     ->schema([
                         BroadcastInlineButtonRepeater::make(),
                     ])

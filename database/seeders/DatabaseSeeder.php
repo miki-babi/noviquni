@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\Course;
 use App\Models\Semester;
 use App\Models\Stream;
-use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -19,25 +18,20 @@ class DatabaseSeeder extends Seeder
     {
         app(SettingsService::class)->seedDefaults();
 
-        User::factory()->admin()->create([
-            'name' => 'Admin',
-            'email' => 'admin@noviquni.test',
-            'password' => 'password',
+        $this->call([
+            AdminUserSeeder::class,
+            UniversitySeeder::class,
         ]);
 
-        $natural = Stream::query()->create([
-            'name' => 'Natural',
-            'slug' => 'natural',
-            'is_active' => true,
-        ]);
+        $natural = Stream::query()->firstOrCreate(
+            ['slug' => 'natural'],
+            ['name' => 'Natural', 'is_active' => true],
+        );
 
-        $social = Stream::query()->create([
-            'name' => 'Social',
-            'slug' => 'social',
-            'is_active' => true,
-        ]);
-
-        $this->call(UniversitySeeder::class);
+        $social = Stream::query()->firstOrCreate(
+            ['slug' => 'social'],
+            ['name' => 'Social', 'is_active' => true],
+        );
 
         foreach (['Semester 1', 'Semester 2'] as $index => $name) {
             Semester::query()->create([

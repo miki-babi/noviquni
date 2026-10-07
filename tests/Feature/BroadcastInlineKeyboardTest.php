@@ -2,6 +2,7 @@
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\TelegramButtonStyle;
+use App\Models\Broadcast;
 use App\Services\BroadcastService;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -152,4 +153,80 @@ it('passes through style on text reply buttons', function () {
         'callback_data' => 'reply:Courses',
         'style' => 'primary',
     ]);
+});
+
+it('builds choice buttons side by side with broadcast-scoped callbacks', function () {
+    $broadcast = Broadcast::factory()->create();
+
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => "I'm in",
+            'type' => BroadcastButtonType::Choice->value,
+            'response' => 'Great, see you there!',
+            'style' => TelegramButtonStyle::Success->value,
+        ],
+        [
+            'label' => 'Not now',
+            'type' => BroadcastButtonType::Choice->value,
+            'response' => 'No problem — maybe next time.',
+            'style' => TelegramButtonStyle::Danger->value,
+        ],
+        [
+            'label' => 'Open site',
+            'type' => BroadcastButtonType::Url->value,
+            'url' => 'https://example.com',
+        ],
+    ], $broadcast);
+
+    expect($markup['inline_keyboard'])->toHaveCount(2)
+        ->and($markup['inline_keyboard'][0])->toHaveCount(2)
+        ->and($markup['inline_keyboard'][0][0])->toMatchArray([
+            'text' => "I'm in",
+            'callback_data' => 'bcq:'.$broadcast->id.':0',
+            'style' => 'success',
+        ])
+        ->and($markup['inline_keyboard'][0][1])->toMatchArray([
+            'text' => 'Not now',
+            'callback_data' => 'bcq:'.$broadcast->id.':1',
+            'style' => 'danger',
+        ])
+        ->and($markup['inline_keyboard'][1][0])->toMatchArray([
+            'text' => 'Open site',
+            'url' => 'https://example.com',
+        ]);
+});
+
+it('omits choice buttons when no broadcast is provided', function () {
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => 'Yes',
+            'type' => BroadcastButtonType::Choice->value,
+            'response' => 'Thanks!',
+        ],
+        [
+            'label' => 'Open site',
+            'type' => BroadcastButtonType::Url->value,
+            'url' => 'https://example.com',
+        ],
+    ]);
+
+    expect($markup['inline_keyboard'])->toHaveCount(1)
+        ->and($markup['inline_keyboard'][0][0])->toMatchArray([
+            'text' => 'Open site',
+            'url' => 'https://example.com',
+        ]);
+});
+
+it('omits choice buttons without a response message', function () {
+    $broadcast = Broadcast::factory()->create();
+
+    $markup = app(BroadcastService::class)->inlineKeyboard([
+        [
+            'label' => 'Yes',
+            'type' => BroadcastButtonType::Choice->value,
+            'response' => '',
+        ],
+    ], $broadcast);
+
+    expect($markup)->toBeNull();
 });

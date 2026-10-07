@@ -8,6 +8,7 @@ use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
+use App\Models\Broadcast;
 use App\Models\Challenge;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -302,6 +303,10 @@ class TelegramBotHandler
             }),
             str_starts_with($data, 'settings:lang:') => $this->handleLanguageSwitch($user, $chatId, Str::after($data, 'settings:lang:')),
             $data === 'premium_pay' => $this->handlePremiumPay($user, $chatId),
+            str_starts_with($data, BroadcastService::InlineChoiceCallbackPrefix) => $this->guardComplete(
+                $user,
+                fn (): ?string => $this->handleBroadcastChoice($user, $chatId, $data),
+            ),
             str_starts_with($data, BroadcastService::InlineTextReplyCallbackPrefix) => $this->guardComplete(
                 $user,
                 function () use ($user, $chatId, $data): void {
@@ -325,7 +330,36 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.finish_onboarding');
         }
 
-        $callback();
+        $result = $callback();
+
+        return is_string($result) ? $result : null;
+    }
+
+    protected function handleBroadcastChoice(User $user, int|string $chatId, string $data): ?string
+    {
+        $broadcasts = app(BroadcastService::class);
+        $parsed = $broadcasts->parseChoiceCallback($data);
+
+        if ($parsed === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $broadcast = Broadcast::query()->find($parsed['broadcast_id']);
+
+        if ($broadcast === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $response = $broadcasts->choiceResponse($broadcast, $parsed['choice_index']);
+
+        if ($response === null) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->telegram->sendMessage(
+            $chatId,
+            $broadcasts->personalize($response, $user),
+        );
 
         return null;
     }

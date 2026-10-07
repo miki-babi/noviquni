@@ -8,6 +8,7 @@ enum BroadcastButtonType: string
     case Text = 'text';
     case Url = 'url';
     case MiniApp = 'mini_app';
+    case Choice = 'choice';
 
     public function label(): string
     {
@@ -16,6 +17,7 @@ enum BroadcastButtonType: string
             self::Text => 'Text reply',
             self::Url => 'Web URL',
             self::MiniApp => 'Telegram Mini App',
+            self::Choice => 'Choice (reply message)',
         };
     }
 }

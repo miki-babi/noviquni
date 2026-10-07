@@ -18,9 +18,13 @@ class BroadcastService
 {
     public const string InlineTextReplyCallbackPrefix = 'reply:';
 
+    public const string InlineChoiceCallbackPrefix = 'bcq:';
+
     public const int InlineTextReplyCallbackMaxBytes = 64;
 
     public const int InlineTextReplyPayloadMaxBytes = 58;
+
+    public const int MaxChoiceButtons = 2;
 
     public function __construct(public TelegramService $telegram) {}
 
@@ -109,22 +113,52 @@ class BroadcastService
     /**
      * Build Telegram InlineKeyboardMarkup from broadcast button rows.
      *
-     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, style?: string|null}>|null  $buttons
+     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, response?: string, style?: string|null}>|null  $buttons
      * @return array{inline_keyboard: array<int, array<int, array<string, mixed>>>}|null
      */
-    public function inlineKeyboard(?array $buttons): ?array
+    public function inlineKeyboard(?array $buttons, ?Broadcast $broadcast = null): ?array
     {
         if (blank($buttons)) {
             return null;
         }
 
-        $rows = [];
+        $choiceRow = [];
+        $otherRows = [];
+        $choiceIndex = 0;
 
         foreach ($buttons as $button) {
             $label = trim((string) ($button['label'] ?? ''));
             $type = BroadcastButtonType::tryFrom((string) ($button['type'] ?? ''));
 
             if ($label === '' || $type === null) {
+                continue;
+            }
+
+            if ($type === BroadcastButtonType::Choice) {
+                if ($broadcast === null || $choiceIndex >= self::MaxChoiceButtons) {
+                    continue;
+                }
+
+                $response = trim((string) ($button['response'] ?? ''));
+
+                if ($response === '') {
+                    continue;
+                }
+
+                $telegramButton = [
+                    'text' => $label,
+                    'callback_data' => self::InlineChoiceCallbackPrefix.$broadcast->id.':'.$choiceIndex,
+                ];
+
+                $style = TelegramButtonStyle::tryFrom((string) ($button['style'] ?? ''));
+
+                if ($style !== null) {
+                    $telegramButton['style'] = $style->value;
+                }
+
+                $choiceRow[] = $telegramButton;
+                $choiceIndex++;
+
                 continue;
             }
 
@@ -147,7 +181,12 @@ class BroadcastService
                         'url' => trim((string) ($button['url'] ?? '')),
                     ],
                 ],
+                BroadcastButtonType::Choice => null,
             };
+
+            if ($telegramButton === null) {
+                continue;
+            }
 
             if (
                 ($type === BroadcastButtonType::Command && blank($telegramButton['callback_data']))
@@ -172,14 +211,67 @@ class BroadcastService
                 $telegramButton['style'] = $style->value;
             }
 
-            $rows[] = [$telegramButton];
+            $otherRows[] = [$telegramButton];
         }
+
+        $rows = [];
+
+        if ($choiceRow !== []) {
+            $rows[] = $choiceRow;
+        }
+
+        array_push($rows, ...$otherRows);
 
         if ($rows === []) {
             return null;
         }
 
         return ['inline_keyboard' => $rows];
+    }
+
+    /**
+     * @return array{broadcast_id: int, choice_index: int}|null
+     */
+    public function parseChoiceCallback(string $data): ?array
+    {
+        if (! str_starts_with($data, self::InlineChoiceCallbackPrefix)) {
+            return null;
+        }
+
+        $payload = Str::after($data, self::InlineChoiceCallbackPrefix);
+        $parts = explode(':', $payload, 2);
+
+        if (count($parts) !== 2 || ! ctype_digit($parts[0]) || ! ctype_digit($parts[1])) {
+            return null;
+        }
+
+        return [
+            'broadcast_id' => (int) $parts[0],
+            'choice_index' => (int) $parts[1],
+        ];
+    }
+
+    public function choiceResponse(Broadcast $broadcast, int $choiceIndex): ?string
+    {
+        if ($choiceIndex < 0 || $choiceIndex >= self::MaxChoiceButtons) {
+            return null;
+        }
+
+        $choices = collect($broadcast->buttons ?? [])
+            ->filter(fn (mixed $button): bool => is_array($button)
+                && ($button['type'] ?? null) === BroadcastButtonType::Choice->value
+                && filled(trim((string) ($button['response'] ?? ''))))
+            ->values();
+
+        $button = $choices->get($choiceIndex);
+
+        if (! is_array($button)) {
+            return null;
+        }
+
+        $response = trim((string) ($button['response'] ?? ''));
+
+        return $response !== '' ? $response : null;
     }
 
     /**
@@ -197,7 +289,7 @@ class BroadcastService
     }
 
     /**
-     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, style?: string|null}>|null  $buttons
+     * @param  array<int, array{label?: string, type?: string, command?: string, url?: string, response?: string, style?: string|null}>|null  $buttons
      */
     public function sendToUser(User $user, string $body, ?array $buttons = null): bool
     {
@@ -237,7 +329,7 @@ class BroadcastService
     {
         $broadcast->update(['status' => BroadcastStatus::Sending, 'scheduled_at' => null]);
 
-        $replyMarkup = $this->inlineKeyboard($broadcast->buttons);
+        $replyMarkup = $this->inlineKeyboard($broadcast->buttons, $broadcast);
 
         $this->audienceQuery($broadcast)
             ->orderBy('id')
