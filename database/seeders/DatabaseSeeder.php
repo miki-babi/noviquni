@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             UniversitySeeder::class,
             YearSeeder::class,
+            OpportunitySeeder::class,
         ]);
 
         $natural = Stream::query()->firstOrCreate(

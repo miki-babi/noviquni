@@ -56,7 +56,7 @@ trait OpensMiniAppResource
             'user' => $user,
             'copy' => $copy,
             'isBookmarked' => $user->bookmarks()
-                ->where('learning_resource_id', $resource->id)
+                ->whereMorphedTo('bookmarkable', $resource)
                 ->exists(),
         ];
     }

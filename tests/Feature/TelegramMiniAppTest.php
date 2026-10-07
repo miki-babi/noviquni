@@ -252,7 +252,8 @@ it('shows profile course and saved-file bot deep links', function () {
 
     Bookmark::query()->create([
         'user_id' => $user->id,
-        'learning_resource_id' => $resource->id,
+        'bookmarkable_type' => $resource->getMorphClass(),
+        'bookmarkable_id' => $resource->id,
     ]);
 
     $deepLinks = app(TelegramDeepLink::class);

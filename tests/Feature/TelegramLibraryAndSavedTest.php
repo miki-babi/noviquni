@@ -134,13 +134,13 @@ it('shows empty quick saved state and toggles bookmarks', function () {
     $this->actingAs($user)
         ->get(route('tg.saved'))
         ->assertOk()
-        ->assertSee('Nothing saved yet', false);
+        ->assertSee('Nothing saved in Resources yet', false);
 
     $this->actingAs($user)
         ->post(route('tg.saved.toggle', $resource))
         ->assertRedirect();
 
-    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeTrue();
+    expect(Bookmark::query()->where('user_id', $user->id)->whereMorphedTo('bookmarkable', $resource)->exists())->toBeTrue();
 
     $this->actingAs($user)
         ->get(route('tg.saved'))
@@ -156,7 +156,7 @@ it('shows empty quick saved state and toggles bookmarks', function () {
         ->post(route('tg.saved.toggle', $resource))
         ->assertRedirect(route('tg.play.notes', $resource));
 
-    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeFalse();
+    expect(Bookmark::query()->where('user_id', $user->id)->whereMorphedTo('bookmarkable', $resource)->exists())->toBeFalse();
 });
 
 it('shows save control on the notes player', function () {

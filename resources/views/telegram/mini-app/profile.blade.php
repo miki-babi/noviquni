@@ -112,29 +112,39 @@
                 <div class="mt-3 flex flex-col gap-3">
                     @foreach ($bookmarks as $bookmark)
                         @php
-                            $resource = $bookmark->learningResource;
+                            $item = $bookmark->bookmarkable;
                             $accent = $accentCycle[($loop->index) % count($accentCycle)];
                         @endphp
-                        @if ($resource)
+                        @if ($item instanceof \App\Models\LearningResource)
                             <x-telegram.mini-app.bot-link
-                                :href="$deepLinks->forResource($resource->id)"
+                                :href="$deepLinks->forResource($item->id)"
                                 :confirm-title="$copy->get('bot_confirm.title')"
-                                :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                                :confirm-message="$copy->get('bot_confirm.resource', ['title' => $item->title])"
                                 class="study-card study-card--{{ $accent }}"
                             >
                                 <div class="study-card-inner">
                                     <span class="min-w-0 flex-1">
-                                        <span class="study-card-title block">{{ $resource->title }}</span>
+                                        <span class="study-card-title block">{{ $item->title }}</span>
                                         <span class="study-card-meta block">
-                                            {{ $resource->type->label() }}
-                                            @if ($resource->course)
-                                                · {{ $resource->course->name }}
+                                            {{ $item->type->label() }}
+                                            @if ($item->course)
+                                                · {{ $item->course->name }}
                                             @endif
                                         </span>
                                     </span>
                                     <span class="tg-cell-chevron" aria-hidden="true">›</span>
                                 </div>
                             </x-telegram.mini-app.bot-link>
+                        @elseif ($item instanceof \App\Models\Opportunity)
+                            <a href="{{ route('tg.opportunities.show', $item) }}" class="study-card study-card--{{ $accent }}">
+                                <div class="study-card-inner">
+                                    <span class="min-w-0 flex-1">
+                                        <span class="study-card-title block">{{ $item->title }}</span>
+                                        <span class="study-card-meta block">{{ $item->type->label() }}</span>
+                                    </span>
+                                    <span class="tg-cell-chevron" aria-hidden="true">›</span>
+                                </div>
+                            </a>
                         @endif
                     @endforeach
                 </div>

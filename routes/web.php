@@ -10,6 +10,7 @@ use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\LibraryController;
+use App\Http\Controllers\Telegram\MiniApp\OpportunityController;
 use App\Http\Controllers\Telegram\MiniApp\Players\AssignmentPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\FlashcardsPlayerController;
@@ -60,6 +61,8 @@ Route::prefix('tg')->name('tg.')->group(function () {
             ->name('library.hub');
         Route::get('saved', [SavedController::class, 'show'])->name('saved');
         Route::post('saved/{resource:slug}', [SavedController::class, 'toggle'])->name('saved.toggle');
+        Route::get('opportunities/{opportunity:slug}', [OpportunityController::class, 'show'])->name('opportunities.show');
+        Route::post('opportunities/{opportunity:slug}/save', [OpportunityController::class, 'toggle'])->name('saved.opportunities.toggle');
         Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
         Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
             ->whereIn('hub', ResourceHub::miniAppRouteSlugs())

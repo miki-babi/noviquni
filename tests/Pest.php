@@ -44,6 +44,44 @@ expect()->extend('toBeOne', function () {
 |
 */
 
+function telegramMessagePayload(int $telegramId, string $text, int $updateId = 1): array
+{
+    return [
+        'update_id' => $updateId,
+        'message' => [
+            'message_id' => 10,
+            'text' => $text,
+            'chat' => ['id' => $telegramId],
+            'from' => [
+                'id' => $telegramId,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+        ],
+    ];
+}
+
+function telegramCallbackPayload(int $telegramId, string $data, int $messageId = 20, int $updateId = 2): array
+{
+    return [
+        'update_id' => $updateId,
+        'callback_query' => [
+            'id' => 'callback-'.$updateId,
+            'data' => $data,
+            'from' => [
+                'id' => $telegramId,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => $messageId,
+                'chat' => ['id' => $telegramId],
+                'text' => 'previous',
+            ],
+        ],
+    ];
+}
+
 function makeTelegramInitData(array $user, string $botToken, ?int $authDate = null): string
 {
     $authDate ??= now()->timestamp;

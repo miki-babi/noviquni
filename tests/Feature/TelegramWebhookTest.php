@@ -9,6 +9,7 @@ use App\Models\Challenge;
 use App\Models\ChallengeCompletion;
 use App\Models\Course;
 use App\Models\LearningResource;
+use App\Models\Opportunity;
 use App\Models\Stream;
 use App\Models\University;
 use App\Models\User;
@@ -32,44 +33,6 @@ beforeEach(function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 });
-
-function telegramMessagePayload(int $telegramId, string $text, int $updateId = 1): array
-{
-    return [
-        'update_id' => $updateId,
-        'message' => [
-            'message_id' => 10,
-            'text' => $text,
-            'chat' => ['id' => $telegramId],
-            'from' => [
-                'id' => $telegramId,
-                'first_name' => 'Abebe',
-                'username' => 'abebe',
-            ],
-        ],
-    ];
-}
-
-function telegramCallbackPayload(int $telegramId, string $data, int $messageId = 20, int $updateId = 2): array
-{
-    return [
-        'update_id' => $updateId,
-        'callback_query' => [
-            'id' => 'callback-'.$updateId,
-            'data' => $data,
-            'from' => [
-                'id' => $telegramId,
-                'first_name' => 'Abebe',
-                'username' => 'abebe',
-            ],
-            'message' => [
-                'message_id' => $messageId,
-                'chat' => ['id' => $telegramId],
-                'text' => 'previous',
-            ],
-        ],
-    ];
-}
 
 it('accepts a start update and creates a student immediately without queueing', function () {
     Queue::fake();
@@ -799,13 +762,17 @@ it('switches language and refreshes keyboard labels', function () {
     });
 });
 
-it('replies with coming soon when Scholarship opportunities is tapped', function () {
+it('lists scholarship opportunities when the keyboard button is tapped', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555226',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
+
+    Opportunity::factory()->published()->scholarship()->create([
+        'title' => 'Webhook Scholarship Post',
+    ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555226, '🎓 Scholarship opportunities', 426))
         ->assertOk();
@@ -816,10 +783,10 @@ it('replies with coming soon when Scholarship opportunities is tapped', function
         }
 
         $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Coming soon')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 Invite friends';
+        return str_contains((string) ($data['text'] ?? ''), 'Scholarships')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Webhook Scholarship Post');
     });
 });
 
@@ -1249,11 +1216,13 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
 
     Bookmark::query()->create([
         'user_id' => $user->id,
-        'learning_resource_id' => $older->id,
+        'bookmarkable_type' => $older->getMorphClass(),
+        'bookmarkable_id' => $older->id,
     ]);
     Bookmark::query()->create([
         'user_id' => $user->id,
-        'learning_resource_id' => $newer->id,
+        'bookmarkable_type' => $newer->getMorphClass(),
+        'bookmarkable_id' => $newer->id,
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555040, '🔖 Quick saved', 540))
@@ -1268,14 +1237,17 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
         $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
-            && data_get($rows, '0.0.web_app.url') === route('tg.play.worksheet', $newer)
-            && data_get($rows, '0.0.style') === 'success'
-            && data_get($rows, '1.0.web_app.url') === route('tg.play.notes', $older)
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/1)')
+            && data_get($rows, '1.0.web_app.url') === route('tg.play.worksheet', $newer)
             && data_get($rows, '1.0.style') === 'success'
+            && data_get($rows, '2.0.web_app.url') === route('tg.play.notes', $older)
+            && data_get($rows, '2.0.style') === 'success'
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Newer worksheet')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Older notes')
-            && $buttons->every(fn (array $button) => ! isset($button['callback_data']) || str_starts_with((string) $button['callback_data'], 'saved:page:'));
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:tab:resources')
+            && $buttons->every(fn (array $button) => ! isset($button['callback_data'])
+                || str_starts_with((string) $button['callback_data'], 'saved:page:')
+                || str_starts_with((string) $button['callback_data'], 'saved:tab:'));
     });
 });
 
@@ -1303,7 +1275,8 @@ it('paginates quick saved with next and back callbacks', function () {
 
         Bookmark::query()->create([
             'user_id' => $user->id,
-            'learning_resource_id' => $resource->id,
+            'bookmarkable_type' => $resource->getMorphClass(),
+            'bookmarkable_id' => $resource->id,
         ]);
     }
 
@@ -1319,14 +1292,14 @@ it('paginates quick saved with next and back callbacks', function () {
         $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
         $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/2)')
-            && $rows->count() === 6
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:1'
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/2)')
+            && $rows->count() === 7
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:1'
                 && ($button['text'] ?? '') === 'Next ›')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:0');
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:0');
     });
 
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:1', 99, 542))
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:resources:1', 99, 542))
         ->assertOk();
 
     Http::assertSent(function ($request) {
@@ -1337,10 +1310,10 @@ it('paginates quick saved with next and back callbacks', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (2/2)')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:0'
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (2/2)')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:0'
                 && ($button['text'] ?? '') === '‹ Back')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:1');
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:1');
     });
 });
 

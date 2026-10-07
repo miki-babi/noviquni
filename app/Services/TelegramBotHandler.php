@@ -4,15 +4,18 @@ namespace App\Services;
 
 use App\Enums\ChallengeStatus;
 use App\Enums\OnboardingStep;
+use App\Enums\OpportunityType;
 use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
 use App\Enums\YearSlug;
+use App\Models\Bookmark;
 use App\Models\Broadcast;
 use App\Models\Challenge;
 use App\Models\Course;
 use App\Models\LearningResource;
+use App\Models\Opportunity;
 use App\Models\ResourceDownload;
 use App\Models\Stream;
 use App\Models\TelegramCommand;
@@ -22,6 +25,7 @@ use App\Models\Year;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Context;
@@ -280,9 +284,48 @@ class TelegramBotHandler
                 (int) Str::after($data, 'save:resource:'),
                 $messageId,
             ),
+            str_starts_with($data, 'save:opp:') => $this->handleSaveOpportunity(
+                $user,
+                $chatId,
+                (int) Str::after($data, 'save:opp:'),
+                $messageId,
+            ),
+            str_starts_with($data, 'open_opp:') => $this->guardComplete(
+                $user,
+                fn () => $this->showOpportunity($user, $chatId, (int) Str::after($data, 'open_opp:'), $messageId),
+            ),
+            str_starts_with($data, 'opp:page:') => $this->guardComplete(
+                $user,
+                function () use ($user, $chatId, $data, $messageId): void {
+                    $parts = explode(':', Str::after($data, 'opp:page:'), 2);
+                    $type = OpportunityType::tryFrom($parts[0] ?? '');
+                    $page = (int) ($parts[1] ?? 0);
+
+                    if ($type === null) {
+                        return;
+                    }
+
+                    $this->showOpportunities($user, $chatId, $type, $messageId, $page);
+                },
+            ),
+            str_starts_with($data, 'saved:tab:') => $this->guardComplete(
+                $user,
+                fn () => $this->showSaved($user, $chatId, $messageId, Str::after($data, 'saved:tab:')),
+            ),
             str_starts_with($data, 'saved:page:') => $this->guardComplete(
                 $user,
-                fn () => $this->showSaved($user, $chatId, $messageId, (int) Str::after($data, 'saved:page:')),
+                function () use ($user, $chatId, $data, $messageId): void {
+                    $remainder = Str::after($data, 'saved:page:');
+
+                    if (str_contains($remainder, ':')) {
+                        [$tab, $page] = explode(':', $remainder, 2);
+                        $this->showSaved($user, $chatId, $messageId, $tab, (int) $page);
+
+                        return;
+                    }
+
+                    $this->showSaved($user, $chatId, $messageId, null, (int) $remainder);
+                },
             ),
             $data === 'notify:on' => $this->handleNotifyOn($user, $chatId),
             $data === 'profile:notify' => $this->guardComplete($user, function () use ($user, $chatId): void {
@@ -583,7 +626,7 @@ class TelegramBotHandler
         }
 
         $existing = $user->bookmarks()
-            ->where('learning_resource_id', $resource->id)
+            ->whereMorphedTo('bookmarkable', $resource)
             ->first();
 
         if ($existing !== null) {
@@ -591,7 +634,8 @@ class TelegramBotHandler
             $status = $copy->get('saved.removed_status');
         } else {
             $user->bookmarks()->create([
-                'learning_resource_id' => $resource->id,
+                'bookmarkable_type' => $resource->getMorphClass(),
+                'bookmarkable_id' => $resource->id,
             ]);
             $status = $copy->get('saved.saved_status');
         }
@@ -788,7 +832,11 @@ class TelegramBotHandler
             'premium' => $this->showPremium($user, $chatId),
             'refer' => $this->showReferrals($user, $chatId),
             'notify' => $this->toggleNotifications($user, $chatId),
-            'scholarships', 'internships', 'opportunities', 'mentorship' => $this->showComingSoon($user, $chatId),
+            'scholarships', 'internships', 'opportunities', 'mentorship' => $this->showOpportunities(
+                $user,
+                $chatId,
+                OpportunityType::fromMenuAction($action) ?? OpportunityType::Job,
+            ),
             default => null,
         };
     }
@@ -1465,7 +1513,7 @@ class TelegramBotHandler
     {
         $copy = TelegramCopy::for($user);
         $isSaved = $user->bookmarks()
-            ->where('learning_resource_id', $resource->id)
+            ->whereMorphedTo('bookmarkable', $resource)
             ->exists();
 
         $saveButton = [
@@ -2693,27 +2741,110 @@ class TelegramBotHandler
         ], $messageId);
     }
 
-    protected function showSaved(User $user, int|string $chatId, ?int $messageId = null, int $page = 0): void
+    /**
+     * @return list<string>
+     */
+    protected function savedTabKeys(): array
     {
-        $copy = TelegramCopy::for($user);
-        $perPage = 5;
+        return ['resources', 'scholarships', 'internships', 'jobs', 'mentorship'];
+    }
 
-        $bookmarks = $user->bookmarks()
-            ->with('learningResource')
+    protected function savedTabLabel(TelegramCopy $copy, string $tab): string
+    {
+        return match ($tab) {
+            'resources' => $copy->get('saved.tab_resources'),
+            'scholarships' => $copy->get('saved.tab_scholarships'),
+            'internships' => $copy->get('saved.tab_internships'),
+            'jobs' => $copy->get('saved.tab_jobs'),
+            'mentorship' => $copy->get('saved.tab_mentorship'),
+            default => $copy->get('saved.tab_resources'),
+        };
+    }
+
+    /**
+     * @return Collection<int, Bookmark>
+     */
+    protected function publishedSavedBookmarks(User $user, string $tab): Collection
+    {
+        $opportunityType = OpportunityType::fromSavedTabKey($tab);
+
+        return $user->bookmarks()
+            ->with(['bookmarkable' => function (MorphTo $morphTo) {
+                $morphTo->morphWith([
+                    LearningResource::class => ['course'],
+                ]);
+            }])
             ->latest('id')
             ->get()
-            ->filter(fn ($bookmark) => $bookmark->learningResource?->is_published)
-            ->values();
+            ->filter(function ($bookmark) use ($tab, $opportunityType): bool {
+                $item = $bookmark->bookmarkable;
 
-        if ($bookmarks->isEmpty()) {
+                if ($tab === 'resources') {
+                    return $item instanceof LearningResource && $item->is_published;
+                }
+
+                return $opportunityType !== null
+                    && $item instanceof Opportunity
+                    && $item->is_published
+                    && $item->type === $opportunityType;
+            })
+            ->values();
+    }
+
+    protected function resolveDefaultSavedTab(User $user): string
+    {
+        foreach ($this->savedTabKeys() as $tab) {
+            if ($this->publishedSavedBookmarks($user, $tab)->isNotEmpty()) {
+                return $tab;
+            }
+        }
+
+        return 'resources';
+    }
+
+    protected function showSaved(
+        User $user,
+        int|string $chatId,
+        ?int $messageId = null,
+        ?string $tab = null,
+        int $page = 0,
+    ): void {
+        $copy = TelegramCopy::for($user);
+        $perPage = 5;
+        $tabKeys = $this->savedTabKeys();
+
+        if ($tab === null || ! in_array($tab, $tabKeys, true)) {
+            $tab = $this->resolveDefaultSavedTab($user);
+        }
+
+        $allEmpty = collect($tabKeys)->every(
+            fn (string $key): bool => $this->publishedSavedBookmarks($user, $key)->isEmpty()
+        );
+
+        if ($allEmpty) {
             $this->telegram->replyOrEdit($chatId, $copy->get('saved.empty'), [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    $this->savedTabRow($copy, $tab),
+                    [[
                         'text' => $copy->get('keyboard.courses'),
                         'callback_data' => 'browse',
                         'style' => TelegramButtonStyle::Primary->value,
-                    ],
-                ]]),
+                    ]],
+                ]),
+            ], $messageId);
+
+            return;
+        }
+
+        $bookmarks = $this->publishedSavedBookmarks($user, $tab);
+
+        $tabRow = $this->savedTabRow($copy, $tab);
+
+        if ($bookmarks->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('saved.empty_tab', [
+                'tab' => $this->savedTabLabel($copy, $tab),
+            ]), [
+                'reply_markup' => $this->telegram->inlineKeyboard([$tabRow]),
             ], $messageId);
 
             return;
@@ -2722,10 +2853,117 @@ class TelegramBotHandler
         $totalPages = (int) max(1, (int) ceil($bookmarks->count() / $perPage));
         $page = max(0, min($page, $totalPages - 1));
 
-        $rows = $bookmarks
+        $rows = [$tabRow];
+
+        foreach ($bookmarks->slice($page * $perPage, $perPage) as $bookmark) {
+            $item = $bookmark->bookmarkable;
+
+            if ($item instanceof LearningResource) {
+                $rows[] = [$this->resourceInlineButton($item)];
+            } elseif ($item instanceof Opportunity) {
+                $rows[] = [$this->opportunityInlineButton($item)];
+            }
+        }
+
+        if ($totalPages > 1) {
+            $nav = [];
+
+            if ($page > 0) {
+                $nav[] = [
+                    'text' => $copy->get('saved.back'),
+                    'callback_data' => "saved:page:{$tab}:".($page - 1),
+                ];
+            }
+
+            if ($page < $totalPages - 1) {
+                $nav[] = [
+                    'text' => $copy->get('saved.next'),
+                    'callback_data' => "saved:page:{$tab}:".($page + 1),
+                    'style' => TelegramButtonStyle::Primary->value,
+                ];
+            }
+
+            $rows[] = $nav;
+        }
+
+        $this->telegram->replyOrEdit($chatId, $copy->get('saved.page_title', [
+            'tab' => $this->savedTabLabel($copy, $tab),
+            'page' => $page + 1,
+            'pages' => $totalPages,
+        ]), [
+            'reply_markup' => $this->telegram->inlineKeyboard($rows),
+        ], $messageId);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function savedTabRow(TelegramCopy $copy, string $activeTab): array
+    {
+        return collect($this->savedTabKeys())
+            ->map(function (string $tab) use ($copy, $activeTab): array {
+                $button = [
+                    'text' => $this->savedTabLabel($copy, $tab),
+                    'callback_data' => 'saved:tab:'.$tab,
+                ];
+
+                if ($tab === $activeTab) {
+                    $button['style'] = TelegramButtonStyle::Primary->value;
+                }
+
+                return $button;
+            })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function opportunityInlineButton(Opportunity $opportunity): array
+    {
+        return [
+            'text' => $opportunity->title,
+            'callback_data' => 'open_opp:'.$opportunity->id,
+            'style' => TelegramButtonStyle::Primary->value,
+        ];
+    }
+
+    protected function showOpportunities(
+        User $user,
+        int|string $chatId,
+        OpportunityType $type,
+        ?int $messageId = null,
+        int $page = 0,
+    ): void {
+        $copy = TelegramCopy::for($user);
+        $perPage = 5;
+        $typeLabel = $copy->get('opportunities.type_'.$type->copyKey());
+
+        $opportunities = Opportunity::query()
+            ->published()
+            ->ofType($type)
+            ->orderBy('sort_order')
+            ->orderByDesc('id')
+            ->get();
+
+        if ($opportunities->isEmpty()) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('opportunities.empty', [
+                'type' => $typeLabel,
+            ]), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ], $messageId);
+
+            return;
+        }
+
+        $totalPages = (int) max(1, (int) ceil($opportunities->count() / $perPage));
+        $page = max(0, min($page, $totalPages - 1));
+
+        $rows = $opportunities
             ->slice($page * $perPage, $perPage)
-            ->map(fn ($bookmark) => [
-                $this->resourceInlineButton($bookmark->learningResource),
+            ->map(fn (Opportunity $opportunity): array => [
+                $this->opportunityInlineButton($opportunity),
             ])
             ->values()
             ->all();
@@ -2736,14 +2974,14 @@ class TelegramBotHandler
             if ($page > 0) {
                 $nav[] = [
                     'text' => $copy->get('saved.back'),
-                    'callback_data' => 'saved:page:'.($page - 1),
+                    'callback_data' => 'opp:page:'.$type->value.':'.($page - 1),
                 ];
             }
 
             if ($page < $totalPages - 1) {
                 $nav[] = [
                     'text' => $copy->get('saved.next'),
-                    'callback_data' => 'saved:page:'.($page + 1),
+                    'callback_data' => 'opp:page:'.$type->value.':'.($page + 1),
                     'style' => TelegramButtonStyle::Primary->value,
                 ];
             }
@@ -2751,12 +2989,128 @@ class TelegramBotHandler
             $rows[] = $nav;
         }
 
-        $this->telegram->replyOrEdit($chatId, $copy->get('saved.page_title', [
+        $this->telegram->replyOrEdit($chatId, $copy->get('opportunities.list_title', [
+            'type' => $typeLabel,
             'page' => $page + 1,
             'pages' => $totalPages,
         ]), [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
+    }
+
+    protected function showOpportunity(
+        User $user,
+        int|string $chatId,
+        int $opportunityId,
+        ?int $messageId = null,
+    ): void {
+        $copy = TelegramCopy::for($user);
+
+        $opportunity = Opportunity::query()->published()->find($opportunityId);
+
+        if ($opportunity === null) {
+            $this->telegram->replyOrEdit($chatId, $copy->get('opportunities.not_found'), [], $messageId);
+
+            return;
+        }
+
+        $deadline = $opportunity->deadline !== null
+            ? $copy->get('opportunities.deadline', ['date' => $opportunity->deadline->toFormattedDateString()])
+            : $copy->get('opportunities.deadline_none');
+
+        $description = filled($opportunity->description)
+            ? TelegramHtml::escape($opportunity->description)
+            : '';
+
+        $body = '<b>'.TelegramHtml::escape($opportunity->title)."</b>\n\n"
+            .($description !== '' ? $description."\n\n" : '')
+            .$deadline;
+
+        $this->telegram->replyOrEdit($chatId, $body, [
+            'reply_markup' => $this->opportunityDetailKeyboard($user, $opportunity),
+        ], $messageId);
+    }
+
+    /**
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    protected function opportunityDetailKeyboard(User $user, Opportunity $opportunity): array
+    {
+        $copy = TelegramCopy::for($user);
+        $isSaved = $user->bookmarks()
+            ->whereMorphedTo('bookmarkable', $opportunity)
+            ->exists();
+
+        $saveButton = [
+            'text' => $isSaved ? $copy->get('saved.unsave') : $copy->get('resource.quick_save'),
+            'callback_data' => 'save:opp:'.$opportunity->id,
+        ];
+
+        if ($isSaved) {
+            $saveButton['style'] = TelegramButtonStyle::Success->value;
+        }
+
+        $rows = [];
+
+        if (filled($opportunity->url)) {
+            $rows[] = [[
+                'text' => $copy->get('opportunities.open_url'),
+                'url' => $opportunity->url,
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        }
+
+        $rows[] = [$saveButton];
+        $rows[] = [[
+            'text' => $copy->get('opportunities.back'),
+            'callback_data' => 'opp:page:'.$opportunity->type->value.':0',
+        ]];
+
+        return $this->telegram->inlineKeyboard($rows);
+    }
+
+    protected function handleSaveOpportunity(
+        User $user,
+        int|string $chatId,
+        int $opportunityId,
+        ?int $messageId = null,
+    ): ?string {
+        $copy = TelegramCopy::for($user);
+
+        if ($user->onboarding_step !== OnboardingStep::Complete) {
+            return $copy->get('menu.finish_onboarding');
+        }
+
+        $opportunity = Opportunity::query()->published()->find($opportunityId);
+
+        if ($opportunity === null) {
+            return $copy->get('opportunities.not_found');
+        }
+
+        $existing = $user->bookmarks()
+            ->whereMorphedTo('bookmarkable', $opportunity)
+            ->first();
+
+        if ($existing !== null) {
+            $existing->delete();
+            $status = $copy->get('saved.removed_status');
+        } else {
+            $user->bookmarks()->create([
+                'bookmarkable_type' => $opportunity->getMorphClass(),
+                'bookmarkable_id' => $opportunity->id,
+            ]);
+            $status = $copy->get('saved.saved_status');
+        }
+
+        if ($messageId !== null) {
+            $this->telegram->editMessageReplyMarkup(
+                $chatId,
+                $messageId,
+                $this->opportunityDetailKeyboard($user, $opportunity),
+            );
+        }
+
+        return $status;
     }
 
     protected function showReferrals(User $user, int|string $chatId): void

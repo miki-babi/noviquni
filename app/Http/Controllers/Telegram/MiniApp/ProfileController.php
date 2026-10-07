@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Telegram\MiniApp;
 use App\Enums\TelegramLocale;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\LearningResource;
+use App\Models\Opportunity;
 use App\Models\Semester;
 use App\Models\Stream;
 use App\Models\University;
@@ -14,6 +16,7 @@ use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,11 +33,20 @@ class ProfileController extends Controller
         $user->load(['stream', 'university', 'semester', 'courses']);
 
         $bookmarks = $user->bookmarks()
-            ->with(['learningResource.course'])
+            ->with(['bookmarkable' => function (MorphTo $morphTo) {
+                $morphTo->morphWith([
+                    LearningResource::class => ['course'],
+                ]);
+            }])
             ->latest('id')
             ->limit(8)
             ->get()
-            ->filter(fn ($bookmark) => $bookmark->learningResource?->is_published)
+            ->filter(function ($bookmark): bool {
+                $item = $bookmark->bookmarkable;
+
+                return ($item instanceof LearningResource && $item->is_published)
+                    || ($item instanceof Opportunity && $item->is_published);
+            })
             ->values();
 
         return view('telegram.mini-app.profile', [

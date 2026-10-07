@@ -297,7 +297,8 @@ it('shows a green Saved button when the resource is already bookmarked', functio
 
     Bookmark::query()->create([
         'user_id' => $user->id,
-        'learning_resource_id' => $resource->id,
+        'bookmarkable_type' => $resource->getMorphClass(),
+        'bookmarkable_id' => $resource->id,
     ]);
 
     $this->postJson('/telegram/webhook', [
@@ -387,7 +388,7 @@ it('toggles a bookmark from the quick save callback and updates the button marku
         ],
     ])->assertOk();
 
-    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeTrue();
+    expect(Bookmark::query()->where('user_id', $user->id)->whereMorphedTo('bookmarkable', $resource)->exists())->toBeTrue();
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/editMessageReplyMarkup')) {
@@ -418,7 +419,7 @@ it('toggles a bookmark from the quick save callback and updates the button marku
         ],
     ])->assertOk();
 
-    expect(Bookmark::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeFalse();
+    expect(Bookmark::query()->where('user_id', $user->id)->whereMorphedTo('bookmarkable', $resource)->exists())->toBeFalse();
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/editMessageReplyMarkup')) {
