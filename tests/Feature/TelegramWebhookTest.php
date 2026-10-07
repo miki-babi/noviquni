@@ -1228,6 +1228,20 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
     $this->postJson('/telegram/webhook', telegramMessagePayload(555040, '🔖 Quick saved', 540))
         ->assertOk();
 
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $keyboard = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Choose a Quick saved category')
+            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Resources')
+            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Scholarships')
+            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === '← Back');
+    });
+
     Http::assertSent(function ($request) use ($older, $newer) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
@@ -1238,16 +1252,14 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         $buttons = $rows->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/1)')
-            && data_get($rows, '1.0.web_app.url') === route('tg.play.worksheet', $newer)
+            && data_get($rows, '0.0.web_app.url') === route('tg.play.worksheet', $newer)
+            && data_get($rows, '0.0.style') === 'success'
+            && data_get($rows, '1.0.web_app.url') === route('tg.play.notes', $older)
             && data_get($rows, '1.0.style') === 'success'
-            && data_get($rows, '2.0.web_app.url') === route('tg.play.notes', $older)
-            && data_get($rows, '2.0.style') === 'success'
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Newer worksheet')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Older notes')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:tab:resources')
             && $buttons->every(fn (array $button) => ! isset($button['callback_data'])
-                || str_starts_with((string) $button['callback_data'], 'saved:page:')
-                || str_starts_with((string) $button['callback_data'], 'saved:tab:'));
+                || str_starts_with((string) $button['callback_data'], 'saved:page:'));
     });
 });
 
@@ -1293,7 +1305,7 @@ it('paginates quick saved with next and back callbacks', function () {
         $buttons = $rows->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/2)')
-            && $rows->count() === 7
+            && $rows->count() === 6
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:1'
                 && ($button['text'] ?? '') === 'Next ›')
             && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:0');

@@ -168,6 +168,19 @@ it('isolates quick saved tabs by bookmarkable type', function () {
         }
 
         $data = $request->data();
+        $keyboard = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Choose a Quick saved category')
+            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Resources')
+            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Scholarships');
+    });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources')
@@ -176,18 +189,18 @@ it('isolates quick saved tabs by bookmarkable type', function () {
             && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Job Only');
     });
 
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555202, 'saved:tab:scholarships', 40, 205))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555202, 'Scholarships', 205))
         ->assertOk();
 
     Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/editMessageText')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Scholarships')
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Scholarships')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Scholarship Only')
             && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Notes Only')
             && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Job Only');

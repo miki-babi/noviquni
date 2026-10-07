@@ -167,6 +167,14 @@ class TelegramBotHandler
             return;
         }
 
+        $savedTab = $this->telegram->savedTabForKeyboardLabel($user, $text);
+
+        if ($savedTab !== null) {
+            $this->showSaved($user, $chatId, tab: $savedTab);
+
+            return;
+        }
+
         $resourceType = $this->telegram->resourceTypeForKeyboardLabel($user, $text);
 
         if ($resourceType !== null) {
@@ -307,10 +315,6 @@ class TelegramBotHandler
 
                     $this->showOpportunities($user, $chatId, $type, $messageId, $page);
                 },
-            ),
-            str_starts_with($data, 'saved:tab:') => $this->guardComplete(
-                $user,
-                fn () => $this->showSaved($user, $chatId, $messageId, Str::after($data, 'saved:tab:')),
             ),
             str_starts_with($data, 'saved:page:') => $this->guardComplete(
                 $user,
@@ -2742,26 +2746,6 @@ class TelegramBotHandler
     }
 
     /**
-     * @return list<string>
-     */
-    protected function savedTabKeys(): array
-    {
-        return ['resources', 'scholarships', 'internships', 'jobs', 'mentorship'];
-    }
-
-    protected function savedTabLabel(TelegramCopy $copy, string $tab): string
-    {
-        return match ($tab) {
-            'resources' => $copy->get('saved.tab_resources'),
-            'scholarships' => $copy->get('saved.tab_scholarships'),
-            'internships' => $copy->get('saved.tab_internships'),
-            'jobs' => $copy->get('saved.tab_jobs'),
-            'mentorship' => $copy->get('saved.tab_mentorship'),
-            default => $copy->get('saved.tab_resources'),
-        };
-    }
-
-    /**
      * @return Collection<int, Bookmark>
      */
     protected function publishedSavedBookmarks(User $user, string $tab): Collection
@@ -2793,7 +2777,7 @@ class TelegramBotHandler
 
     protected function resolveDefaultSavedTab(User $user): string
     {
-        foreach ($this->savedTabKeys() as $tab) {
+        foreach ($this->telegram->savedTabKeys() as $tab) {
             if ($this->publishedSavedBookmarks($user, $tab)->isNotEmpty()) {
                 return $tab;
             }
@@ -2811,10 +2795,17 @@ class TelegramBotHandler
     ): void {
         $copy = TelegramCopy::for($user);
         $perPage = 5;
-        $tabKeys = $this->savedTabKeys();
+        $tabKeys = $this->telegram->savedTabKeys();
+        $openingFromMenu = $messageId === null && $tab === null;
 
         if ($tab === null || ! in_array($tab, $tabKeys, true)) {
             $tab = $this->resolveDefaultSavedTab($user);
+        }
+
+        if ($openingFromMenu) {
+            $this->telegram->sendMessage($chatId, $copy->get('saved.choose'), [
+                'reply_markup' => $this->telegram->savedKeyboard($user),
+            ]);
         }
 
         $allEmpty = collect($tabKeys)->every(
@@ -2823,14 +2814,13 @@ class TelegramBotHandler
 
         if ($allEmpty) {
             $this->telegram->replyOrEdit($chatId, $copy->get('saved.empty'), [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    $this->savedTabRow($copy, $tab),
-                    [[
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
                         'text' => $copy->get('keyboard.courses'),
                         'callback_data' => 'browse',
                         'style' => TelegramButtonStyle::Primary->value,
-                    ]],
-                ]),
+                    ],
+                ]]),
             ], $messageId);
 
             return;
@@ -2838,14 +2828,10 @@ class TelegramBotHandler
 
         $bookmarks = $this->publishedSavedBookmarks($user, $tab);
 
-        $tabRow = $this->savedTabRow($copy, $tab);
-
         if ($bookmarks->isEmpty()) {
             $this->telegram->replyOrEdit($chatId, $copy->get('saved.empty_tab', [
-                'tab' => $this->savedTabLabel($copy, $tab),
-            ]), [
-                'reply_markup' => $this->telegram->inlineKeyboard([$tabRow]),
-            ], $messageId);
+                'tab' => $this->telegram->savedTabKeyboardLabel($copy, $tab),
+            ]), [], $messageId);
 
             return;
         }
@@ -2853,7 +2839,7 @@ class TelegramBotHandler
         $totalPages = (int) max(1, (int) ceil($bookmarks->count() / $perPage));
         $page = max(0, min($page, $totalPages - 1));
 
-        $rows = [$tabRow];
+        $rows = [];
 
         foreach ($bookmarks->slice($page * $perPage, $perPage) as $bookmark) {
             $item = $bookmark->bookmarkable;
@@ -2887,34 +2873,12 @@ class TelegramBotHandler
         }
 
         $this->telegram->replyOrEdit($chatId, $copy->get('saved.page_title', [
-            'tab' => $this->savedTabLabel($copy, $tab),
+            'tab' => $this->telegram->savedTabKeyboardLabel($copy, $tab),
             'page' => $page + 1,
             'pages' => $totalPages,
         ]), [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function savedTabRow(TelegramCopy $copy, string $activeTab): array
-    {
-        return collect($this->savedTabKeys())
-            ->map(function (string $tab) use ($copy, $activeTab): array {
-                $button = [
-                    'text' => $this->savedTabLabel($copy, $tab),
-                    'callback_data' => 'saved:tab:'.$tab,
-                ];
-
-                if ($tab === $activeTab) {
-                    $button['style'] = TelegramButtonStyle::Primary->value;
-                }
-
-                return $button;
-            })
-            ->values()
-            ->all();
     }
 
     /**

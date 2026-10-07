@@ -200,6 +200,7 @@ return [
     ],
     'saved' => [
         'title' => 'Quick saved',
+        'choose' => 'Choose a Quick saved category:',
         'page_title' => 'Quick saved — :tab (:page/:pages)',
         'empty' => 'Nothing saved yet — tap Save on a resource, scholarship, internship, job, or mentorship.',
         'empty_tab' => 'Nothing saved in :tab yet.',

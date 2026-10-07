@@ -299,6 +299,60 @@ class TelegramService
         return '📚 '.$type->label();
     }
 
+    /**
+     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
+     */
+    public function savedKeyboard(User $user): array
+    {
+        $copy = TelegramCopy::for($user);
+
+        $rows = collect($this->savedTabKeys())
+            ->map(fn (string $tab): array => [
+                'text' => $this->savedTabKeyboardLabel($copy, $tab),
+                'style' => TelegramButtonStyle::Primary->value,
+            ])
+            ->chunk(2)
+            ->map(fn ($row): array => $row->values()->all())
+            ->all();
+
+        $rows[] = [[
+            'text' => $this->courseKeyboardBackLabel(),
+        ]];
+
+        return [
+            'keyboard' => $rows,
+            'resize_keyboard' => true,
+        ];
+    }
+
+    public function savedTabForKeyboardLabel(User $user, string $label): ?string
+    {
+        $copy = TelegramCopy::for($user);
+
+        return collect($this->savedTabKeys())
+            ->first(fn (string $tab): bool => $this->savedTabKeyboardLabel($copy, $tab) === $label);
+    }
+
+    public function savedTabKeyboardLabel(TelegramCopy $copy, string $tab): string
+    {
+        return match ($tab) {
+            'resources' => $copy->get('saved.tab_resources'),
+            'scholarships' => $copy->get('saved.tab_scholarships'),
+            'internships' => $copy->get('saved.tab_internships'),
+            'jobs' => $copy->get('saved.tab_jobs'),
+            'mentorship' => $copy->get('saved.tab_mentorship'),
+            default => $copy->get('saved.tab_resources'),
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function savedTabKeys(): array
+    {
+        return ['resources', 'scholarships', 'internships', 'jobs', 'mentorship'];
+    }
+
     protected function userHasResourcesForType(User $user, ResourceType $type): bool
     {
         return LearningResource::query()
