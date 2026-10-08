@@ -266,7 +266,7 @@ return [
         'type_mentorship' => 'አማካሪነት',
         'verified_partner' => 'የተረጋገጠ NOViQ Uni አጋር፦ :partner',
         'request_guidance' => 'መመሪያ ይጠይቁ',
-        'guidance_requested' => 'መመሪያ ተጠይቋል',
+        'guidance_requested' => 'መመሪያ ተጠይቋል ✅',
         'guidance_sent' => 'የመመሪያ ጥያቄ ተቀብለናል። አንድ ሰው እናስይዝና እዚህ እናሳውቅዎታለን።',
         'guidance_assigned' => "ለ :title መመሪያ ተመድቧል።\n\nከታች :assignee ን ይላኩ — ጥያቄዎ ቀድሞ ተሞልቷል።",
         'guidance_open_chat' => 'ውይይት ክፈት',

@@ -3164,7 +3164,6 @@ class TelegramBotHandler
                 $rows[] = [[
                     'text' => $copy->get('opportunities.guidance_requested'),
                     'callback_data' => 'opp:guidance:'.$opportunity->id,
-                    'style' => TelegramButtonStyle::Primary->value,
                 ]];
             } else {
                 $rows[] = [[
