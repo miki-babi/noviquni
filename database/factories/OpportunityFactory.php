@@ -27,6 +27,7 @@ class OpportunityFactory extends Factory
             'url' => fake()->url(),
             'deadline' => fake()->optional()->dateTimeBetween('+1 week', '+6 months'),
             'is_published' => false,
+            'is_guidance_available' => false,
             'sort_order' => 0,
         ];
     }
@@ -71,6 +72,13 @@ class OpportunityFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'is_verified_partner' => true,
             'partner_name' => $partnerName ?? fake()->company(),
+        ]);
+    }
+
+    public function guidanceAvailable(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'is_guidance_available' => true,
         ]);
     }
 

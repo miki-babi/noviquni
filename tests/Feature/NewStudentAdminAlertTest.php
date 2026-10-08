@@ -1,10 +1,12 @@
 <?php
 
+use App\Jobs\SendTelegramMessageJob;
 use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -13,7 +15,6 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => 'test-token',
         'services.telegram.file_admin_username' => 'vault_admin',
-        'queue.default' => 'sync',
     ]);
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 99]], 200),
@@ -49,8 +50,12 @@ it('notifies the file admin when a new student is created', function () {
 
     User::factory()->student()->count(2)->create();
 
+    Queue::fake([SendTelegramMessageJob::class]);
+
     $this->postJson('/telegram/webhook', newStudentStartPayload(555100))
         ->assertOk();
+
+    Queue::assertNotPushed(SendTelegramMessageJob::class);
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {

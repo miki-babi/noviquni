@@ -2,13 +2,12 @@
 
 namespace App\Services;
 
-use App\Jobs\SendTelegramMessageJob;
 use App\Models\User;
 use App\Support\TelegramHtml;
 
 class NewStudentAdminNotifier
 {
-    public function notify(User $student): void
+    public function notify(User $student, TelegramService $telegram): void
     {
         $recipientTelegramIds = collect($this->fileAdminUsernames())
             ->map(function (string $username): ?string {
@@ -37,7 +36,7 @@ class NewStudentAdminNotifier
             ."\nTotal students: ".number_format($totalStudents);
 
         foreach ($recipientTelegramIds as $telegramId) {
-            SendTelegramMessageJob::dispatch($telegramId, $text);
+            $telegram->sendMessage($telegramId, $text);
         }
     }
 

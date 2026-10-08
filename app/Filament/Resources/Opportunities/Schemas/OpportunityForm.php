@@ -63,11 +63,15 @@ class OpportunityForm
                     ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
                     ->required(fn (Get $get): bool => (bool) $get('is_verified_partner'))
                     ->columnSpanFull(),
+                Toggle::make('is_guidance_available')
+                    ->label('Guidance available')
+                    ->default(false)
+                    ->live(),
                 Textarea::make('guidance_opening_message')
                     ->label('Guidance opening message')
                     ->helperText('Optional. Used when a guide is assigned. Leave blank for Settings default. Placeholders: {title}, {partner}, {student}')
                     ->rows(4)
-                    ->visible(fn (Get $get): bool => (bool) $get('is_verified_partner'))
+                    ->visible(fn (Get $get): bool => (bool) $get('is_guidance_available'))
                     ->columnSpanFull(),
             ]);
     }

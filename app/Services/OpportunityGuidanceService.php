@@ -21,8 +21,8 @@ class OpportunityGuidanceService
      */
     public function requestGuidance(User $student, Opportunity $opportunity): array
     {
-        if (! $opportunity->hasVerifiedPartner()) {
-            throw new InvalidArgumentException('Opportunity does not have a verified partner.');
+        if (! $opportunity->hasGuidanceAvailable()) {
+            throw new InvalidArgumentException('Opportunity does not offer guidance.');
         }
 
         $existingPending = OpportunityGuidanceRequest::query()
@@ -114,7 +114,7 @@ class OpportunityGuidanceService
 
         return strtr($template, [
             '{title}' => $opportunity->title,
-            '{partner}' => (string) $opportunity->partner_name,
+            '{partner}' => $this->partnerLabel($opportunity),
             '{student}' => $studentLabel,
         ]);
     }
@@ -129,7 +129,14 @@ class OpportunityGuidanceService
             ."\nStudent: ".TelegramHtml::escape($student->name)
             ."\nUsername: ".$usernameLine
             ."\nOpportunity: ".TelegramHtml::escape($opportunity->title)
-            ."\nPartner: ".TelegramHtml::escape((string) $opportunity->partner_name);
+            ."\nPartner: ".TelegramHtml::escape($this->partnerLabel($opportunity));
+    }
+
+    protected function partnerLabel(Opportunity $opportunity): string
+    {
+        return filled($opportunity->partner_name)
+            ? (string) $opportunity->partner_name
+            : $opportunity->title;
     }
 
     protected function notifyStudentAssigned(

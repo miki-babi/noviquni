@@ -89,7 +89,7 @@ class OpportunityController extends Controller
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
 
-        abort_unless($opportunity->is_published && $opportunity->hasVerifiedPartner(), 404);
+        abort_unless($opportunity->is_published && $opportunity->hasGuidanceAvailable(), 404);
 
         if ($user->onboarding_step !== OnboardingStep::Complete) {
             return back()

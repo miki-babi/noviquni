@@ -26,6 +26,7 @@ class OpportunitiesTable
                     ->formatStateUsing(fn (OpportunityType $state): string => $state->label()),
                 IconColumn::make('is_published')->boolean()->label('Published'),
                 IconColumn::make('is_verified_partner')->boolean()->label('Verified'),
+                IconColumn::make('is_guidance_available')->boolean()->label('Guidance'),
                 TextColumn::make('partner_name')->placeholder('—')->toggleable(),
                 TextColumn::make('deadline')->date()->placeholder('—')->sortable(),
                 TextColumn::make('sort_order')->sortable()->toggleable(isToggledHiddenByDefault: true),

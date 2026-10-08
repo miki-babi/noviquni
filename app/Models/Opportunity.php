@@ -26,6 +26,7 @@ use Illuminate\Support\Str;
     'partner_name',
     'guidance_contact_username',
     'guidance_opening_message',
+    'is_guidance_available',
     'sort_order',
 ])]
 class Opportunity extends Model
@@ -39,6 +40,7 @@ class Opportunity extends Model
     protected $attributes = [
         'is_published' => false,
         'is_verified_partner' => false,
+        'is_guidance_available' => false,
         'sort_order' => 0,
     ];
 
@@ -97,6 +99,7 @@ class Opportunity extends Model
             'deadline' => 'date',
             'is_published' => 'boolean',
             'is_verified_partner' => 'boolean',
+            'is_guidance_available' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -104,6 +107,11 @@ class Opportunity extends Model
     public function hasVerifiedPartner(): bool
     {
         return $this->is_verified_partner && filled($this->partner_name);
+    }
+
+    public function hasGuidanceAvailable(): bool
+    {
+        return $this->is_guidance_available;
     }
 
     public static function uniqueSlugFromTitle(string $title, ?int $ignoreId = null): string

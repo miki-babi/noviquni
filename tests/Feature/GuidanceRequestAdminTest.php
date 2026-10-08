@@ -2,6 +2,7 @@
 
 use App\Enums\GuidanceRequestStatus;
 use App\Enums\OnboardingStep;
+use App\Filament\Actions\SendGuidanceRequestTelegramMessageAction;
 use App\Filament\Resources\OpportunityGuidanceRequests\Pages\ListOpportunityGuidanceRequests;
 use App\Filament\Resources\OpportunityGuidanceRequests\Pages\ViewOpportunityGuidanceRequest;
 use App\Models\NotificationDelivery;
@@ -56,6 +57,49 @@ it('shows guidance request details on the view page', function () {
         ->assertSee('@detail_student');
 });
 
+it('prefills the send message form with guidance request details', function () {
+    $admin = User::factory()->admin()->create([
+        'email' => 'admin@example.com',
+        'password' => 'password',
+    ]);
+
+    $student = User::factory()->student()->create([
+        'name' => 'Prefill Student',
+        'telegram_id' => '999201',
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+
+    $assignee = User::factory()->student()->create([
+        'name' => 'Prefill Guide',
+        'telegram_username' => 'prefill_guide',
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Prefill Partner')->create([
+        'title' => 'Prefill Opportunity',
+    ]);
+
+    $request = OpportunityGuidanceRequest::factory()->assigned($assignee)->create([
+        'user_id' => $student->id,
+        'opportunity_id' => $opportunity->id,
+    ]);
+
+    $this->actingAs($admin);
+
+    $expectedBody = SendGuidanceRequestTelegramMessageAction::defaultBody($request);
+
+    Livewire::test(ViewOpportunityGuidanceRequest::class, ['record' => $request->getRouteKey()])
+        ->mountAction('sendTelegramMessage')
+        ->assertActionDataSet([
+            'body' => $expectedBody,
+        ]);
+
+    expect($expectedBody)
+        ->toContain('Prefill Opportunity')
+        ->toContain('Prefill Partner')
+        ->toContain('Status: assigned')
+        ->toContain('Assigned guide: Prefill Guide (@prefill_guide)');
+});
+
 it('sends a telegram message to the student from the guidance request view page', function () {
     Http::fake([
         'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 601]], 200),
@@ -73,7 +117,9 @@ it('sends a telegram message to the student from the guidance request view page'
         'onboarding_step' => OnboardingStep::Complete,
     ]);
 
-    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Msg Partner')->create();
+    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Msg Partner')->create([
+        'title' => 'Message Opportunity',
+    ]);
 
     $request = OpportunityGuidanceRequest::factory()->create([
         'user_id' => $student->id,

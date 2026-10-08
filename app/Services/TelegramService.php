@@ -692,7 +692,7 @@ class TelegramService
             'is_active' => true,
         ]);
 
-        $this->newStudentAdminNotifier->notify($user);
+        $this->newStudentAdminNotifier->notify($user, $this);
 
         return $user;
     }

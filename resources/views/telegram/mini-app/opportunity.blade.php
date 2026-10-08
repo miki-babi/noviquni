@@ -53,7 +53,7 @@
                 </a>
             @endif
 
-            @if ($opportunity->hasVerifiedPartner())
+            @if ($opportunity->hasGuidanceAvailable())
                 <form method="post" action="{{ route('tg.opportunities.guidance', $opportunity) }}">
                     @csrf
                     <button type="submit" class="tg-btn tg-btn-secondary w-full">

@@ -3092,7 +3092,7 @@ class TelegramBotHandler
             }
         }
 
-        if ($opportunity->hasVerifiedPartner()) {
+        if ($opportunity->hasGuidanceAvailable()) {
             $rows[] = [[
                 'text' => $copy->get('opportunities.request_guidance'),
                 'callback_data' => 'opp:guidance:'.$opportunity->id,
@@ -3202,7 +3202,7 @@ class TelegramBotHandler
 
         $opportunity = Opportunity::query()->published()->find($opportunityId);
 
-        if ($opportunity === null || ! $opportunity->hasVerifiedPartner()) {
+        if ($opportunity === null || ! $opportunity->hasGuidanceAvailable()) {
             return $copy->get('opportunities.not_found');
         }
 

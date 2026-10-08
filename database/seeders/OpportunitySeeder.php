@@ -21,6 +21,7 @@ class OpportunitySeeder extends Seeder
                 'sort_order' => 1,
                 'is_verified_partner' => true,
                 'partner_name' => 'Mastercard Foundation',
+                'is_guidance_available' => true,
             ],
             [
                 'slug' => 'moe-need-based-tuition-grant',
@@ -59,6 +60,7 @@ class OpportunitySeeder extends Seeder
                 'sort_order' => 1,
                 'is_verified_partner' => true,
                 'partner_name' => 'Safaricom Ethiopia',
+                'is_guidance_available' => true,
             ],
             [
                 'slug' => 'addis-software-house-junior-dev',

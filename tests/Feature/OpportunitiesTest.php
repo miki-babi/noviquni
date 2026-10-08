@@ -286,7 +286,7 @@ it('seeds at least two published opportunities per type', function () {
     }
 });
 
-it('shows verified partner and request guidance callback in bot detail', function () {
+it('shows verified partner badge and request guidance when guidance is available', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
@@ -297,9 +297,14 @@ it('shows verified partner and request guidance callback in bot detail', functio
         'is_active' => true,
     ]);
 
-    $opportunity = Opportunity::factory()->published()->scholarship()->verifiedPartner('Acme Foundation')->create([
-        'title' => 'Verified Scholarship',
-    ]);
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->scholarship()
+        ->verifiedPartner('Acme Foundation')
+        ->guidanceAvailable()
+        ->create([
+            'title' => 'Verified Scholarship',
+        ]);
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555300, 'open_opp:'.$opportunity->id, 50, 300))
         ->assertOk();
@@ -314,6 +319,77 @@ it('shows verified partner and request guidance callback in bot detail', functio
 
         return str_contains((string) ($data['text'] ?? ''), 'Verified NOViQ Uni partner: Acme Foundation')
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id);
+    });
+});
+
+it('shows request guidance without a verified partner when guidance is available', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    User::factory()->student()->create([
+        'telegram_id' => '555301',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->internship()
+        ->guidanceAvailable()
+        ->create([
+            'title' => 'Open Internship',
+        ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555301, 'open_opp:'.$opportunity->id, 50, 310))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($opportunity) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $text = (string) ($data['text'] ?? '');
+
+        return ! str_contains($text, 'Verified NOViQ Uni partner:')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id);
+    });
+});
+
+it('hides request guidance when guidance is not available even for verified partners', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    User::factory()->student()->create([
+        'telegram_id' => '555302',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->verifiedPartner('No Guidance Partner')
+        ->create([
+            'title' => 'Partner Job Without Guidance',
+        ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555302, 'open_opp:'.$opportunity->id, 50, 311))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($opportunity) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Verified NOViQ Uni partner: No Guidance Partner')
+            && $buttons->doesntContain(fn (array $button) => ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id);
     });
 });
 
@@ -335,9 +411,13 @@ it('creates a pending guidance request and notifies admins without a student DM 
         'telegram_username' => 'noviqsupport',
     ]);
 
-    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Partner Co')->create([
-        'title' => 'Guidance Job',
-    ]);
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->guidanceAvailable()
+        ->create([
+            'title' => 'Guidance Job',
+        ]);
 
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
@@ -388,9 +468,14 @@ it('notifies the student with an open chat link when a guide is assigned', funct
         'name' => 'Guidance Coach',
     ]);
 
-    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Partner Co')->create([
-        'title' => 'Guidance Job',
-    ]);
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->verifiedPartner('Partner Co')
+        ->guidanceAvailable()
+        ->create([
+            'title' => 'Guidance Job',
+        ]);
 
     $request = OpportunityGuidanceRequest::factory()->create([
         'user_id' => $student->id,
@@ -442,6 +527,7 @@ it('uses opportunity opening message override when assigning a guide', function 
         ->published()
         ->scholarship()
         ->verifiedPartner('Override Partner')
+        ->guidanceAvailable()
         ->create([
             'title' => 'Override Scholarship',
             'guidance_opening_message' => 'Custom opener for {title} / {partner} / {student}',
@@ -501,7 +587,7 @@ it('dedupes pending guidance requests and admin notifications', function () {
         'telegram_username' => 'noviqsupport',
     ]);
 
-    $opportunity = Opportunity::factory()->published()->internship()->verifiedPartner('Intern Partner')->create();
+    $opportunity = Opportunity::factory()->published()->internship()->guidanceAvailable()->create();
 
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
@@ -517,7 +603,7 @@ it('dedupes pending guidance requests and admin notifications', function () {
     Queue::assertPushed(SendTelegramMessageJob::class, 1);
 });
 
-it('accepts mini app guidance requests for verified partner opportunities', function () {
+it('accepts mini app guidance requests when guidance is available', function () {
     Queue::fake();
 
     config(['services.telegram.file_admin_username' => 'noviqsupport']);
@@ -532,7 +618,7 @@ it('accepts mini app guidance requests for verified partner opportunities', func
         'telegram_username' => 'noviqsupport',
     ]);
 
-    $opportunity = Opportunity::factory()->published()->mentorship()->verifiedPartner('Mentor Org')->create([
+    $opportunity = Opportunity::factory()->published()->mentorship()->guidanceAvailable()->create([
         'slug' => 'mentor-guidance-opportunity',
     ]);
 
@@ -545,6 +631,31 @@ it('accepts mini app guidance requests for verified partner opportunities', func
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
     Queue::assertPushed(SendTelegramMessageJob::class, 1);
+});
+
+it('rejects mini app guidance requests when guidance is not available', function () {
+    Queue::fake();
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->verifiedPartner('Blocked Partner')
+        ->create([
+            'slug' => 'no-guidance-opportunity',
+        ]);
+
+    $this->actingAs($user)
+        ->from(route('tg.opportunities.show', $opportunity))
+        ->post(route('tg.opportunities.guidance', $opportunity))
+        ->assertNotFound();
+
+    expect(OpportunityGuidanceRequest::query()->count())->toBe(0);
+    Queue::assertNothingPushed();
 });
 
 it('includes a share deep link with the sharer referral code on bot opportunity detail', function () {
@@ -786,9 +897,13 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
         'is_active' => true,
     ]);
 
-    $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Blocked Partner')->create([
-        'slug' => 'blocked-guidance-opportunity',
-    ]);
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->guidanceAvailable()
+        ->create([
+            'slug' => 'blocked-guidance-opportunity',
+        ]);
 
     $this->actingAs($user)
         ->from(route('tg.opportunities.show', $opportunity))
