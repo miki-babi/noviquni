@@ -3159,12 +3159,20 @@ class TelegramBotHandler
             }
         }
 
-        if ($opportunity->hasGuidanceAvailable() && ! $this->opportunityGuidance->hasRequested($user, $opportunity)) {
-            $rows[] = [[
-                'text' => $copy->get('opportunities.request_guidance'),
-                'callback_data' => 'opp:guidance:'.$opportunity->id,
-                'style' => TelegramButtonStyle::Success->value,
-            ]];
+        if ($opportunity->hasGuidanceAvailable()) {
+            if ($this->opportunityGuidance->hasRequested($user, $opportunity)) {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.guidance_requested'),
+                    'callback_data' => 'opp:guidance:'.$opportunity->id,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            } else {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.request_guidance'),
+                    'callback_data' => 'opp:guidance:'.$opportunity->id,
+                    'style' => TelegramButtonStyle::Success->value,
+                ]];
+            }
         }
 
         $rows[] = [$saveButton, $shareButton];

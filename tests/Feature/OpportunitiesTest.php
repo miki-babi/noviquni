@@ -638,7 +638,7 @@ it('does not create another guidance request when one is already assigned', func
     Queue::assertNothingPushed();
 });
 
-it('hides the request guidance button when the student already requested', function () {
+it('shows a blue guidance requested button when the student already requested', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
@@ -672,10 +672,10 @@ it('hides the request guidance button when the student already requested', funct
 
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
-        $text = (string) ($data['text'] ?? '');
 
-        return str_contains($text, 'Guidance requested')
-            && $buttons->doesntContain(fn (array $button) => ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id);
+        return $buttons->contains(fn (array $button): bool => ($button['text'] ?? '') === 'Guidance requested'
+            && ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id
+            && ($button['style'] ?? '') === 'primary');
     });
 });
 
