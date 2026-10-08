@@ -274,6 +274,8 @@ return [
         'share_message' => "🎯 :title\n\nይህን እድል በ NOViQ Uni ይመልከቱ፦\n:link",
         'finish_onboarding_to_act' => 'ይህን እርምጃ ለመጠቀም በቦቱ ላይ ማዋቀር ይጨርሱ።',
         'open_bot_to_onboard' => 'ለማዋቀር ቦቱን ክፈት',
+        'guidance_premium_required' => 'መመሪያ ለፕሪሚየም አባላት ብቻ ነው።',
+        'guidance_unlock_premium' => 'ፕሪሚየም ክፈት',
     ],
     'broadcast' => [
         'choice_prompt' => 'አንድ አማራጭ ይምረጡ፦',

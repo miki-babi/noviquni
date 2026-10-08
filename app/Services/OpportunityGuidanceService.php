@@ -14,7 +14,10 @@ use InvalidArgumentException;
 
 class OpportunityGuidanceService
 {
-    public function __construct(public SettingsService $settings) {}
+    public function __construct(
+        public SettingsService $settings,
+        public PremiumService $premium,
+    ) {}
 
     public function hasRequested(User $student, Opportunity $opportunity): bool
     {
@@ -31,6 +34,10 @@ class OpportunityGuidanceService
     {
         if (! $opportunity->hasGuidanceAvailable()) {
             throw new InvalidArgumentException('Opportunity does not offer guidance.');
+        }
+
+        if (! $this->premium->canRequestOpportunityGuidance($student)) {
+            throw new InvalidArgumentException('Opportunity guidance requires an active premium subscription.');
         }
 
         $existing = OpportunityGuidanceRequest::query()

@@ -995,3 +995,93 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
 
     Queue::assertNothingPushed();
 });
+
+it('shows the premium pitch instead of guidance for non-premium students when premium is enabled', function () {
+    config(['services.telegram.premium_enabled' => true]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'premium_until' => null,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->internship()
+        ->guidanceAvailable()
+        ->create([
+            'slug' => 'premium-gated-guidance',
+            'url' => 'https://example.com/internship-apply',
+        ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.opportunities.show', $opportunity))
+        ->assertOk()
+        ->assertSee('https://example.com/internship-apply', false)
+        ->assertSee(app(SettingsService::class)->premiumPitchTitle(), false)
+        ->assertSee(route('tg.premium'), false)
+        ->assertDontSee(route('tg.opportunities.guidance', $opportunity), false);
+
+    $this->actingAs($user)
+        ->from(route('tg.opportunities.show', $opportunity))
+        ->post(route('tg.opportunities.guidance', $opportunity))
+        ->assertRedirect(route('tg.opportunities.show', $opportunity))
+        ->assertSessionHas('show_premium_pitch');
+
+    expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->exists())->toBeFalse();
+});
+
+it('allows premium students to request guidance when premium is enabled', function () {
+    Queue::fake();
+    config([
+        'services.telegram.premium_enabled' => true,
+        'services.telegram.file_admin_username' => 'noviqsupport',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'premium_until' => now()->addDays(10),
+    ]);
+
+    User::factory()->admin()->create([
+        'telegram_id' => '888099',
+        'telegram_username' => 'noviqsupport',
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->job()
+        ->guidanceAvailable()
+        ->create(['slug' => 'premium-user-guidance']);
+
+    $this->actingAs($user)
+        ->from(route('tg.opportunities.show', $opportunity))
+        ->post(route('tg.opportunities.guidance', $opportunity))
+        ->assertRedirect(route('tg.opportunities.show', $opportunity))
+        ->assertSessionHas('status');
+
+    expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
+});
+
+it('blocks bot guidance requests for non-premium students when premium is enabled', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    config(['services.telegram.premium_enabled' => true]);
+
+    User::factory()->student()->create([
+        'telegram_id' => '888200',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'premium_until' => null,
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->internship()->guidanceAvailable()->create();
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(888200, 'opp:guidance:'.$opportunity->id, 80, 401))
+        ->assertOk();
+
+    expect(OpportunityGuidanceRequest::query()->count())->toBe(0);
+});

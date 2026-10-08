@@ -27,6 +27,7 @@ use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
 use App\Http\Controllers\Telegram\MiniApp\SavedController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
 use App\Http\Controllers\TelegramWebhookController;
+use App\Http\Controllers\Webhooks\VerifyCheckoutWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -92,7 +93,18 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('premium', [PremiumController::class, 'show'])->name('premium');
         Route::post('premium/pay', [PremiumController::class, 'pay'])->name('premium.pay');
     });
+
+    Route::get('premium/return/{payment}', [PremiumController::class, 'return'])
+        ->middleware('signed')
+        ->name('premium.return');
+    Route::get('premium/status/{payment}', [PremiumController::class, 'status'])
+        ->middleware(['signed', 'throttle:60,1'])
+        ->name('premium.status');
 });
+
+Route::post('/webhooks/verify-checkout', VerifyCheckoutWebhookController::class)
+    ->middleware('throttle:120,1')
+    ->name('webhooks.verify-checkout');
 
 Route::get('/{hub}', [ResourceHubController::class, 'show'])
     ->whereIn('hub', ['modules', 'notes', 'exams', 'practice'])

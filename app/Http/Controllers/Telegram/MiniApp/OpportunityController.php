@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Opportunity;
 use App\Models\User;
 use App\Services\OpportunityGuidanceService;
+use App\Services\PremiumService;
+use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
@@ -20,6 +22,8 @@ class OpportunityController extends Controller
         Opportunity $opportunity,
         TelegramDeepLink $deepLinks,
         OpportunityGuidanceService $guidance,
+        PremiumService $premium,
+        SettingsService $settings,
     ): View {
         /** @var User $user */
         $user = Auth::user();
@@ -38,6 +42,7 @@ class OpportunityController extends Controller
         ]);
         $shareText = trim(preg_replace("/\n{3,}/", "\n\n", $shareText) ?? $shareText);
         $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
+        $canRequestGuidance = $premium->canRequestOpportunityGuidance($user);
 
         return view('telegram.mini-app.opportunity', [
             'copy' => $copy,
@@ -45,6 +50,9 @@ class OpportunityController extends Controller
             'opportunity' => $opportunity,
             'isBookmarked' => $isBookmarked,
             'hasRequestedGuidance' => $guidance->hasRequested($user, $opportunity),
+            'canRequestGuidance' => $canRequestGuidance,
+            'premiumPitchTitle' => $settings->premiumPitchTitle(),
+            'premiumPitchBody' => $settings->premiumPitchBody(),
             'shareUrl' => $shareUrl,
             'onboardingComplete' => $user->onboarding_step === OnboardingStep::Complete,
             'botOnboardingUrl' => $deepLinks->url(),
@@ -88,6 +96,7 @@ class OpportunityController extends Controller
         Request $request,
         Opportunity $opportunity,
         OpportunityGuidanceService $guidance,
+        PremiumService $premium,
     ): RedirectResponse {
         /** @var User $user */
         $user = Auth::user();
@@ -99,6 +108,12 @@ class OpportunityController extends Controller
             return back()
                 ->with('status', $copy->get('opportunities.finish_onboarding_to_act'))
                 ->with('show_onboarding_link', true);
+        }
+
+        if (! $premium->canRequestOpportunityGuidance($user)) {
+            return back()
+                ->with('status', $copy->get('opportunities.guidance_premium_required'))
+                ->with('show_premium_pitch', true);
         }
 
         $guidance->requestGuidance($user, $opportunity);

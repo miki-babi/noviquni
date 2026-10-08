@@ -53,4 +53,13 @@ return [
         'cache_ttl' => (int) env('NOVIQ_COLLEGE_CACHE_TTL', 300),
     ],
 
+    'verify_checkout' => [
+        'api_key' => env('VERIFY_CHECKOUT_API_KEY'),
+        'api_version' => env('VERIFY_CHECKOUT_API_VERSION', '2026-06-01'),
+        'webhook_secret' => env('VERIFY_CHECKOUT_WEBHOOK_SECRET'),
+        'base_url' => 'https://checkoutapi.verify.et',
+        'connect_timeout' => (int) env('VERIFY_CHECKOUT_CONNECT_TIMEOUT', 5),
+        'timeout' => (int) env('VERIFY_CHECKOUT_TIMEOUT', 20),
+    ],
+
 ];

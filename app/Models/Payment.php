@@ -15,23 +15,37 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'currency',
     'provider',
     'external_ref',
+    'idempotency_key',
+    'deposit_id',
+    'deposit_status',
+    'expires_at',
     'status',
     'purpose',
     'meta',
     'verified_at',
     'verified_by',
+    'fulfilled_at',
 ])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
     use HasFactory;
 
+    public const PROVIDER_MANUAL = 'manual';
+
+    public const PROVIDER_VERIFY_CHECKOUT = 'verify_checkout';
+
+    /**
+     * Hosted checkout URL for the current request only — never persisted.
+     */
+    public ?string $checkoutUrl = null;
+
     /**
      * @var array<string, mixed>
      */
     protected $attributes = [
         'currency' => 'ETB',
-        'provider' => 'manual',
+        'provider' => self::PROVIDER_MANUAL,
         'status' => 'pending',
         'purpose' => 'premium',
     ];
@@ -46,6 +60,19 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
+    public function isVerifyCheckout(): bool
+    {
+        return $this->provider === self::PROVIDER_VERIFY_CHECKOUT;
+    }
+
+    public function isOpenVerifyCheckoutAttempt(): bool
+    {
+        return $this->isVerifyCheckout()
+            && $this->status === PaymentStatus::Pending
+            && $this->fulfilled_at === null
+            && ($this->expires_at === null || $this->expires_at->isFuture());
+    }
+
     /**
      * @return array<string, string>
      */
@@ -56,6 +83,8 @@ class Payment extends Model
             'status' => PaymentStatus::class,
             'meta' => 'array',
             'verified_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'fulfilled_at' => 'datetime',
         ];
     }
 }

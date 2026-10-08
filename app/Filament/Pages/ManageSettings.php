@@ -60,6 +60,8 @@ class ManageSettings extends Page
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
             'cohort_urgency_copy' => $settings->cohortUrgencyCopy(),
+            'premium_pitch_title' => $settings->premiumPitchTitle(),
+            'premium_pitch_body' => $settings->premiumPitchBody(),
             'opportunity_guidance_opening_message' => $settings->opportunityGuidanceOpeningMessage(),
         ]);
     }
@@ -103,12 +105,24 @@ class ManageSettings extends Page
                         TextInput::make('premium_duration_days')->numeric()->required()->integer()->suffix('days'),
                         Textarea::make('payment_instructions')
                             ->rows(4)
-                            ->helperText('Use {amount} and {reference} placeholders.')
+                            ->helperText('Legacy manual payments only. Student Pay now uses Verify Checkout. Placeholders: {amount}, {reference}.')
                             ->columnSpanFull(),
                         Textarea::make('cohort_urgency_copy')
                             ->label('Cohort urgency copy')
                             ->rows(2)
                             ->helperText('Shown on the Mini App premium screen.')
+                            ->columnSpanFull(),
+                        TextInput::make('premium_pitch_title')
+                            ->label('Premium pitch title')
+                            ->required()
+                            ->maxLength(120)
+                            ->helperText('Shown when non-premium students request guidance, and on the Premium page.')
+                            ->columnSpanFull(),
+                        Textarea::make('premium_pitch_body')
+                            ->label('Premium pitch body')
+                            ->rows(6)
+                            ->required()
+                            ->helperText('Explain why premium matters and what else they get (guidance, resources, etc.).')
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
@@ -215,6 +229,8 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PREMIUM_DURATION_DAYS, (string) $data['premium_duration_days']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
+        $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));
+        $settings->set(SettingsService::PREMIUM_PITCH_BODY, (string) ($data['premium_pitch_body'] ?? ''));
         $settings->set(
             SettingsService::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE,
             (string) ($data['opportunity_guidance_opening_message'] ?? ''),

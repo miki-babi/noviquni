@@ -244,6 +244,8 @@ return [
         'share_message' => "🎯 :title\n\nCheck out this opportunity on NOViQ Uni:\n:link",
         'finish_onboarding_to_act' => 'Finish onboarding in the bot to use this action.',
         'open_bot_to_onboard' => 'Open bot to finish setup',
+        'guidance_premium_required' => 'Guidance is for Premium members.',
+        'guidance_unlock_premium' => 'Unlock Premium',
     ],
     'broadcast' => [
         'choice_prompt' => 'Choose an option:',

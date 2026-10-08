@@ -3,6 +3,7 @@
 use App\Enums\BroadcastStatus;
 use App\Models\Broadcast;
 use App\Services\BroadcastService;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +23,7 @@ Schedule::call(function (): void {
             $broadcasts->send($broadcast);
         });
 })->everyMinute()->name('dispatch-scheduled-broadcasts')->withoutOverlapping();
+
+Schedule::call(function (): void {
+    app(PaymentService::class)->reconcileStaleVerifyCheckoutPayments();
+})->everyFiveMinutes()->name('reconcile-verify-checkout')->withoutOverlapping();

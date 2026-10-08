@@ -15,7 +15,11 @@ class PaymentForm
                 Select::make('user_id')->relationship('user', 'name')->disabled(),
                 TextInput::make('amount')->numeric()->disabled(),
                 TextInput::make('currency')->disabled(),
+                TextInput::make('provider')->disabled(),
                 TextInput::make('external_ref')->disabled(),
+                TextInput::make('deposit_id')->label('Deposit ID')->disabled(),
+                TextInput::make('deposit_status')->disabled(),
+                TextInput::make('idempotency_key')->disabled(),
                 TextInput::make('status')->disabled(),
                 TextInput::make('purpose')->disabled(),
             ]);

@@ -23,6 +23,7 @@ use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Models\Year;
+use App\Services\VerifyCheckout\VerifyCheckoutException;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
@@ -742,8 +743,35 @@ class TelegramBotHandler
             return TelegramCopy::for($user)->get('menu.finish_onboarding');
         }
 
-        $payment = $this->payments->createPendingPremiumPayment($user);
-        $this->telegram->sendMessage($chatId, $this->payments->instructionsFor($payment)."\n\nTap ⭐ Premium again after paying and wait for admin verification.");
+        if ($user->hasActivePremium()) {
+            $this->telegram->sendMessage($chatId, 'Premium active until '.$user->premium_until->toDayDateTimeString());
+
+            return null;
+        }
+
+        try {
+            $payment = $this->payments->startVerifyCheckoutPremium($user);
+        } catch (VerifyCheckoutException $exception) {
+            $this->telegram->sendMessage($chatId, $exception->customerSafeMessage());
+
+            return null;
+        }
+
+        if (blank($payment->checkoutUrl)) {
+            $this->telegram->sendMessage($chatId, 'We could not start checkout. Please try again.');
+
+            return null;
+        }
+
+        $this->telegram->sendMessage($chatId, 'Open checkout to complete your Premium payment:', [
+            'reply_markup' => $this->telegram->inlineKeyboard([[
+                [
+                    'text' => 'Open checkout',
+                    'url' => $payment->checkoutUrl,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ],
+            ]]),
+        ]);
 
         return null;
     }
@@ -2680,12 +2708,24 @@ class TelegramBotHandler
         $price = $this->settings->premiumPrice();
         $required = $this->settings->requiredReferrals();
         $progress = $this->referrals->qualifiedCount($user);
+        $title = $this->settings->premiumPitchTitle();
+        $body = $this->settings->premiumPitchBody();
 
-        $this->telegram->sendMessage($chatId, "⭐ Premium\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}", [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                ['text' => 'Pay now', 'callback_data' => 'premium_pay', 'style' => TelegramButtonStyle::Primary->value],
-            ]]),
-        ]);
+        $this->telegram->sendMessage(
+            $chatId,
+            '<b>'.TelegramHtml::escape($title)."</b>\n"
+            .TelegramHtml::escape($body)
+            ."\n\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}",
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    ['text' => 'Pay now', 'callback_data' => 'premium_pay', 'style' => TelegramButtonStyle::Primary->value],
+                    [
+                        'text' => 'Open Premium',
+                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
+                    ],
+                ]]),
+            ],
+        );
     }
 
     protected function showResourceLibrary(User $user, int|string $chatId, ?int $messageId = null): void
@@ -3120,11 +3160,19 @@ class TelegramBotHandler
         }
 
         if ($opportunity->hasGuidanceAvailable() && ! $this->opportunityGuidance->hasRequested($user, $opportunity)) {
-            $rows[] = [[
-                'text' => $copy->get('opportunities.request_guidance'),
-                'callback_data' => 'opp:guidance:'.$opportunity->id,
-                'style' => TelegramButtonStyle::Success->value,
-            ]];
+            if ($this->premium->canRequestOpportunityGuidance($user)) {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.request_guidance'),
+                    'callback_data' => 'opp:guidance:'.$opportunity->id,
+                    'style' => TelegramButtonStyle::Success->value,
+                ]];
+            } else {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            }
         }
 
         $rows[] = [$saveButton, $shareButton];
@@ -3232,6 +3280,27 @@ class TelegramBotHandler
 
         if ($opportunity === null || ! $opportunity->hasGuidanceAvailable()) {
             return $copy->get('opportunities.not_found');
+        }
+
+        if (! $this->premium->canRequestOpportunityGuidance($user)) {
+            $title = $this->settings->premiumPitchTitle();
+            $body = $this->settings->premiumPitchBody();
+
+            $this->telegram->sendMessage(
+                $chatId,
+                $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n".TelegramHtml::escape($body),
+                [
+                    'reply_markup' => $this->telegram->inlineKeyboard([[
+                        [
+                            'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
+                            'style' => TelegramButtonStyle::Primary->value,
+                        ],
+                    ]]),
+                ],
+            );
+
+            return null;
         }
 
         $this->opportunityGuidance->requestGuidance($user, $opportunity);

@@ -58,13 +58,22 @@
                     <p class="tg-btn tg-btn-secondary w-full pointer-events-none opacity-70">
                         {{ $copy->get('opportunities.guidance_requested') }}
                     </p>
-                @else
+                @elseif ($canRequestGuidance)
                     <form method="post" action="{{ route('tg.opportunities.guidance', $opportunity) }}">
                         @csrf
                         <button type="submit" class="tg-btn tg-btn-secondary w-full">
                             {{ $copy->get('opportunities.request_guidance') }}
                         </button>
                     </form>
+                @else
+                    <div class="study-card study-card--lime study-continue space-y-2">
+                        <p class="study-card-title">{{ $premiumPitchTitle }}</p>
+                        <p class="whitespace-pre-line text-sm leading-relaxed text-text-secondary">{{ $premiumPitchBody }}</p>
+                        <p class="text-sm font-semibold text-primary-300">{{ $copy->get('opportunities.guidance_premium_required') }}</p>
+                    </div>
+                    <a href="{{ route('tg.premium') }}" class="tg-btn w-full text-center">
+                        {{ $copy->get('opportunities.guidance_unlock_premium') }}
+                    </a>
                 @endif
             @endif
 
