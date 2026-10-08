@@ -50,10 +50,6 @@ class PremiumService
 
     public function canRequestOpportunityGuidance(User $user): bool
     {
-        if (! $this->isEnabled()) {
-            return true;
-        }
-
         return $user->hasActivePremium();
     }
 

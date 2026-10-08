@@ -405,6 +405,7 @@ it('creates a pending guidance request and notifies admins without a student DM 
         'name' => 'Student One',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
+        'is_premium' => true,
     ]);
 
     User::factory()->admin()->create([
@@ -581,6 +582,7 @@ it('dedupes existing guidance requests and admin notifications', function () {
         'telegram_username' => 'student_two',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
+        'is_premium' => true,
     ]);
 
     User::factory()->admin()->create([
@@ -614,6 +616,7 @@ it('does not create another guidance request when one is already assigned', func
         'telegram_username' => 'student_assigned',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
+        'is_premium' => true,
     ]);
 
     User::factory()->admin()->create([
@@ -688,6 +691,7 @@ it('accepts mini app guidance requests when guidance is available', function () 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
+        'is_premium' => true,
     ]);
 
     User::factory()->admin()->create([
@@ -998,7 +1002,7 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
 });
 
 it('shows request guidance to everyone and only pitches premium after a non-premium tap', function () {
-    config(['services.telegram.premium_enabled' => true]);
+    config(['services.telegram.premium_enabled' => false]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
@@ -1040,10 +1044,10 @@ it('shows request guidance to everyone and only pitches premium after a non-prem
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->exists())->toBeFalse();
 });
 
-it('allows premium students to request guidance when premium is enabled', function () {
+it('allows premium students to request guidance regardless of the resource premium flag', function () {
     Queue::fake();
     config([
-        'services.telegram.premium_enabled' => true,
+        'services.telegram.premium_enabled' => false,
         'services.telegram.file_admin_username' => 'noviqsupport',
     ]);
 
@@ -1073,12 +1077,12 @@ it('allows premium students to request guidance when premium is enabled', functi
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('blocks bot guidance requests for non-premium students when premium is enabled', function () {
+it('blocks bot guidance requests for non-premium students even when the resource premium flag is off', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    config(['services.telegram.premium_enabled' => true]);
+    config(['services.telegram.premium_enabled' => false]);
 
     User::factory()->student()->create([
         'telegram_id' => '888200',
