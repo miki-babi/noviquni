@@ -570,7 +570,7 @@ it('rejects assigning a guide without a telegram username', function () {
         ->toThrow(InvalidArgumentException::class, 'Assignee must have a Telegram username.');
 });
 
-it('dedupes pending guidance requests and admin notifications', function () {
+it('dedupes existing guidance requests and admin notifications', function () {
     Queue::fake();
 
     config(['services.telegram.file_admin_username' => 'noviqsupport']);
@@ -603,6 +603,82 @@ it('dedupes pending guidance requests and admin notifications', function () {
     Queue::assertPushed(SendTelegramMessageJob::class, 1);
 });
 
+it('does not create another guidance request when one is already assigned', function () {
+    Queue::fake();
+
+    config(['services.telegram.file_admin_username' => 'noviqsupport']);
+
+    $student = User::factory()->student()->create([
+        'telegram_id' => '888033',
+        'telegram_username' => 'student_assigned',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    User::factory()->admin()->create([
+        'telegram_id' => '888034',
+        'telegram_username' => 'noviqsupport',
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->job()->guidanceAvailable()->create();
+
+    OpportunityGuidanceRequest::factory()->assigned()->create([
+        'user_id' => $student->id,
+        'opportunity_id' => $opportunity->id,
+    ]);
+
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(888033, 'opp:guidance:'.$opportunity->id, 54, 304))
+        ->assertOk();
+
+    expect(OpportunityGuidanceRequest::query()->where('user_id', $student->id)->count())->toBe(1);
+    Queue::assertNothingPushed();
+});
+
+it('hides the request guidance button when the student already requested', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $student = User::factory()->student()->create([
+        'telegram_id' => '555303',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->scholarship()
+        ->guidanceAvailable()
+        ->create([
+            'title' => 'Already Requested Scholarship',
+        ]);
+
+    OpportunityGuidanceRequest::factory()->create([
+        'user_id' => $student->id,
+        'opportunity_id' => $opportunity->id,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555303, 'open_opp:'.$opportunity->id, 55, 305))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($opportunity) {
+        if (! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $text = (string) ($data['text'] ?? '');
+
+        return str_contains($text, 'Guidance requested')
+            && $buttons->doesntContain(fn (array $button) => ($button['callback_data'] ?? '') === 'opp:guidance:'.$opportunity->id);
+    });
+});
+
 it('accepts mini app guidance requests when guidance is available', function () {
     Queue::fake();
 
@@ -631,6 +707,12 @@ it('accepts mini app guidance requests when guidance is available', function () 
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
     Queue::assertPushed(SendTelegramMessageJob::class, 1);
+
+    $this->actingAs($user)
+        ->get(route('tg.opportunities.show', $opportunity))
+        ->assertOk()
+        ->assertSee('Guidance requested')
+        ->assertDontSee(route('tg.opportunities.guidance', $opportunity), false);
 });
 
 it('rejects mini app guidance requests when guidance is not available', function () {

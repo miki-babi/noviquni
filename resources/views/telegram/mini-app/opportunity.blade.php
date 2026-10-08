@@ -54,12 +54,18 @@
             @endif
 
             @if ($opportunity->hasGuidanceAvailable())
-                <form method="post" action="{{ route('tg.opportunities.guidance', $opportunity) }}">
-                    @csrf
-                    <button type="submit" class="tg-btn tg-btn-secondary w-full">
-                        {{ $copy->get('opportunities.request_guidance') }}
-                    </button>
-                </form>
+                @if ($hasRequestedGuidance)
+                    <p class="tg-btn tg-btn-secondary w-full pointer-events-none opacity-70">
+                        {{ $copy->get('opportunities.guidance_requested') }}
+                    </p>
+                @else
+                    <form method="post" action="{{ route('tg.opportunities.guidance', $opportunity) }}">
+                        @csrf
+                        <button type="submit" class="tg-btn tg-btn-secondary w-full">
+                            {{ $copy->get('opportunities.request_guidance') }}
+                        </button>
+                    </form>
+                @endif
             @endif
 
             <form method="post" action="{{ route('tg.saved.opportunities.toggle', $opportunity) }}">

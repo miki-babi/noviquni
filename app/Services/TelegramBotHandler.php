@@ -324,6 +324,7 @@ class TelegramBotHandler
                 $user,
                 $chatId,
                 (int) Str::after($data, 'opp:guidance:'),
+                $messageId,
             ),
             str_starts_with($data, 'opp:apply:') => $this->handleOpportunityApply(
                 $user,
@@ -3029,12 +3030,18 @@ class TelegramBotHandler
             ? TelegramHtml::escape($opportunity->description)
             : '';
 
+        $hasRequestedGuidance = $opportunity->hasGuidanceAvailable()
+            && $this->opportunityGuidance->hasRequested($user, $opportunity);
+
         $body = '<b>'.TelegramHtml::escape($opportunity->title)."</b>\n\n"
             .($description !== '' ? $description."\n\n" : '')
             .($opportunity->hasVerifiedPartner()
                 ? $copy->get('opportunities.verified_partner', ['partner' => TelegramHtml::escape($opportunity->partner_name)])."\n\n"
                 : '')
-            .$deadline;
+            .$deadline
+            .($hasRequestedGuidance
+                ? "\n\n".$copy->get('opportunities.guidance_requested')
+                : '');
 
         $this->telegram->replyOrEdit($chatId, $body, [
             'reply_markup' => $this->opportunityDetailKeyboard($user, $opportunity),
@@ -3092,7 +3099,7 @@ class TelegramBotHandler
             }
         }
 
-        if ($opportunity->hasGuidanceAvailable()) {
+        if ($opportunity->hasGuidanceAvailable() && ! $this->opportunityGuidance->hasRequested($user, $opportunity)) {
             $rows[] = [[
                 'text' => $copy->get('opportunities.request_guidance'),
                 'callback_data' => 'opp:guidance:'.$opportunity->id,
@@ -3191,6 +3198,7 @@ class TelegramBotHandler
         User $user,
         int|string $chatId,
         int $opportunityId,
+        ?int $messageId = null,
     ): ?string {
         $copy = TelegramCopy::for($user);
 
@@ -3207,6 +3215,8 @@ class TelegramBotHandler
         }
 
         $this->opportunityGuidance->requestGuidance($user, $opportunity);
+
+        $this->showOpportunity($user, $chatId, $opportunityId, $messageId);
 
         return $copy->get('opportunities.guidance_sent');
     }

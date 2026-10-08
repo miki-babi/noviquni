@@ -16,6 +16,14 @@ class OpportunityGuidanceService
 {
     public function __construct(public SettingsService $settings) {}
 
+    public function hasRequested(User $student, Opportunity $opportunity): bool
+    {
+        return OpportunityGuidanceRequest::query()
+            ->where('user_id', $student->id)
+            ->where('opportunity_id', $opportunity->id)
+            ->exists();
+    }
+
     /**
      * @return array{notified: bool, request: OpportunityGuidanceRequest}
      */
@@ -25,16 +33,15 @@ class OpportunityGuidanceService
             throw new InvalidArgumentException('Opportunity does not offer guidance.');
         }
 
-        $existingPending = OpportunityGuidanceRequest::query()
+        $existing = OpportunityGuidanceRequest::query()
             ->where('user_id', $student->id)
             ->where('opportunity_id', $opportunity->id)
-            ->where('status', GuidanceRequestStatus::Pending)
             ->first();
 
-        if ($existingPending !== null) {
+        if ($existing !== null) {
             return [
                 'notified' => false,
-                'request' => $existingPending,
+                'request' => $existing,
             ];
         }
 

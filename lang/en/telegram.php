@@ -236,6 +236,7 @@ return [
         'type_mentorship' => 'Mentorship',
         'verified_partner' => 'Verified NOViQ Uni partner: :partner',
         'request_guidance' => 'Request guidance',
+        'guidance_requested' => 'Guidance requested',
         'guidance_sent' => 'Guidance request received. We will assign someone and notify you here.',
         'guidance_assigned' => "A guide has been assigned for :title.\n\nMessage :assignee below — your question is pre-filled.",
         'guidance_open_chat' => 'Open chat',

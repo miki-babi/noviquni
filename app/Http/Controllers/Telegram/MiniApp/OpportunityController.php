@@ -16,8 +16,11 @@ use Illuminate\View\View;
 
 class OpportunityController extends Controller
 {
-    public function show(Opportunity $opportunity, TelegramDeepLink $deepLinks): View
-    {
+    public function show(
+        Opportunity $opportunity,
+        TelegramDeepLink $deepLinks,
+        OpportunityGuidanceService $guidance,
+    ): View {
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
@@ -41,6 +44,7 @@ class OpportunityController extends Controller
             'user' => $user,
             'opportunity' => $opportunity,
             'isBookmarked' => $isBookmarked,
+            'hasRequestedGuidance' => $guidance->hasRequested($user, $opportunity),
             'shareUrl' => $shareUrl,
             'onboardingComplete' => $user->onboarding_step === OnboardingStep::Complete,
             'botOnboardingUrl' => $deepLinks->url(),
