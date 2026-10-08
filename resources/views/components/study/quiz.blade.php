@@ -1,5 +1,6 @@
 @props([
     'payload',
+    'resultUrl' => null,
 ])
 
 @php
@@ -20,6 +21,7 @@
             answers: {},
             submitted: false,
             score: 0,
+            resultUrl: @js($resultUrl),
             get total() { return this.questions.length },
             get explanations() {
                 return this.questions.map(q => q.explanation || '')
@@ -43,13 +45,33 @@
             canSubmit() {
                 return Object.keys(this.answers).length === this.total
             },
-            submit() {
+            async submit() {
                 if (! this.canSubmit() || this.submitted) return
                 this.score = this.questions.reduce((sum, question, index) => {
                     return sum + (this.answers[index] === question.answerIndex ? 1 : 0)
                 }, 0)
                 this.submitted = true
                 this.current = 0
+
+                if (! this.resultUrl) return
+
+                try {
+                    await fetch(this.resultUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({
+                            score: this.score,
+                            total: this.total,
+                        }),
+                    })
+                } catch (error) {
+                    // Keep quiz UX intact even if analytics logging fails.
+                }
             },
             reset() {
                 this.answers = {}

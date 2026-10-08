@@ -19,6 +19,11 @@ class StudentForm
                 TextInput::make('telegram_id')->disabled(),
                 TextInput::make('telegram_username')->disabled(),
                 TextInput::make('referral_code')->disabled(),
+                TextInput::make('start_source')
+                    ->label('Start source')
+                    ->disabled()
+                    ->dehydrated(false)
+                    ->placeholder('—'),
                 TextInput::make('referrals_count')
                     ->label('Referrals')
                     ->disabled()

@@ -871,7 +871,7 @@ it('reprompts with buttons when free text is sent during onboarding', function (
 
     expect($user->onboarding_step)->toBe(OnboardingStep::Year)
         ->and($user->stream_id)->toBeNull()
-        ->and($user->year())->toBeNull();
+        ->and($user->year()?->slug)->toBe(YearSlug::Freshman->value);
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), '/editMessageText')

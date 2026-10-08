@@ -5,7 +5,10 @@
         @endif
 
         @if ($payload)
-            <x-study.quiz :payload="$payload" />
+            <x-study.quiz
+                :payload="$payload"
+                :result-url="route('tg.play.quiz.result', $resource)"
+            />
         @else
             <x-telegram.mini-app.player-reader :chunks="$chunks" :copy="$copy" />
         @endif

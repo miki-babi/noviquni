@@ -9,6 +9,7 @@ use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\TelegramLocale;
+use App\Enums\UserEventName;
 use App\Enums\YearSlug;
 use App\Models\Bookmark;
 use App\Models\Broadcast;
@@ -44,6 +45,7 @@ class TelegramBotHandler
         public SettingsService $settings,
         public ChallengeService $challenges,
         public OpportunityGuidanceService $opportunityGuidance,
+        public UserEventService $userEvents,
     ) {}
 
     /**
@@ -99,6 +101,12 @@ class TelegramBotHandler
 
             $parts = explode(' ', $text, 2);
             $payload = filled($parts[1] ?? null) ? trim((string) $parts[1]) : null;
+
+            $this->captureStartSource($user, $payload);
+            $this->userEvents->log($user, UserEventName::Start, array_filter([
+                'payload' => $payload,
+                'start_source' => $user->start_source,
+            ], fn (mixed $value): bool => $value !== null && $value !== ''));
 
             if (filled($payload) && $user->referred_by_user_id === null) {
                 $opportunityShare = app(TelegramDeepLink::class)->parseOpportunitySharePayload($payload);
@@ -1313,6 +1321,15 @@ class TelegramBotHandler
             || str_starts_with($payload, 'opp_');
     }
 
+    protected function captureStartSource(User $user, ?string $payload): void
+    {
+        if (filled($user->start_source) || ! filled($payload) || $this->isNavigationStartPayload($payload)) {
+            return;
+        }
+
+        $user->forceFill(['start_source' => $payload])->save();
+    }
+
     protected function pendingStartCacheKey(User $user): string
     {
         return "telegram.pending_start.{$user->id}";
@@ -1551,6 +1568,7 @@ class TelegramBotHandler
         }
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
+        $this->userEvents->logResourceOpen($user, $resource);
         $this->sendResourceFiles($user, $chatId, $resource);
     }
 
@@ -2651,6 +2669,8 @@ class TelegramBotHandler
             return;
         }
 
+        $this->userEvents->log($user, UserEventName::PremiumView);
+
         if ($user->hasActivePremium()) {
             $this->telegram->sendMessage($chatId, 'Premium active until '.$user->premium_until->toDayDateTimeString());
 
@@ -3224,6 +3244,7 @@ class TelegramBotHandler
     protected function showReferrals(User $user, int|string $chatId): void
     {
         $copy = TelegramCopy::for($user);
+        $this->userEvents->log($user, UserEventName::ReferralLinkShared);
         $stats = $copy->get('refer.stats', [
             'count' => $this->referrals->qualifiedCount($user),
             'required' => $this->settings->requiredReferrals(),
@@ -3449,7 +3470,10 @@ class TelegramBotHandler
     {
         $year = $user->year();
 
-        if ($year === null) {
+        if (
+            $year === null
+            || in_array($user->onboarding_step, [OnboardingStep::Start, OnboardingStep::Year], true)
+        ) {
             $user->update(['onboarding_step' => OnboardingStep::Year]);
             $this->askYear($user, $chatId, $messageId);
 

@@ -3,12 +3,17 @@
 namespace App\Services;
 
 use App\Enums\OnboardingStep;
+use App\Enums\UserEventName;
 use App\Models\Course;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 class OnboardingService
 {
+    public function __construct(
+        public UserEventService $userEvents,
+    ) {}
+
     /**
      * @return Collection<int, Course>
      */
@@ -51,6 +56,19 @@ class OnboardingService
 
     public function complete(User $user): void
     {
+        if ($user->onboarding_step === OnboardingStep::Complete) {
+            return;
+        }
+
         $user->update(['onboarding_step' => OnboardingStep::Complete]);
+        $user->loadMissing(['stream', 'university']);
+
+        $this->userEvents->log($user, UserEventName::OnboardingDone, array_filter([
+            'stream' => $user->stream?->name,
+            'stream_id' => $user->stream_id,
+            'campus' => $user->university?->name,
+            'university_id' => $user->university_id,
+            'department' => $user->department_name,
+        ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\ReferralStatus;
 use App\Enums\UserRole;
 use App\Filament\Resources\Students\Pages\EditStudent;
 use App\Filament\Resources\Students\Pages\ListStudents;
+use App\Filament\Resources\Students\RelationManagers\DownloadsRelationManager;
 use App\Filament\Resources\Students\Schemas\StudentForm;
 use App\Filament\Resources\Students\Tables\StudentsTable;
 use App\Models\User;
@@ -51,6 +52,13 @@ class StudentResource extends Resource
     public static function table(Table $table): Table
     {
         return StudentsTable::configure($table);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            DownloadsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array

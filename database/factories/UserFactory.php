@@ -3,7 +3,9 @@
 namespace Database\Factories;
 
 use App\Enums\UserRole;
+use App\Enums\YearSlug;
 use App\Models\User;
+use App\Models\Year;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -73,5 +75,24 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'premium_until' => $until ?? now()->addDays(30),
         ]);
+    }
+
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->role !== UserRole::Student) {
+                return;
+            }
+
+            if ($user->year() !== null) {
+                return;
+            }
+
+            $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->first();
+
+            if ($freshman !== null) {
+                $user->syncYear($freshman);
+            }
+        });
     }
 }

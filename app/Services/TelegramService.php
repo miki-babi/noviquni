@@ -5,10 +5,13 @@ namespace App\Services;
 use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
+use App\Enums\UserEventName;
 use App\Enums\UserRole;
+use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\User;
+use App\Models\Year;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Http;
@@ -22,6 +25,7 @@ class TelegramService
 
     public function __construct(
         public NewStudentAdminNotifier $newStudentAdminNotifier,
+        public UserEventService $userEvents,
     ) {}
 
     public function token(): ?string
@@ -559,6 +563,7 @@ class TelegramService
                 'body' => $body,
             ]);
             $this->logStartOutbound($method, $params, false, is_array($body) ? $body : null);
+            $this->logBlockedIfNeeded($method, $params, is_array($body) ? $body : null);
 
             return null;
         }
@@ -611,6 +616,7 @@ class TelegramService
                 'body' => $body,
             ]);
             $this->logStartOutbound($method, $params, false, is_array($body) ? $body : null, basename($filePath));
+            $this->logBlockedIfNeeded($method, $params, is_array($body) ? $body : null);
 
             return null;
         }
@@ -692,8 +698,54 @@ class TelegramService
             'is_active' => true,
         ]);
 
+        $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->first();
+
+        if ($freshman !== null) {
+            $user->syncYear($freshman);
+        }
+
         $this->newStudentAdminNotifier->notify($user, $this);
 
         return $user;
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>|null  $body
+     */
+    protected function logBlockedIfNeeded(string $method, array $params, ?array $body): void
+    {
+        if ($body === null || ! $this->isBlockedByUserResponse($body)) {
+            return;
+        }
+
+        $chatId = $params['chat_id'] ?? null;
+
+        if ($chatId === null || $chatId === '') {
+            return;
+        }
+
+        $user = User::query()->where('telegram_id', (string) $chatId)->first();
+
+        if ($user === null) {
+            return;
+        }
+
+        $this->userEvents->log($user, UserEventName::Blocked, [
+            'method' => $method,
+            'description' => (string) ($body['description'] ?? ''),
+            'error_code' => $body['error_code'] ?? null,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     */
+    protected function isBlockedByUserResponse(array $body): bool
+    {
+        $errorCode = (int) ($body['error_code'] ?? 0);
+        $description = strtolower((string) ($body['description'] ?? ''));
+
+        return $errorCode === 403 && str_contains($description, 'blocked');
     }
 }

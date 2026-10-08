@@ -10,6 +10,7 @@ use App\Services\College\TelegramResourceFormatter;
 use App\Services\PremiumService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
+use App\Services\UserEventService;
 use App\Support\TelegramCopy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
@@ -51,6 +52,7 @@ trait OpensMiniAppResource
         }
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
+        app(UserEventService::class)->logResourceOpen($user, $resource);
 
         return [
             'user' => $user,

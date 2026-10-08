@@ -33,6 +33,7 @@ use Illuminate\Support\Str;
     'referral_code',
     'referred_by_user_id',
     'referral_points',
+    'start_source',
     'is_active',
     'onboarding_step',
     'notifications_enabled',
@@ -171,6 +172,14 @@ class User extends Authenticatable implements FilamentUser
     public function downloads(): HasMany
     {
         return $this->hasMany(ResourceDownload::class);
+    }
+
+    /**
+     * @return HasMany<UserEvent, $this>
+     */
+    public function events(): HasMany
+    {
+        return $this->hasMany(UserEvent::class);
     }
 
     public function bookmarks(): HasMany

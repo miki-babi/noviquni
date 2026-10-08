@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\PaymentStatus;
 use App\Enums\SubscriptionSource;
+use App\Enums\UserEventName;
 use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -14,11 +15,12 @@ class PaymentService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
+        public UserEventService $userEvents,
     ) {}
 
     public function createPendingPremiumPayment(User $user): Payment
     {
-        return Payment::query()->create([
+        $payment = Payment::query()->create([
             'user_id' => $user->id,
             'amount' => $this->settings->premiumPrice(),
             'currency' => 'ETB',
@@ -27,6 +29,15 @@ class PaymentService
             'status' => PaymentStatus::Pending,
             'purpose' => 'premium',
         ]);
+
+        $this->userEvents->log($user, UserEventName::PaymentSubmitted, [
+            'payment_id' => $payment->id,
+            'amount' => $payment->amount,
+            'currency' => $payment->currency,
+            'external_ref' => $payment->external_ref,
+        ]);
+
+        return $payment;
     }
 
     public function verify(Payment $payment, User $admin): Payment
@@ -48,7 +59,18 @@ class PaymentService
                 $payment->id,
             );
 
-            return $payment->refresh();
+            $payment = $payment->refresh();
+            $payment->loadMissing('user');
+
+            if ($payment->user !== null) {
+                $this->userEvents->log($payment->user, UserEventName::PaymentApproved, [
+                    'payment_id' => $payment->id,
+                    'amount' => $payment->amount,
+                    'currency' => $payment->currency,
+                ]);
+            }
+
+            return $payment;
         });
     }
 

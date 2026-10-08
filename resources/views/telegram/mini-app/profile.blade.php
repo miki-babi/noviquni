@@ -194,7 +194,14 @@
                 {{ $copy->get('refer.stats', ['count' => $qualifiedCount, 'required' => $requiredReferrals, 'points' => $referralPoints]) }}
             </p>
             <p class="mt-2 text-xs tg-hint">{{ $copy->get('refer.forward_hint') }}</p>
-            <a class="tg-btn tg-btn-secondary tg-chunk mt-3" href="{{ $referralLink }}" target="_blank" rel="noopener noreferrer">
+            <a
+                class="tg-btn tg-btn-secondary tg-chunk mt-3"
+                href="{{ $referralLink }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                x-data
+                @click="fetch(@js(route('tg.profile.referral-share')), { method: 'POST', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '', 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => {})"
+            >
                 {{ $copy->get('refer.start_cta') }}
             </a>
         </div>

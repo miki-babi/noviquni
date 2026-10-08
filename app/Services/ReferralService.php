@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ReferralStatus;
 use App\Enums\SubscriptionSource;
+use App\Enums\UserEventName;
 use App\Models\Referral;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +16,7 @@ class ReferralService
         public PremiumService $premium,
         public ReferralPointService $points,
         public ChallengeService $challenges,
+        public UserEventService $userEvents,
     ) {}
 
     public function attributeReferral(User $referred, string $referralCode): ?Referral
@@ -45,6 +47,12 @@ class ReferralService
             $this->points->creditForReferral($referrer, $referral);
             $this->maybeUnlockPremium($referrer->fresh());
             $this->challenges->tryAutoRedeem($referrer->fresh());
+
+            $this->userEvents->log($referred, UserEventName::ReferralJoined, [
+                'referrer_id' => $referrer->id,
+                'referral_code' => $referrer->referral_code,
+                'referral_id' => $referral->id,
+            ]);
 
             return $referral;
         });
