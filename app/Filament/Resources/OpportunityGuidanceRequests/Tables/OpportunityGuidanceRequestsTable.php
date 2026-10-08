@@ -6,6 +6,7 @@ use App\Enums\GuidanceRequestStatus;
 use App\Filament\Actions\AssignGuidanceRequestAction;
 use App\Filament\Actions\SendGuidanceRequestTelegramMessageAction;
 use App\Models\OpportunityGuidanceRequest;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -58,6 +59,7 @@ class OpportunityGuidanceRequestsTable
                 ViewAction::make(),
                 AssignGuidanceRequestAction::make(),
                 SendGuidanceRequestTelegramMessageAction::make(),
+                DeleteAction::make(),
             ]);
     }
 }

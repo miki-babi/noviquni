@@ -9,6 +9,7 @@ use App\Models\NotificationDelivery;
 use App\Models\Opportunity;
 use App\Models\OpportunityGuidanceRequest;
 use App\Models\User;
+use App\Services\OpportunityGuidanceService;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -147,6 +148,41 @@ it('sends a telegram message to the student from the guidance request view page'
         return (string) ($data['chat_id'] ?? '') === '999202'
             && ($data['text'] ?? '') === 'Hello Message about your guidance request';
     });
+});
+
+it('lets an admin delete a guidance request from the list', function () {
+    $admin = User::factory()->admin()->create([
+        'email' => 'admin@example.com',
+        'password' => 'password',
+    ]);
+
+    $student = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'premium_until' => now()->addDays(7),
+    ]);
+
+    $opportunity = Opportunity::factory()->published()->job()->guidanceAvailable()->create([
+        'title' => 'Delete Me Opportunity',
+    ]);
+
+    $request = OpportunityGuidanceRequest::factory()->create([
+        'user_id' => $student->id,
+        'opportunity_id' => $opportunity->id,
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(ListOpportunityGuidanceRequests::class)
+        ->callTableAction('delete', $request)
+        ->assertNotified();
+
+    expect(OpportunityGuidanceRequest::query()->whereKey($request->id)->exists())->toBeFalse();
+
+    config(['services.telegram.premium_enabled' => true]);
+
+    app(OpportunityGuidanceService::class)->requestGuidance($student, $opportunity);
+
+    expect(OpportunityGuidanceRequest::query()->where('user_id', $student->id)->where('opportunity_id', $opportunity->id)->exists())->toBeTrue();
 });
 
 it('assigns a guide from the guidance request list', function () {

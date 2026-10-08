@@ -6,6 +6,7 @@ use App\Filament\Actions\AssignGuidanceRequestAction;
 use App\Filament\Actions\SendGuidanceRequestTelegramMessageAction;
 use App\Filament\Resources\OpportunityGuidanceRequests\OpportunityGuidanceRequestResource;
 use App\Models\OpportunityGuidanceRequest;
+use Filament\Actions\DeleteAction;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -28,6 +29,8 @@ class ViewOpportunityGuidanceRequest extends ViewRecord
         return [
             AssignGuidanceRequestAction::make(),
             SendGuidanceRequestTelegramMessageAction::make(),
+            DeleteAction::make()
+                ->successRedirectUrl(OpportunityGuidanceRequestResource::getUrl('index')),
         ];
     }
 }
