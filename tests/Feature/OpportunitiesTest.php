@@ -996,7 +996,7 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
     Queue::assertNothingPushed();
 });
 
-it('shows the premium pitch instead of guidance for non-premium students when premium is enabled', function () {
+it('shows request guidance to everyone and only pitches premium after a non-premium tap', function () {
     config(['services.telegram.premium_enabled' => true]);
 
     $user = User::factory()->student()->create([
@@ -1018,15 +1018,23 @@ it('shows the premium pitch instead of guidance for non-premium students when pr
         ->get(route('tg.opportunities.show', $opportunity))
         ->assertOk()
         ->assertSee('https://example.com/internship-apply', false)
-        ->assertSee(app(SettingsService::class)->premiumPitchTitle(), false)
-        ->assertSee(route('tg.premium'), false)
-        ->assertDontSee(route('tg.opportunities.guidance', $opportunity), false);
+        ->assertSee(route('tg.opportunities.guidance', $opportunity), false)
+        ->assertSee('Request guidance', false)
+        ->assertDontSee(app(SettingsService::class)->premiumPitchTitle(), false);
 
     $this->actingAs($user)
         ->from(route('tg.opportunities.show', $opportunity))
         ->post(route('tg.opportunities.guidance', $opportunity))
         ->assertRedirect(route('tg.opportunities.show', $opportunity))
         ->assertSessionHas('show_premium_pitch');
+
+    $this->actingAs($user)
+        ->withSession(['show_premium_pitch' => true, 'status' => 'Guidance is for Premium members.'])
+        ->get(route('tg.opportunities.show', $opportunity))
+        ->assertOk()
+        ->assertSee(app(SettingsService::class)->premiumPitchTitle(), false)
+        ->assertSee(route('tg.premium'), false)
+        ->assertSee(route('tg.opportunities.guidance', $opportunity), false);
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->exists())->toBeFalse();
 });

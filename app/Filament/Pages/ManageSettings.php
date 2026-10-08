@@ -95,7 +95,13 @@ class ManageSettings extends Page
                 Section::make('Premium & referrals')
                     ->schema([
                         TextInput::make('premium_price')->numeric()->required()->suffix('ETB'),
-                        TextInput::make('required_referrals')->numeric()->required()->integer(),
+                        TextInput::make('required_referrals')
+                            ->label('Referrals to unlock Premium')
+                            ->numeric()
+                            ->required()
+                            ->integer()
+                            ->minValue(1)
+                            ->helperText('Qualified friends needed before Premium is granted automatically (no payment).'),
                         TextInput::make('points_per_referral')
                             ->label('Points per referral')
                             ->numeric()

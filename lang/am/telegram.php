@@ -276,6 +276,7 @@ return [
         'open_bot_to_onboard' => 'ለማዋቀር ቦቱን ክፈት',
         'guidance_premium_required' => 'መመሪያ ለፕሪሚየም አባላት ብቻ ነው።',
         'guidance_unlock_premium' => 'ፕሪሚየም ክፈት',
+        'guidance_referral_progress' => 'ወይም ጓደኞችን ይጋብዙ፦ :progress/:required',
     ],
     'broadcast' => [
         'choice_prompt' => 'አንድ አማራጭ ይምረጡ፦',

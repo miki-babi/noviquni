@@ -246,6 +246,7 @@ return [
         'open_bot_to_onboard' => 'Open bot to finish setup',
         'guidance_premium_required' => 'Guidance is for Premium members.',
         'guidance_unlock_premium' => 'Unlock Premium',
+        'guidance_referral_progress' => 'Or invite friends: :progress/:required',
     ],
     'broadcast' => [
         'choice_prompt' => 'Choose an option:',

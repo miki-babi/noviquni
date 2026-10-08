@@ -50,7 +50,7 @@ class SettingsService
             self::TELEGRAM_START_BUTTONS => '[]',
             self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock full resources this week — 30 ETB or invite 3 friends.',
             self::PREMIUM_PITCH_TITLE => 'Premium unlocks 1:1 guidance',
-            self::PREMIUM_PITCH_BODY => "Opportunity and internship links stay free for everyone.\n\nPremium gives you personal guidance on applications, plus full access to premium modules, notes, worksheets, quizzes, flashcards, and exams.\n\nUpgrade to get help from a guide when you need it most.",
+            self::PREMIUM_PITCH_BODY => "Opportunity and internship links stay free for everyone.\n\nPremium gives you personal guidance on applications, plus full access to premium modules, notes, worksheets, quizzes, flashcards, and exams.\n\nPay once, or unlock Premium free by inviting friends.",
             self::OPPORTUNITY_GUIDANCE_USERNAME => '',
             self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE => "Hi, I'd like guidance on {title} (partner: {partner}).\n\nFrom: {student}",
         ];

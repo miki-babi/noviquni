@@ -8,6 +8,7 @@ use App\Models\Opportunity;
 use App\Models\User;
 use App\Services\OpportunityGuidanceService;
 use App\Services\PremiumService;
+use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
@@ -22,8 +23,8 @@ class OpportunityController extends Controller
         Opportunity $opportunity,
         TelegramDeepLink $deepLinks,
         OpportunityGuidanceService $guidance,
-        PremiumService $premium,
         SettingsService $settings,
+        ReferralService $referrals,
     ): View {
         /** @var User $user */
         $user = Auth::user();
@@ -42,7 +43,6 @@ class OpportunityController extends Controller
         ]);
         $shareText = trim(preg_replace("/\n{3,}/", "\n\n", $shareText) ?? $shareText);
         $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
-        $canRequestGuidance = $premium->canRequestOpportunityGuidance($user);
 
         return view('telegram.mini-app.opportunity', [
             'copy' => $copy,
@@ -50,9 +50,10 @@ class OpportunityController extends Controller
             'opportunity' => $opportunity,
             'isBookmarked' => $isBookmarked,
             'hasRequestedGuidance' => $guidance->hasRequested($user, $opportunity),
-            'canRequestGuidance' => $canRequestGuidance,
             'premiumPitchTitle' => $settings->premiumPitchTitle(),
             'premiumPitchBody' => $settings->premiumPitchBody(),
+            'referralProgress' => $referrals->qualifiedCount($user),
+            'requiredReferrals' => $settings->requiredReferrals(),
             'shareUrl' => $shareUrl,
             'onboardingComplete' => $user->onboarding_step === OnboardingStep::Complete,
             'botOnboardingUrl' => $deepLinks->url(),

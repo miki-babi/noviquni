@@ -3160,19 +3160,11 @@ class TelegramBotHandler
         }
 
         if ($opportunity->hasGuidanceAvailable() && ! $this->opportunityGuidance->hasRequested($user, $opportunity)) {
-            if ($this->premium->canRequestOpportunityGuidance($user)) {
-                $rows[] = [[
-                    'text' => $copy->get('opportunities.request_guidance'),
-                    'callback_data' => 'opp:guidance:'.$opportunity->id,
-                    'style' => TelegramButtonStyle::Success->value,
-                ]];
-            } else {
-                $rows[] = [[
-                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
-                    'style' => TelegramButtonStyle::Primary->value,
-                ]];
-            }
+            $rows[] = [[
+                'text' => $copy->get('opportunities.request_guidance'),
+                'callback_data' => 'opp:guidance:'.$opportunity->id,
+                'style' => TelegramButtonStyle::Success->value,
+            ]];
         }
 
         $rows[] = [$saveButton, $shareButton];
@@ -3285,18 +3277,29 @@ class TelegramBotHandler
         if (! $this->premium->canRequestOpportunityGuidance($user)) {
             $title = $this->settings->premiumPitchTitle();
             $body = $this->settings->premiumPitchBody();
+            $required = $this->settings->requiredReferrals();
+            $progress = $this->referrals->qualifiedCount($user);
+            $referralLine = $copy->get('opportunities.guidance_referral_progress', [
+                'progress' => $progress,
+                'required' => $required,
+            ]);
 
             $this->telegram->sendMessage(
                 $chatId,
-                $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n".TelegramHtml::escape($body),
+                $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
+                .TelegramHtml::escape($body)."\n\n".TelegramHtml::escape($referralLine),
                 [
-                    'reply_markup' => $this->telegram->inlineKeyboard([[
-                        [
+                    'reply_markup' => $this->telegram->inlineKeyboard([
+                        [[
                             'text' => $copy->get('opportunities.guidance_unlock_premium'),
                             'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
                             'style' => TelegramButtonStyle::Primary->value,
-                        ],
-                    ]]),
+                        ]],
+                        [[
+                            'text' => $copy->get('menu.refer'),
+                            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
+                        ]],
+                    ]),
                 ],
             );
 
