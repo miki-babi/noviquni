@@ -8,6 +8,7 @@ use App\Jobs\SendTelegramMessageJob;
 use App\Models\Opportunity;
 use App\Models\OpportunityGuidanceRequest;
 use App\Models\User;
+use App\Services\VerifyCheckout\VerifyCheckoutException;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use InvalidArgumentException;
@@ -17,6 +18,9 @@ class OpportunityGuidanceService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
+        public PaymentService $payments,
+        public ReferralService $referrals,
+        public TelegramService $telegram,
     ) {}
 
     public function hasRequested(User $student, Opportunity $opportunity): bool
@@ -25,6 +29,57 @@ class OpportunityGuidanceService
             ->where('user_id', $student->id)
             ->where('opportunity_id', $opportunity->id)
             ->exists();
+    }
+
+    /**
+     * Send the premium pitch with a Become Premium inline button (checkout URL when available).
+     */
+    public function sendPremiumRequiredPitch(User $user): void
+    {
+        if (blank($user->telegram_id)) {
+            return;
+        }
+
+        $copy = TelegramCopy::for($user);
+        $title = $this->settings->premiumPitchTitle();
+        $body = $this->settings->premiumPitchBody();
+        $required = $this->settings->requiredReferrals();
+        $progress = $this->referrals->qualifiedCount($user);
+        $referralLine = $copy->get('opportunities.guidance_referral_progress', [
+            'progress' => $progress,
+            'required' => $required,
+        ]);
+
+        $becomePremium = [
+            'text' => $copy->get('opportunities.guidance_unlock_premium'),
+            'style' => TelegramButtonStyle::Primary->value,
+        ];
+
+        try {
+            $payment = $this->payments->startVerifyCheckoutPremium($user);
+            if (filled($payment->checkoutUrl)) {
+                $becomePremium['url'] = $payment->checkoutUrl;
+            } else {
+                $becomePremium['callback_data'] = 'premium_pay';
+            }
+        } catch (VerifyCheckoutException) {
+            $becomePremium['callback_data'] = 'premium_pay';
+        }
+
+        $this->telegram->sendMessage(
+            $user->telegram_id,
+            $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
+            .TelegramHtml::escape($body)."\n\n".TelegramHtml::escape($referralLine),
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([
+                    [$becomePremium],
+                    [[
+                        'text' => $copy->get('menu.refer'),
+                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
+                    ]],
+                ]),
+            ],
+        );
     }
 
     /**

@@ -112,6 +112,8 @@ class OpportunityController extends Controller
         }
 
         if (! $premium->canRequestOpportunityGuidance($user)) {
+            $guidance->sendPremiumRequiredPitch($user);
+
             return back()
                 ->with('status', $copy->get('opportunities.guidance_premium_required'))
                 ->with('show_premium_pitch', true);

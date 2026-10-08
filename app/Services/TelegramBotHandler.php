@@ -3292,43 +3292,7 @@ class TelegramBotHandler
         }
 
         if (! $this->premium->canRequestOpportunityGuidance($user)) {
-            $title = $this->settings->premiumPitchTitle();
-            $body = $this->settings->premiumPitchBody();
-            $required = $this->settings->requiredReferrals();
-            $progress = $this->referrals->qualifiedCount($user);
-            $referralLine = $copy->get('opportunities.guidance_referral_progress', [
-                'progress' => $progress,
-                'required' => $required,
-            ]);
-
-            $rows = [];
-
-            try {
-                $payment = $this->payments->startVerifyCheckoutPremium($user);
-                if (filled($payment->checkoutUrl)) {
-                    $rows[] = [[
-                        'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                        'url' => $payment->checkoutUrl,
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ]];
-                }
-            } catch (VerifyCheckoutException) {
-                // Pitch still shows referral unlock when checkout cannot start.
-            }
-
-            $rows[] = [[
-                'text' => $copy->get('menu.refer'),
-                'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
-            ]];
-
-            $this->telegram->sendMessage(
-                $chatId,
-                $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
-                .TelegramHtml::escape($body)."\n\n".TelegramHtml::escape($referralLine),
-                [
-                    'reply_markup' => $this->telegram->inlineKeyboard($rows),
-                ],
-            );
+            $this->opportunityGuidance->sendPremiumRequiredPitch($user);
 
             return null;
         }

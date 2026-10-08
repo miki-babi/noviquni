@@ -1114,8 +1114,62 @@ it('blocks bot guidance requests for non-premium students and unlocks via checko
             return false;
         }
 
-        $url = (string) data_get($request->data(), 'reply_markup.inline_keyboard.0.0.url', '');
+        $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
 
-        return $url === 'https://checkout.verify.et/c/guidance_token';
+        return ($button['text'] ?? null) === 'Become Premium'
+            && ($button['url'] ?? null) === 'https://checkout.verify.et/c/guidance_token';
+    });
+});
+
+it('sends a become premium telegram inline button when mini-app guidance is blocked', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+        'checkoutapi.verify.et/v1/deposits' => Http::response([
+            'data' => [
+                'id' => 'dep_guidance_mini_1',
+                'merchant_order_id' => 'order_mini_1',
+                'merchant_customer_id' => 'user_1',
+                'status' => 'awaiting_transfer',
+                'amount' => '30.00',
+                'currency' => 'ETB',
+                'checkout_url' => 'https://checkout.verify.et/c/guidance_mini_token',
+                'support_reference' => 'VC-2002',
+                'expires_at' => now()->addHour()->toIso8601String(),
+                'created_at' => now()->toIso8601String(),
+            ],
+            'meta' => ['requestId' => 'req_guidance_mini', 'apiVersion' => '2026-06-01'],
+        ], 201),
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '888201',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+        'is_premium' => false,
+    ]);
+
+    $opportunity = Opportunity::factory()
+        ->published()
+        ->internship()
+        ->guidanceAvailable()
+        ->create(['slug' => 'mini-app-guidance-pitch']);
+
+    $this->actingAs($user)
+        ->from(route('tg.opportunities.show', $opportunity))
+        ->post(route('tg.opportunities.guidance', $opportunity))
+        ->assertRedirect(route('tg.opportunities.show', $opportunity))
+        ->assertSessionHas('show_premium_pitch');
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
+
+        return (string) ($data['chat_id'] ?? '') === '888201'
+            && ($button['text'] ?? null) === 'Become Premium'
+            && ($button['url'] ?? null) === 'https://checkout.verify.et/c/guidance_mini_token';
     });
 });
