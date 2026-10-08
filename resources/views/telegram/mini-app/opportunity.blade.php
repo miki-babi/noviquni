@@ -79,9 +79,12 @@
                             ]) }}
                         </p>
                     </div>
-                    <a href="{{ route('tg.premium') }}" class="tg-btn w-full text-center">
-                        {{ $copy->get('opportunities.guidance_unlock_premium') }}
-                    </a>
+                    <form method="POST" action="{{ route('tg.premium.pay') }}">
+                        @csrf
+                        <button type="submit" class="tg-btn w-full">
+                            {{ $copy->get('opportunities.guidance_unlock_premium') }}
+                        </button>
+                    </form>
                     <a href="{{ route('tg.profile') }}" class="tg-btn tg-btn-secondary w-full text-center">
                         {{ $copy->get('menu.refer') }}
                     </a>

@@ -19,7 +19,7 @@
                 @foreach ($group['resources'] as $item)
                     @php
                         $resource = $item['resource'];
-                        $locked = config('services.telegram.premium_enabled') && $item['locked'];
+                        $locked = $item['locked'];
                         $accent = $accentCycle[$cardIndex % count($accentCycle)];
                         $cardIndex++;
                     @endphp

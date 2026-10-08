@@ -15,7 +15,6 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
-    config(['services.telegram.premium_enabled' => true]);
 });
 
 it('shows free plans to free students and hides premium week plans', function () {

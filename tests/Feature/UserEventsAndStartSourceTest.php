@@ -24,7 +24,6 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => 'test-token',
         'services.telegram.bot_username' => 'noviquni_bot',
-        'services.telegram.premium_enabled' => true,
         'queue.default' => 'database',
         'app.url' => 'https://noviquni.test',
     ]);

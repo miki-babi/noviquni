@@ -37,10 +37,6 @@ class PremiumService
             return false;
         }
 
-        if (! $this->isEnabled()) {
-            return true;
-        }
-
         if ($user->hasActivePremium()) {
             return true;
         }
@@ -51,10 +47,5 @@ class PremiumService
     public function canRequestOpportunityGuidance(User $user): bool
     {
         return $user->hasActivePremium();
-    }
-
-    public function isEnabled(): bool
-    {
-        return (bool) config('services.telegram.premium_enabled');
     }
 }

@@ -14,7 +14,6 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
     config([
         'services.telegram.bot_token' => 'test-token',
-        'services.telegram.premium_enabled' => true,
     ]);
     Http::fake([
         'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true], 200),

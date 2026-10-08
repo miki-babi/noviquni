@@ -12,7 +12,6 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
     config([
         'services.telegram.bot_token' => 'test-token',
-        'services.telegram.premium_enabled' => true,
     ]);
     Http::fake([
         'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true], 200),
@@ -50,7 +49,10 @@ it('handles text reply inline callbacks like typed menu text', function () {
             return false;
         }
 
-        return str_contains((string) ($request->data()['text'] ?? ''), '⭐ Premium');
+        $text = (string) ($request->data()['text'] ?? '');
+
+        return str_contains($text, 'Premium unlocks 1:1 guidance')
+            || str_contains($text, 'Price:');
     });
 
     Http::assertNotSent(function ($request) {

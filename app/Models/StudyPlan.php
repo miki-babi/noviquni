@@ -50,10 +50,6 @@ class StudyPlan extends Model
             return false;
         }
 
-        if (! config('services.telegram.premium_enabled')) {
-            return true;
-        }
-
         if ($user->hasActivePremium()) {
             return true;
         }

@@ -735,10 +735,6 @@ class TelegramBotHandler
 
     protected function handlePremiumPay(User $user, int|string $chatId): ?string
     {
-        if (! $this->premium->isEnabled()) {
-            return null;
-        }
-
         if ($user->onboarding_step !== OnboardingStep::Complete) {
             return TelegramCopy::for($user)->get('menu.finish_onboarding');
         }
@@ -1543,7 +1539,7 @@ class TelegramBotHandler
      */
     protected function resourceInlineButton(LearningResource $resource, ?string $label = null): array
     {
-        $showLock = $this->premium->isEnabled() && $resource->is_premium;
+        $showLock = $resource->is_premium;
         $text = $label ?? (($showLock ? '🔒 ' : '').$resource->title);
 
         if ($resource->hasFiles()) {
@@ -2693,10 +2689,6 @@ class TelegramBotHandler
 
     protected function showPremium(User $user, int|string $chatId): void
     {
-        if (! $this->premium->isEnabled()) {
-            return;
-        }
-
         $this->userEvents->log($user, UserEventName::PremiumView);
 
         if ($user->hasActivePremium()) {
@@ -3291,22 +3283,32 @@ class TelegramBotHandler
                 'required' => $required,
             ]);
 
+            $rows = [];
+
+            try {
+                $payment = $this->payments->startVerifyCheckoutPremium($user);
+                if (filled($payment->checkoutUrl)) {
+                    $rows[] = [[
+                        'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                        'url' => $payment->checkoutUrl,
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ]];
+                }
+            } catch (VerifyCheckoutException) {
+                // Pitch still shows referral unlock when checkout cannot start.
+            }
+
+            $rows[] = [[
+                'text' => $copy->get('menu.refer'),
+                'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
+            ]];
+
             $this->telegram->sendMessage(
                 $chatId,
                 $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
                 .TelegramHtml::escape($body)."\n\n".TelegramHtml::escape($referralLine),
                 [
-                    'reply_markup' => $this->telegram->inlineKeyboard([
-                        [[
-                            'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
-                            'style' => TelegramButtonStyle::Primary->value,
-                        ]],
-                        [[
-                            'text' => $copy->get('menu.refer'),
-                            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
-                        ]],
-                    ]),
+                    'reply_markup' => $this->telegram->inlineKeyboard($rows),
                 ],
             );
 

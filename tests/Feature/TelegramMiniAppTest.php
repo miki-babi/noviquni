@@ -204,30 +204,6 @@ it('shows course hubs for enrolled students', function () {
         ->assertRedirect(route('tg.browse'));
 });
 
-it('shows profile without premium screens when premium is disabled', function () {
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'is_active' => true,
-        'name' => 'Abebe Kebede',
-        'telegram_username' => 'abebe',
-        'telegram_photo_url' => 'https://t.me/i/userpic/320/abebe.jpg',
-    ]);
-
-    $this->actingAs($user)
-        ->get(route('tg.profile'))
-        ->assertOk()
-        ->assertSee('ABEBE KEBEDE')
-        ->assertSee('@abebe')
-        ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
-        ->assertSee('Edit study profile')
-        ->assertSee(route('tg.profile.edit'), false)
-        ->assertDontSee(route('tg.premium'), false);
-
-    $this->actingAs($user)
-        ->get(route('tg.premium'))
-        ->assertRedirect(route('tg.profile'));
-});
-
 it('shows profile course and saved-file bot deep links', function () {
     $stream = Stream::factory()->create(['name' => 'Natural']);
     $course = Course::factory()->create([
@@ -278,9 +254,7 @@ it('shows profile course and saved-file bot deep links', function () {
         ->assertSee('$store.botConfirm.ask', false);
 });
 
-it('shows profile and premium screens when premium is enabled', function () {
-    config(['services.telegram.premium_enabled' => true]);
-
+it('shows profile and premium screens', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -293,6 +267,10 @@ it('shows profile and premium screens when premium is enabled', function () {
         ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('ABEBE KEBEDE')
+        ->assertSee('@abebe')
+        ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
+        ->assertSee('Edit study profile')
+        ->assertSee(route('tg.profile.edit'), false)
         ->assertSee('Premium')
         ->assertSee(route('tg.premium'), false);
 

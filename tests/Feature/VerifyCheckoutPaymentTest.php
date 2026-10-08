@@ -20,7 +20,6 @@ beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
 
     config([
-        'services.telegram.premium_enabled' => true,
         'services.verify_checkout.api_key' => 'vchk_test_key',
         'services.verify_checkout.webhook_secret' => 'whsec_test_secret',
         'services.verify_checkout.api_version' => '2026-06-01',

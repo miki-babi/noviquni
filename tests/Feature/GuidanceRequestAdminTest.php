@@ -178,8 +178,6 @@ it('lets an admin delete a guidance request from the list', function () {
 
     expect(OpportunityGuidanceRequest::query()->whereKey($request->id)->exists())->toBeFalse();
 
-    config(['services.telegram.premium_enabled' => true]);
-
     app(OpportunityGuidanceService::class)->requestGuidance($student, $opportunity);
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $student->id)->where('opportunity_id', $opportunity->id)->exists())->toBeTrue();

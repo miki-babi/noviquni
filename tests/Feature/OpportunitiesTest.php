@@ -30,7 +30,8 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => '123456:TEST_TOKEN',
         'services.telegram.bot_username' => 'noviquni_bot',
-        'services.telegram.premium_enabled' => false,
+        'services.verify_checkout.api_key' => 'vchk_test_key',
+        'services.verify_checkout.api_version' => '2026-06-01',
         'app.url' => 'https://noviquni.test',
     ]);
 });
@@ -1002,8 +1003,6 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
 });
 
 it('shows request guidance to everyone and only pitches premium after a non-premium tap', function () {
-    config(['services.telegram.premium_enabled' => false]);
-
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -1038,16 +1037,15 @@ it('shows request guidance to everyone and only pitches premium after a non-prem
         ->get(route('tg.opportunities.show', $opportunity))
         ->assertOk()
         ->assertSee(app(SettingsService::class)->premiumPitchTitle(), false)
-        ->assertSee(route('tg.premium'), false)
+        ->assertSee(route('tg.premium.pay'), false)
         ->assertSee(route('tg.opportunities.guidance', $opportunity), false);
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->exists())->toBeFalse();
 });
 
-it('allows premium students to request guidance regardless of the resource premium flag', function () {
+it('allows premium students to request guidance', function () {
     Queue::fake();
     config([
-        'services.telegram.premium_enabled' => false,
         'services.telegram.file_admin_username' => 'noviqsupport',
     ]);
 
@@ -1077,12 +1075,25 @@ it('allows premium students to request guidance regardless of the resource premi
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('blocks bot guidance requests for non-premium students even when the resource premium flag is off', function () {
+it('blocks bot guidance requests for non-premium students and unlocks via checkout url', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+        'checkoutapi.verify.et/v1/deposits' => Http::response([
+            'data' => [
+                'id' => 'dep_guidance_1',
+                'merchant_order_id' => 'order_1',
+                'merchant_customer_id' => 'user_1',
+                'status' => 'awaiting_transfer',
+                'amount' => '30.00',
+                'currency' => 'ETB',
+                'checkout_url' => 'https://checkout.verify.et/c/guidance_token',
+                'support_reference' => 'VC-2001',
+                'expires_at' => now()->addHour()->toIso8601String(),
+                'created_at' => now()->toIso8601String(),
+            ],
+            'meta' => ['requestId' => 'req_guidance', 'apiVersion' => '2026-06-01'],
+        ], 201),
     ]);
-
-    config(['services.telegram.premium_enabled' => false]);
 
     User::factory()->student()->create([
         'telegram_id' => '888200',
@@ -1097,4 +1108,14 @@ it('blocks bot guidance requests for non-premium students even when the resource
         ->assertOk();
 
     expect(OpportunityGuidanceRequest::query()->count())->toBe(0);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $url = (string) data_get($request->data(), 'reply_markup.inline_keyboard.0.0.url', '');
+
+        return $url === 'https://checkout.verify.et/c/guidance_token';
+    });
 });

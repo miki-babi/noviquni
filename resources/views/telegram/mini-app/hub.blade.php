@@ -28,7 +28,7 @@
                     <div class="study-card-inner">
                         <span class="min-w-0 flex-1">
                             <span class="study-card-title block">{{ $resource->title }}</span>
-                            @if (config('services.telegram.premium_enabled') && $resource->is_premium)
+                            @if ($resource->is_premium)
                                 <span class="study-card-meta block">🔒 Premium</span>
                             @endif
                         </span>

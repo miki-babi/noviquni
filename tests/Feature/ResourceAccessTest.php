@@ -11,7 +11,6 @@ uses(RefreshDatabase::class);
 
 beforeEach(function () {
     app(SettingsService::class)->seedDefaults();
-    config(['services.telegram.premium_enabled' => true]);
 });
 
 it('allows free published non-premium resources for free students', function () {
@@ -23,20 +22,11 @@ it('allows free published non-premium resources for free students', function () 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });
 
-it('blocks premium resources for free students when premium is enabled', function () {
+it('blocks premium resources for free students', function () {
     $student = User::factory()->student()->create();
     $resource = LearningResource::factory()->published()->premium()->create();
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeFalse();
-});
-
-it('allows premium resources for free students when premium is disabled', function () {
-    config(['services.telegram.premium_enabled' => false]);
-
-    $student = User::factory()->student()->create();
-    $resource = LearningResource::factory()->published()->premium()->create();
-
-    expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });
 
 it('blocks flashcards for free students because they are always premium', function () {

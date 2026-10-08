@@ -23,12 +23,8 @@ use Illuminate\View\View;
 
 class PremiumController extends Controller
 {
-    public function show(SettingsService $settings, ReferralService $referrals, UserEventService $userEvents): View|RedirectResponse
+    public function show(SettingsService $settings, ReferralService $referrals, UserEventService $userEvents): View
     {
-        if (! config('services.telegram.premium_enabled')) {
-            return redirect()->route('tg.profile');
-        }
-
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
@@ -49,10 +45,6 @@ class PremiumController extends Controller
 
     public function pay(PaymentService $payments): RedirectResponse
     {
-        if (! config('services.telegram.premium_enabled')) {
-            return redirect()->route('tg.profile');
-        }
-
         /** @var User $user */
         $user = Auth::user();
 

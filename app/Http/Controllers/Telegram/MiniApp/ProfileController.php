@@ -59,7 +59,6 @@ class ProfileController extends Controller
             'qualifiedCount' => $referrals->qualifiedCount($user),
             'requiredReferrals' => $settings->requiredReferrals(),
             'referralPoints' => $user->referral_points,
-            'premiumEnabled' => (bool) config('services.telegram.premium_enabled'),
             'activeNav' => 'profile',
         ]);
     }
