@@ -38,6 +38,7 @@ use Illuminate\Support\Str;
     'onboarding_step',
     'notifications_enabled',
     'premium_until',
+    'is_premium',
     'university_id',
     'stream_id',
     'semester_id',
@@ -59,6 +60,7 @@ class User extends Authenticatable implements FilamentUser
         'telegram_locale' => 'en',
         'theme' => 'dark',
         'referral_points' => 0,
+        'is_premium' => false,
     ];
 
     protected static function booted(): void
@@ -87,7 +89,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function hasActivePremium(): bool
     {
-        return $this->premium_until !== null && $this->premium_until->isFuture();
+        return (bool) $this->is_premium;
     }
 
     public function university(): BelongsTo
@@ -254,6 +256,7 @@ class User extends Authenticatable implements FilamentUser
             'onboarding_step' => OnboardingStep::class,
             'is_active' => 'boolean',
             'notifications_enabled' => 'boolean',
+            'is_premium' => 'boolean',
             'premium_until' => 'datetime',
             'referral_points' => 'integer',
         ];

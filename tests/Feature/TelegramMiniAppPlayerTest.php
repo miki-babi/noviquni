@@ -92,7 +92,7 @@ it('renders the exam player for enrolled students', function () {
 
 it('renders the flashcards player for premium students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
-    $user->update(['premium_until' => now()->addDays(7)]);
+    $user->update(['is_premium' => true]);
 
     $module = LearningResource::factory()->published()->module()->create([
         'course_id' => $course->id,
@@ -140,7 +140,7 @@ it('locks flashcards for free students when premium is enabled', function () {
 
 it('renders reader shells for every catalog type without interactive payload', function (ResourceType $type, string $routeName) {
     [$user, $course, $stream] = miniAppPlayerContext();
-    $user->update(['premium_until' => now()->addDays(7)]);
+    $user->update(['is_premium' => true]);
 
     $resource = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
@@ -177,7 +177,7 @@ it('renders reader shells for every catalog type without interactive payload', f
 
 it('returns 404 when the player type does not match the resource', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
-    $user->update(['premium_until' => now()->addDays(7)]);
+    $user->update(['is_premium' => true]);
 
     $flashcards = LearningResource::factory()->published()->flashcards()->create([
         'course_id' => $course->id,

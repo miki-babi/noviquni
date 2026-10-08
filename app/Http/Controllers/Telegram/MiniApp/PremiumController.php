@@ -123,7 +123,6 @@ class PremiumController extends Controller
             'deposit_status' => $payment->deposit_status,
             'fulfilled' => $payment->fulfilled_at !== null,
             'premium_active' => $payment->user?->hasActivePremium() ?? false,
-            'premium_until' => $payment->user?->premium_until?->toIso8601String(),
         ]);
     }
 }

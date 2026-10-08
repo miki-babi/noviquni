@@ -744,7 +744,7 @@ class TelegramBotHandler
         }
 
         if ($user->hasActivePremium()) {
-            $this->telegram->sendMessage($chatId, 'Premium active until '.$user->premium_until->toDayDateTimeString());
+            $this->telegram->sendMessage($chatId, 'Premium is active.');
 
             return null;
         }
@@ -2700,7 +2700,7 @@ class TelegramBotHandler
         $this->userEvents->log($user, UserEventName::PremiumView);
 
         if ($user->hasActivePremium()) {
-            $this->telegram->sendMessage($chatId, 'Premium active until '.$user->premium_until->toDayDateTimeString());
+            $this->telegram->sendMessage($chatId, 'Premium is active.');
 
             return;
         }

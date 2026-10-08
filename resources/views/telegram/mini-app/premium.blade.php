@@ -7,7 +7,7 @@
     <div class="study-page space-y-4">
         @if ($user->hasActivePremium())
             <div class="study-card study-card--mint study-continue">
-                <p class="study-card-title">Premium active until {{ $user->premium_until->toDayDateTimeString() }}</p>
+                <p class="study-card-title">Premium is active</p>
             </div>
         @else
             <div class="study-card study-card--lime study-continue space-y-2">

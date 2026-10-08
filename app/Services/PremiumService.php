@@ -6,7 +6,6 @@ use App\Enums\SubscriptionSource;
 use App\Models\LearningResource;
 use App\Models\Subscription;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 
 class PremiumService
 {
@@ -14,21 +13,22 @@ class PremiumService
 
     public function grant(User $user, SubscriptionSource $source, ?int $paymentId = null, ?int $days = null): Subscription
     {
-        $days ??= $this->settings->premiumDurationDays();
-        $startsAt = now();
-        $endsAt = ($user->hasActivePremium() ? Carbon::parse($user->premium_until) : $startsAt)->copy()->addDays($days);
-
         $subscription = Subscription::query()->create([
             'user_id' => $user->id,
-            'starts_at' => $startsAt,
-            'ends_at' => $endsAt,
+            'starts_at' => now(),
+            'ends_at' => null,
             'source' => $source,
             'payment_id' => $paymentId,
         ]);
 
-        $user->update(['premium_until' => $endsAt]);
+        $user->update(['is_premium' => true]);
 
         return $subscription;
+    }
+
+    public function revoke(User $user): void
+    {
+        $user->update(['is_premium' => false]);
     }
 
     public function canAccess(User $user, LearningResource $resource): bool

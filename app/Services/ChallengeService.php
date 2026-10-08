@@ -109,7 +109,6 @@ class ChallengeService
             ChallengeRewardType::PremiumDays => $this->premium->grant(
                 $user,
                 SubscriptionSource::Challenge,
-                days: max(1, (int) ($challenge->reward_value ?? 1)),
             ),
             ChallengeRewardType::Message => null,
         };

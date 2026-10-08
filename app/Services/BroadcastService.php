@@ -48,14 +48,11 @@ class BroadcastService
         $audience = $targeting['audience'] ?? 'everyone';
 
         if ($audience === 'premium') {
-            $query->whereNotNull('premium_until')->where('premium_until', '>', now());
+            $query->where('is_premium', true);
         }
 
         if ($audience === 'free') {
-            $query->where(function (Builder $builder): void {
-                $builder->whereNull('premium_until')
-                    ->orWhere('premium_until', '<=', now());
-            });
+            $query->where('is_premium', false);
         }
 
         if (! empty($targeting['university_id'])) {

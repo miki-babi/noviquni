@@ -54,7 +54,6 @@ class ManageSettings extends Page
             'premium_price' => $settings->premiumPrice(),
             'required_referrals' => $settings->requiredReferrals(),
             'points_per_referral' => $settings->pointsPerReferral(),
-            'premium_duration_days' => $settings->premiumDurationDays(),
             'payment_instructions' => $settings->paymentInstructions(),
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
@@ -108,7 +107,6 @@ class ManageSettings extends Page
                             ->required()
                             ->integer()
                             ->minValue(1),
-                        TextInput::make('premium_duration_days')->numeric()->required()->integer()->suffix('days'),
                         Textarea::make('payment_instructions')
                             ->rows(4)
                             ->helperText('Legacy manual payments only. Student Pay now uses Verify Checkout. Placeholders: {amount}, {reference}.')
@@ -232,7 +230,6 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PREMIUM_PRICE, (string) $data['premium_price']);
         $settings->set(SettingsService::REQUIRED_REFERRALS, (string) $data['required_referrals']);
         $settings->set(SettingsService::POINTS_PER_REFERRAL, (string) $data['points_per_referral']);
-        $settings->set(SettingsService::PREMIUM_DURATION_DAYS, (string) $data['premium_duration_days']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));

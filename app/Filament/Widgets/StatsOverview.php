@@ -19,7 +19,7 @@ class StatsOverview extends StatsOverviewWidget
         $totalStudents = (clone $students)->count();
         $newStudents = (clone $students)->where('created_at', '>=', now()->subDays(7))->count();
         $activeStudents = (clone $students)->where('is_active', true)->count();
-        $premiumUsers = (clone $students)->whereNotNull('premium_until')->where('premium_until', '>', now())->count();
+        $premiumUsers = (clone $students)->where('is_premium', true)->count();
         $revenue = Payment::query()->where('status', PaymentStatus::Verified)->sum('amount');
         $referralPoints = (int) (clone $students)->sum('referral_points');
         $referrals = Referral::query()->count();

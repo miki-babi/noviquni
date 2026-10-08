@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Students\Schemas;
 
 use App\Models\User;
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -74,7 +73,7 @@ class StudentForm
                     ->multiple()
                     ->preload()
                     ->searchable(),
-                DateTimePicker::make('premium_until'),
+                Toggle::make('is_premium')->label('Premium')->default(false),
                 Toggle::make('is_active')->default(true),
                 Toggle::make('notifications_enabled')->default(true),
             ]);

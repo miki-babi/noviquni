@@ -70,10 +70,10 @@ class UserFactory extends Factory
         ]);
     }
 
-    public function premium(?\DateTimeInterface $until = null): static
+    public function premium(): static
     {
         return $this->state(fn (array $attributes) => [
-            'premium_until' => $until ?? now()->addDays(30),
+            'is_premium' => true,
         ]);
     }
 

@@ -158,7 +158,7 @@ it('lets an admin delete a guidance request from the list', function () {
 
     $student = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'premium_until' => now()->addDays(7),
+        'is_premium' => true,
     ]);
 
     $opportunity = Opportunity::factory()->published()->job()->guidanceAvailable()->create([

@@ -32,13 +32,14 @@ class StudentsTable
                     ->toggleable(),
                 TextColumn::make('stream.name')->toggleable(),
                 TextColumn::make('university.name')->toggleable(),
-                TextColumn::make('premium_until')->dateTime()->sortable(),
+                IconColumn::make('is_premium')->label('Premium')->boolean()->sortable(),
                 IconColumn::make('is_active')->boolean(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
                 SelectFilter::make('stream')->relationship('stream', 'name'),
                 SelectFilter::make('university')->relationship('university', 'name'),
+                TernaryFilter::make('is_premium')->label('Premium'),
                 TernaryFilter::make('is_active'),
             ])
             ->recordActions([
@@ -46,8 +47,15 @@ class StudentsTable
                 SendStudentTelegramMessageAction::make(),
                 Action::make('grantPremium')
                     ->label('Grant premium')
+                    ->visible(fn ($record) => ! $record->is_premium)
                     ->requiresConfirmation()
                     ->action(fn ($record) => app(PremiumService::class)->grant($record, SubscriptionSource::Admin)),
+                Action::make('revokePremium')
+                    ->label('Revoke premium')
+                    ->color('danger')
+                    ->visible(fn ($record) => $record->is_premium)
+                    ->requiresConfirmation()
+                    ->action(fn ($record) => app(PremiumService::class)->revoke($record)),
                 Action::make('disable')
                     ->visible(fn ($record) => $record->is_active)
                     ->requiresConfirmation()

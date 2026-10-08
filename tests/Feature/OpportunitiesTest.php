@@ -30,6 +30,7 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => '123456:TEST_TOKEN',
         'services.telegram.bot_username' => 'noviquni_bot',
+        'services.telegram.premium_enabled' => false,
         'app.url' => 'https://noviquni.test',
     ]);
 });
@@ -1002,7 +1003,7 @@ it('shows request guidance to everyone and only pitches premium after a non-prem
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
-        'premium_until' => null,
+        'is_premium' => false,
     ]);
 
     $opportunity = Opportunity::factory()
@@ -1049,7 +1050,7 @@ it('allows premium students to request guidance when premium is enabled', functi
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
-        'premium_until' => now()->addDays(10),
+        'is_premium' => true,
     ]);
 
     User::factory()->admin()->create([
@@ -1083,7 +1084,7 @@ it('blocks bot guidance requests for non-premium students when premium is enable
         'telegram_id' => '888200',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
-        'premium_until' => null,
+        'is_premium' => false,
     ]);
 
     $opportunity = Opportunity::factory()->published()->internship()->guidanceAvailable()->create();
