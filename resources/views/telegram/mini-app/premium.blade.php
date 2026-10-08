@@ -27,7 +27,7 @@
             <form method="POST" action="{{ route('tg.premium.pay') }}">
                 @csrf
                 <button type="submit" class="tg-btn">
-                    Pay now
+                    {{ $copy->get('opportunities.guidance_unlock_premium') }}
                 </button>
             </form>
         @endif

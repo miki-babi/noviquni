@@ -759,10 +759,12 @@ class TelegramBotHandler
             return null;
         }
 
+        $copy = TelegramCopy::for($user);
+
         $this->telegram->sendMessage($chatId, 'Open checkout to complete your Premium payment:', [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 [
-                    'text' => 'Open checkout',
+                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
                     'url' => $payment->checkoutUrl,
                     'style' => TelegramButtonStyle::Primary->value,
                 ],
@@ -2697,25 +2699,41 @@ class TelegramBotHandler
             return;
         }
 
+        $copy = TelegramCopy::for($user);
         $price = $this->settings->premiumPrice();
         $required = $this->settings->requiredReferrals();
         $progress = $this->referrals->qualifiedCount($user);
         $title = $this->settings->premiumPitchTitle();
         $body = $this->settings->premiumPitchBody();
 
+        $rows = [];
+        $pitchText = '<b>'.TelegramHtml::escape($title)."</b>\n"
+            .TelegramHtml::escape($body)
+            ."\n\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}";
+
+        try {
+            $payment = $this->payments->startVerifyCheckoutPremium($user);
+            if (filled($payment->checkoutUrl)) {
+                $rows[] = [[
+                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                    'url' => $payment->checkoutUrl,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]];
+            }
+        } catch (VerifyCheckoutException $exception) {
+            $pitchText .= "\n\n".TelegramHtml::escape($exception->customerSafeMessage());
+        }
+
+        $rows[] = [[
+            'text' => $copy->get('menu.refer'),
+            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
+        ]];
+
         $this->telegram->sendMessage(
             $chatId,
-            '<b>'.TelegramHtml::escape($title)."</b>\n"
-            .TelegramHtml::escape($body)
-            ."\n\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}",
+            $pitchText,
             [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    ['text' => 'Pay now', 'callback_data' => 'premium_pay', 'style' => TelegramButtonStyle::Primary->value],
-                    [
-                        'text' => 'Open Premium',
-                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
-                    ],
-                ]]),
+                'reply_markup' => $this->telegram->inlineKeyboard($rows),
             ],
         );
     }

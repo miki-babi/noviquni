@@ -245,7 +245,7 @@ return [
         'finish_onboarding_to_act' => 'Finish onboarding in the bot to use this action.',
         'open_bot_to_onboard' => 'Open bot to finish setup',
         'guidance_premium_required' => 'Guidance is for Premium members.',
-        'guidance_unlock_premium' => 'Unlock Premium',
+        'guidance_unlock_premium' => 'Become Premium',
         'guidance_referral_progress' => 'Or invite friends: :progress/:required',
     ],
     'broadcast' => [
