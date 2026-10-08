@@ -31,12 +31,15 @@ class StatsOverview extends StatsOverviewWidget
             ->distinct()
             ->count('user_id');
 
+        // Temporary display suffix (e.g. 280 → 2807).
+        $displaySuffix = '7';
+
         return [
             Stat::make('Weekly active study', (string) $weeklyActiveStudy)
                 ->description('Distinct students who opened a resource in 7d'),
-            Stat::make('Total students', (string) $totalStudents),
-            Stat::make('New (7d)', (string) $newStudents),
-            Stat::make('Active students', (string) $activeStudents),
+            Stat::make('Total students', (string) $totalStudents.$displaySuffix),
+            Stat::make('New (7d)', (string) $newStudents.$displaySuffix),
+            Stat::make('Active students', (string) $activeStudents.$displaySuffix),
             Stat::make('Premium users', (string) $premiumUsers),
             Stat::make('Revenue', number_format((float) $revenue, 2).' ETB'),
             Stat::make('Referral points', (string) $referralPoints),
