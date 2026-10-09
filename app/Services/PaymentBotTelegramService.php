@@ -84,15 +84,22 @@ class PaymentBotTelegramService
         ]);
     }
 
-    public function editMessageCaption(int|string $chatId, int $messageId, string $caption): ?array
-    {
-        return $this->api()->call('editMessageCaption', [
+    /**
+     * @param  array<string, mixed>|null  $replyMarkup
+     */
+    public function editMessageCaption(
+        int|string $chatId,
+        int $messageId,
+        string $caption,
+        ?array $replyMarkup = null,
+    ): ?array {
+        return $this->api()->call('editMessageCaption', array_filter([
             'chat_id' => $chatId,
             'message_id' => $messageId,
             'caption' => $caption,
             'parse_mode' => 'HTML',
-            'reply_markup' => ['inline_keyboard' => []],
-        ]);
+            'reply_markup' => $replyMarkup ?? ['inline_keyboard' => []],
+        ], fn (mixed $value): bool => $value !== null));
     }
 
     /**

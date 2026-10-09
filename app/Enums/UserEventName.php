@@ -11,6 +11,7 @@ enum UserEventName: string
     case PremiumView = 'premium_view';
     case PaymentSubmitted = 'payment_submitted';
     case PaymentApproved = 'payment_approved';
+    case PaymentReverted = 'payment_reverted';
     case ReferralLinkShared = 'referral_link_shared';
     case ReferralJoined = 'referral_joined';
     case Blocked = 'blocked';

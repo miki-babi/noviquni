@@ -57,6 +57,11 @@ class Payment extends Model
             && $this->status === PaymentStatus::Pending;
     }
 
+    public function isReversible(): bool
+    {
+        return $this->status === PaymentStatus::Verified;
+    }
+
     /**
      * @return array<string, string>
      */

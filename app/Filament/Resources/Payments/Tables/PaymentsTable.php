@@ -45,6 +45,13 @@ class PaymentsTable
                     ->visible(fn (Payment $record): bool => $record->isManuallyVerifiable())
                     ->requiresConfirmation()
                     ->action(fn (Payment $record) => app(PaymentService::class)->reject($record, auth()->user())),
+                Action::make('revert')
+                    ->color('warning')
+                    ->visible(fn (Payment $record): bool => $record->isReversible())
+                    ->requiresConfirmation()
+                    ->modalHeading('Revert verified payment')
+                    ->modalDescription('Marks the payment as rejected and removes premium granted by this payment (unless the student still has another premium source).')
+                    ->action(fn (Payment $record) => app(PaymentService::class)->revert($record, auth()->user())),
             ]);
     }
 }

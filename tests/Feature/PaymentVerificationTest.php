@@ -48,3 +48,35 @@ it('grants and revokes permanent premium via the boolean flag', function () {
     expect($student->fresh()->is_premium)->toBeFalse()
         ->and($student->fresh()->hasActivePremium())->toBeFalse();
 });
+
+it('reverts a verified payment and removes premium from that payment', function () {
+    $admin = User::factory()->admin()->create();
+    $student = User::factory()->student()->create(['is_premium' => false]);
+
+    $payment = app(PaymentService::class)->createPendingPremiumPayment($student);
+    app(PaymentService::class)->verify($payment, $admin);
+
+    expect($student->fresh()->hasActivePremium())->toBeTrue()
+        ->and(Subscription::query()->where('payment_id', $payment->id)->exists())->toBeTrue();
+
+    app(PaymentService::class)->revert($payment->fresh(), $admin);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Rejected)
+        ->and($payment->fresh()->fulfilled_at)->toBeNull()
+        ->and(Subscription::query()->where('payment_id', $payment->id)->exists())->toBeFalse()
+        ->and($student->fresh()->hasActivePremium())->toBeFalse();
+});
+
+it('keeps premium when reverting a payment if another premium source remains', function () {
+    $admin = User::factory()->admin()->create();
+    $student = User::factory()->student()->create(['is_premium' => false]);
+
+    $payment = app(PaymentService::class)->createPendingPremiumPayment($student);
+    app(PaymentService::class)->verify($payment, $admin);
+    app(PremiumService::class)->grant($student->fresh(), SubscriptionSource::Admin);
+
+    app(PaymentService::class)->revert($payment->fresh(), $admin);
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Rejected)
+        ->and($student->fresh()->hasActivePremium())->toBeTrue();
+});

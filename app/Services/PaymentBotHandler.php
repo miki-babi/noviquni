@@ -231,7 +231,7 @@ class PaymentBotHandler
             return;
         }
 
-        if (! preg_match('/^pay:(v|r):(\d+)$/', $data, $matches)) {
+        if (! preg_match('/^pay:(v|r|u):(\d+)$/', $data, $matches)) {
             $this->telegram->answerCallbackQuery($callbackId);
 
             return;
@@ -251,6 +251,33 @@ class PaymentBotHandler
             ? '@'.ltrim((string) $from['username'], '@')
             : 'admin';
 
+        if ($action === 'u') {
+            if ($payment->status !== PaymentStatus::Verified) {
+                $this->telegram->answerCallbackQuery($callbackId, 'Nothing to revert.');
+
+                return;
+            }
+
+            $this->payments->revertViaPaymentBot($payment->fresh() ?? $payment);
+            $payment = $payment->fresh() ?? $payment;
+            $payment->loadMissing('user');
+
+            $this->telegram->answerCallbackQuery($callbackId, 'Reverted.');
+            if ($messageId !== null) {
+                $this->finalizeAdminMessage($chatId, $messageId, $message, 'Reverted by '.$adminLabel);
+            }
+
+            if ($payment->user?->telegram_id) {
+                $this->telegram->sendMessage(
+                    $payment->user->telegram_id,
+                    'Your payment approval was reverted. Premium from this payment is no longer active. Contact support if this is unexpected (ref '
+                    .TelegramHtml::escape((string) $payment->external_ref).').',
+                );
+            }
+
+            return;
+        }
+
         if ($payment->status !== PaymentStatus::Pending) {
             $this->telegram->answerCallbackQuery($callbackId, 'Already handled.');
             if ($messageId !== null) {
@@ -264,7 +291,13 @@ class PaymentBotHandler
             $this->payments->verifyViaPaymentBot($payment);
             $this->telegram->answerCallbackQuery($callbackId, 'Approved.');
             if ($messageId !== null) {
-                $this->finalizeAdminMessage($chatId, $messageId, $message, 'Approved by '.$adminLabel);
+                $this->finalizeAdminMessage(
+                    $chatId,
+                    $messageId,
+                    $message,
+                    'Approved by '.$adminLabel,
+                    undoPaymentId: $payment->id,
+                );
             }
 
             if ($payment->user?->telegram_id) {
@@ -295,12 +328,23 @@ class PaymentBotHandler
     /**
      * @param  array<string, mixed>  $message
      */
-    protected function finalizeAdminMessage(int|string $chatId, int $messageId, array $message, string $statusLine): void
-    {
+    protected function finalizeAdminMessage(
+        int|string $chatId,
+        int $messageId,
+        array $message,
+        string $statusLine,
+        ?int $undoPaymentId = null,
+    ): void {
         $caption = trim((string) ($message['caption'] ?? ''));
         $updated = ($caption !== '' ? $caption."\n\n" : '').'<b>'.TelegramHtml::escape($statusLine).'</b>';
 
-        $this->telegram->editMessageCaption($chatId, $messageId, $updated);
+        $replyMarkup = $undoPaymentId !== null
+            ? $this->telegram->inlineKeyboard([[
+                ['text' => 'Undo approve', 'callback_data' => 'pay:u:'.$undoPaymentId],
+            ]])
+            : ['inline_keyboard' => []];
+
+        $this->telegram->editMessageCaption($chatId, $messageId, $updated, $replyMarkup);
     }
 
     /**

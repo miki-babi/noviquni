@@ -4,6 +4,7 @@ use App\Enums\OnboardingStep;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\PaymentService;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -190,6 +191,51 @@ it('rejects a payment and notifies the student', function () {
         return str_contains($request->url(), '/sendMessage')
             && ($request['chat_id'] ?? null) == '700004'
             && str_contains((string) ($request['text'] ?? ''), 'not approved');
+    });
+});
+
+it('reverts premium when a file admin undoes an approval', function () {
+    $student = User::factory()->student()->create([
+        'telegram_id' => '700006',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_premium' => false,
+    ]);
+
+    $payment = Payment::factory()->create([
+        'user_id' => $student->id,
+        'provider' => Payment::PROVIDER_PAYMENT_BOT,
+        'status' => PaymentStatus::Pending,
+        'external_ref' => 'PAY-UNDO1',
+    ]);
+
+    app(PaymentService::class)->verifyViaPaymentBot($payment);
+
+    expect($student->fresh()->hasActivePremium())->toBeTrue();
+
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 6,
+        'callback_query' => [
+            'id' => 'cb-undo',
+            'data' => 'pay:u:'.$payment->id,
+            'from' => [
+                'id' => 800001,
+                'username' => 'payadmin',
+            ],
+            'message' => [
+                'message_id' => 53,
+                'chat' => ['id' => 800001],
+                'caption' => 'Premium payment screenshot',
+            ],
+        ],
+    ])->assertOk();
+
+    expect($payment->fresh()->status)->toBe(PaymentStatus::Rejected)
+        ->and($student->fresh()->hasActivePremium())->toBeFalse();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/sendMessage')
+            && ($request['chat_id'] ?? null) == '700006'
+            && str_contains((string) ($request['text'] ?? ''), 'reverted');
     });
 });
 

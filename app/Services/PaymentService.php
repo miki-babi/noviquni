@@ -6,6 +6,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\SubscriptionSource;
 use App\Enums\UserEventName;
 use App\Models\Payment;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -77,6 +78,16 @@ class PaymentService
     public function rejectViaPaymentBot(Payment $payment): Payment
     {
         return $this->markRejected($payment, verifier: null, verifiedVia: 'payment_bot');
+    }
+
+    public function revert(Payment $payment, ?User $admin = null): Payment
+    {
+        return $this->revertVerified($payment, $admin, verifiedVia: null);
+    }
+
+    public function revertViaPaymentBot(Payment $payment): Payment
+    {
+        return $this->revertVerified($payment, verifier: null, verifiedVia: 'payment_bot');
     }
 
     public function instructionsFor(Payment $payment): string
@@ -152,5 +163,71 @@ class PaymentService
         ]);
 
         return $payment->fresh() ?? $payment;
+    }
+
+    protected function revertVerified(Payment $payment, ?User $verifier = null, ?string $verifiedVia = null): Payment
+    {
+        if ($payment->status !== PaymentStatus::Verified) {
+            return $payment;
+        }
+
+        return DB::transaction(function () use ($payment, $verifier, $verifiedVia): Payment {
+            /** @var Payment $locked */
+            $locked = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
+
+            if ($locked->status !== PaymentStatus::Verified) {
+                return $locked;
+            }
+
+            $meta = $locked->meta ?? [];
+            $meta['reverted_at'] = now()->toIso8601String();
+            if ($verifiedVia !== null) {
+                $meta['reverted_via'] = $verifiedVia;
+            }
+
+            $locked->update([
+                'status' => PaymentStatus::Rejected,
+                'verified_at' => now(),
+                'verified_by' => $verifier?->id ?? $locked->verified_by,
+                'fulfilled_at' => null,
+                'meta' => $meta,
+            ]);
+
+            Subscription::query()
+                ->where('payment_id', $locked->id)
+                ->delete();
+
+            $locked = $locked->refresh();
+            $locked->loadMissing('user');
+            $user = $locked->user;
+
+            if ($user !== null) {
+                $stillPremium = Subscription::query()
+                    ->where('user_id', $user->id)
+                    ->where(function ($query): void {
+                        $query->whereNull('ends_at')
+                            ->orWhere('ends_at', '>', now());
+                    })
+                    ->exists()
+                    || Payment::query()
+                        ->where('user_id', $user->id)
+                        ->where('status', PaymentStatus::Verified)
+                        ->whereKeyNot($locked->id)
+                        ->exists();
+
+                if (! $stillPremium) {
+                    $this->premium->revoke($user);
+                }
+
+                $this->userEvents->log($user, UserEventName::PaymentReverted, [
+                    'payment_id' => $locked->id,
+                    'amount' => $locked->amount,
+                    'currency' => $locked->currency,
+                    'provider' => $locked->provider,
+                ]);
+            }
+
+            return $locked;
+        });
     }
 }
