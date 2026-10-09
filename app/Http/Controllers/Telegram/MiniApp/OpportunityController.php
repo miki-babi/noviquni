@@ -52,6 +52,8 @@ class OpportunityController extends Controller
             'hasRequestedGuidance' => $guidance->hasRequested($user, $opportunity),
             'premiumPitchTitle' => $settings->premiumPitchTitle(),
             'premiumPitchBody' => $settings->premiumPitchBody(),
+            'paymentBotUrl' => $settings->paymentBotUrl($user),
+            'premiumPrice' => $settings->premiumPrice(),
             'referralProgress' => $referrals->qualifiedCount($user),
             'requiredReferrals' => $settings->requiredReferrals(),
             'shareUrl' => $shareUrl,

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\ResourceHub;
+use App\Http\Controllers\PaymentBotWebhookController;
 use App\Http\Controllers\Public\CourseController;
 use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\ResourceController;
@@ -27,7 +28,6 @@ use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
 use App\Http\Controllers\Telegram\MiniApp\SavedController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
 use App\Http\Controllers\TelegramWebhookController;
-use App\Http\Controllers\Webhooks\VerifyCheckoutWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -91,20 +91,8 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
         Route::post('profile/referral-share', ReferralShareController::class)->name('profile.referral-share');
         Route::get('premium', [PremiumController::class, 'show'])->name('premium');
-        Route::post('premium/pay', [PremiumController::class, 'pay'])->name('premium.pay');
     });
-
-    Route::get('premium/return/{payment}', [PremiumController::class, 'return'])
-        ->middleware('signed')
-        ->name('premium.return');
-    Route::get('premium/status/{payment}', [PremiumController::class, 'status'])
-        ->middleware(['signed', 'throttle:60,1'])
-        ->name('premium.status');
 });
-
-Route::post('/webhooks/verify-checkout', VerifyCheckoutWebhookController::class)
-    ->middleware('throttle:120,1')
-    ->name('webhooks.verify-checkout');
 
 Route::get('/{hub}', [ResourceHubController::class, 'show'])
     ->whereIn('hub', ['modules', 'notes', 'exams', 'practice'])
@@ -117,10 +105,20 @@ Route::post('/telegram/webhook', TelegramWebhookController::class)
     ->middleware(['throttle:60,1'])
     ->name('telegram.webhook');
 
+Route::post('/telegram/payment-bot/webhook', PaymentBotWebhookController::class)
+    ->middleware(['throttle:60,1'])
+    ->name('telegram.payment-bot.webhook');
+
 Route::middleware(['auth', 'throttle:30,1'])->group(function () {
     Route::get('/telegram/webhook-status', [TelegramWebhookController::class, 'status'])
         ->name('telegram.webhook-status');
 
     Route::post('/telegram/webhook-status', [TelegramWebhookController::class, 'set'])
         ->name('telegram.webhook-set');
+
+    Route::get('/telegram/payment-bot/webhook-status', [PaymentBotWebhookController::class, 'status'])
+        ->name('telegram.payment-bot.webhook-status');
+
+    Route::post('/telegram/payment-bot/webhook-status', [PaymentBotWebhookController::class, 'set'])
+        ->name('telegram.payment-bot.webhook-set');
 });

@@ -20,16 +20,13 @@
                 @endif
             </div>
 
-            @if (session('status'))
-                <p class="text-sm font-semibold text-primary-300">{{ session('status') }}</p>
-            @endif
-
-            <form method="POST" action="{{ route('tg.premium.pay') }}">
-                @csrf
-                <button type="submit" class="tg-btn">
+            @if ($paymentBotUrl)
+                <a href="{{ $paymentBotUrl }}" target="_blank" rel="noopener noreferrer" class="tg-btn">
                     {{ $copy->get('opportunities.guidance_unlock_premium') }}
-                </button>
-            </form>
+                </a>
+            @else
+                <p class="text-sm font-semibold text-primary-300">Payment is temporarily unavailable. Please try again later.</p>
+            @endif
         @endif
     </div>
 </x-telegram.mini-app.layout>

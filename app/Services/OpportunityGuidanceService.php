@@ -8,7 +8,6 @@ use App\Jobs\SendTelegramMessageJob;
 use App\Models\Opportunity;
 use App\Models\OpportunityGuidanceRequest;
 use App\Models\User;
-use App\Services\VerifyCheckout\VerifyCheckoutException;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use InvalidArgumentException;
@@ -18,7 +17,6 @@ class OpportunityGuidanceService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
-        public PaymentService $payments,
         public ReferralService $referrals,
         public TelegramService $telegram,
     ) {}
@@ -32,7 +30,7 @@ class OpportunityGuidanceService
     }
 
     /**
-     * Send the premium pitch with a Become Premium inline button (checkout URL when available).
+     * Send the premium pitch with a Become Premium inline button (payment bot URL when configured).
      */
     public function sendPremiumRequiredPitch(User $user): void
     {
@@ -49,27 +47,27 @@ class OpportunityGuidanceService
             'progress' => $progress,
             'required' => $required,
         ]);
+        $price = $this->settings->premiumPrice();
 
         $becomePremium = [
             'text' => $copy->get('opportunities.guidance_unlock_premium'),
             'style' => TelegramButtonStyle::Primary->value,
         ];
 
-        try {
-            $payment = $this->payments->startVerifyCheckoutPremium($user);
-            if (filled($payment->checkoutUrl)) {
-                $becomePremium['url'] = $payment->checkoutUrl;
-            } else {
-                $becomePremium['callback_data'] = 'premium_pay';
-            }
-        } catch (VerifyCheckoutException) {
+        $paymentBotUrl = $this->settings->paymentBotUrl($user);
+
+        if ($paymentBotUrl !== null) {
+            $becomePremium['url'] = $paymentBotUrl;
+        } else {
             $becomePremium['callback_data'] = 'premium_pay';
         }
 
         $this->telegram->sendMessage(
             $user->telegram_id,
             $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
-            .TelegramHtml::escape($body)."\n\n".TelegramHtml::escape($referralLine),
+            .TelegramHtml::escape($body)
+            ."\n\nPrice: {$price} ETB\n"
+            .TelegramHtml::escape($referralLine),
             [
                 'reply_markup' => $this->telegram->inlineKeyboard([
                     [$becomePremium],

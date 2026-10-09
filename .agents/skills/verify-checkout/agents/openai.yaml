@@ -1,6 +1,0 @@
-interface:
-  display_name: "Verify Checkout"
-  short_description: "Integrate hosted checkout deposits securely"
-  default_prompt: "Use $verify-checkout to integrate hosted deposits, signed webhooks, polling, and end-to-end checkout testing in my backend."
-policy:
-  allow_implicit_invocation: true

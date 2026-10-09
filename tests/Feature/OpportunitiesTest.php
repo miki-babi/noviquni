@@ -30,8 +30,7 @@ beforeEach(function () {
     config([
         'services.telegram.bot_token' => '123456:TEST_TOKEN',
         'services.telegram.bot_username' => 'noviquni_bot',
-        'services.verify_checkout.api_key' => 'vchk_test_key',
-        'services.verify_checkout.api_version' => '2026-06-01',
+        'services.payment_bot.username' => 'noviquni_pay_bot',
         'app.url' => 'https://noviquni.test',
     ]);
 });
@@ -1037,7 +1036,7 @@ it('shows request guidance to everyone and only pitches premium after a non-prem
         ->get(route('tg.opportunities.show', $opportunity))
         ->assertOk()
         ->assertSee(app(SettingsService::class)->premiumPitchTitle(), false)
-        ->assertSee(route('tg.premium.pay'), false)
+        ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false)
         ->assertSee(route('tg.opportunities.guidance', $opportunity), false);
 
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->exists())->toBeFalse();
@@ -1075,27 +1074,12 @@ it('allows premium students to request guidance', function () {
     expect(OpportunityGuidanceRequest::query()->where('user_id', $user->id)->count())->toBe(1);
 });
 
-it('blocks bot guidance requests for non-premium students and unlocks via checkout url', function () {
+it('blocks bot guidance requests for non-premium students and unlocks via payment bot url', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-        'checkoutapi.verify.et/v1/deposits' => Http::response([
-            'data' => [
-                'id' => 'dep_guidance_1',
-                'merchant_order_id' => 'order_1',
-                'merchant_customer_id' => 'user_1',
-                'status' => 'awaiting_transfer',
-                'amount' => '30.00',
-                'currency' => 'ETB',
-                'checkout_url' => 'https://checkout.verify.et/c/guidance_token',
-                'support_reference' => 'VC-2001',
-                'expires_at' => now()->addHour()->toIso8601String(),
-                'created_at' => now()->toIso8601String(),
-            ],
-            'meta' => ['requestId' => 'req_guidance', 'apiVersion' => '2026-06-01'],
-        ], 201),
     ]);
 
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '888200',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -1109,7 +1093,7 @@ it('blocks bot guidance requests for non-premium students and unlocks via checko
 
     expect(OpportunityGuidanceRequest::query()->count())->toBe(0);
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
@@ -1117,28 +1101,13 @@ it('blocks bot guidance requests for non-premium students and unlocks via checko
         $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
 
         return ($button['text'] ?? null) === 'Become Premium'
-            && ($button['url'] ?? null) === 'https://checkout.verify.et/c/guidance_token';
+            && ($button['url'] ?? null) === 'https://t.me/noviquni_pay_bot?start=u'.$user->id;
     });
 });
 
 it('sends a become premium telegram inline button when mini-app guidance is blocked', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-        'checkoutapi.verify.et/v1/deposits' => Http::response([
-            'data' => [
-                'id' => 'dep_guidance_mini_1',
-                'merchant_order_id' => 'order_mini_1',
-                'merchant_customer_id' => 'user_1',
-                'status' => 'awaiting_transfer',
-                'amount' => '30.00',
-                'currency' => 'ETB',
-                'checkout_url' => 'https://checkout.verify.et/c/guidance_mini_token',
-                'support_reference' => 'VC-2002',
-                'expires_at' => now()->addHour()->toIso8601String(),
-                'created_at' => now()->toIso8601String(),
-            ],
-            'meta' => ['requestId' => 'req_guidance_mini', 'apiVersion' => '2026-06-01'],
-        ], 201),
     ]);
 
     $user = User::factory()->student()->create([
@@ -1160,7 +1129,7 @@ it('sends a become premium telegram inline button when mini-app guidance is bloc
         ->assertRedirect(route('tg.opportunities.show', $opportunity))
         ->assertSessionHas('show_premium_pitch');
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
@@ -1170,6 +1139,6 @@ it('sends a become premium telegram inline button when mini-app guidance is bloc
 
         return (string) ($data['chat_id'] ?? '') === '888201'
             && ($button['text'] ?? null) === 'Become Premium'
-            && ($button['url'] ?? null) === 'https://checkout.verify.et/c/guidance_mini_token';
+            && ($button['url'] ?? null) === 'https://t.me/noviquni_pay_bot?start=u'.$user->id;
     });
 });

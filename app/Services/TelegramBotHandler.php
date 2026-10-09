@@ -23,7 +23,6 @@ use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Models\Year;
-use App\Services\VerifyCheckout\VerifyCheckoutException;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
@@ -41,7 +40,6 @@ class TelegramBotHandler
         public TelegramService $telegram,
         public OnboardingService $onboarding,
         public ReferralService $referrals,
-        public PaymentService $payments,
         public PremiumService $premium,
         public SettingsService $settings,
         public ChallengeService $challenges,
@@ -745,31 +743,34 @@ class TelegramBotHandler
             return null;
         }
 
-        try {
-            $payment = $this->payments->startVerifyCheckoutPremium($user);
-        } catch (VerifyCheckoutException $exception) {
-            $this->telegram->sendMessage($chatId, $exception->customerSafeMessage());
-
-            return null;
-        }
-
-        if (blank($payment->checkoutUrl)) {
-            $this->telegram->sendMessage($chatId, 'We could not start checkout. Please try again.');
-
-            return null;
-        }
-
         $copy = TelegramCopy::for($user);
+        $paymentBotUrl = $this->settings->paymentBotUrl($user);
 
-        $this->telegram->sendMessage($chatId, 'Open checkout to complete your Premium payment:', [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                [
-                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                    'url' => $payment->checkoutUrl,
-                    'style' => TelegramButtonStyle::Primary->value,
-                ],
-            ]]),
-        ]);
+        if ($paymentBotUrl === null) {
+            $this->telegram->sendMessage($chatId, 'Payment is temporarily unavailable. Please try again later.');
+
+            return null;
+        }
+
+        $price = $this->settings->premiumPrice();
+        $title = $this->settings->premiumPitchTitle();
+        $body = $this->settings->premiumPitchBody();
+
+        $this->telegram->sendMessage(
+            $chatId,
+            '<b>'.TelegramHtml::escape($title)."</b>\n"
+            .TelegramHtml::escape($body)
+            ."\n\nPrice: {$price} ETB\n\nOpen the payment bot to complete Premium:",
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
+                        'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                        'url' => $paymentBotUrl,
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]]),
+            ],
+        );
 
         return null;
     }
@@ -2711,17 +2712,16 @@ class TelegramBotHandler
             .TelegramHtml::escape($body)
             ."\n\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}";
 
-        try {
-            $payment = $this->payments->startVerifyCheckoutPremium($user);
-            if (filled($payment->checkoutUrl)) {
-                $rows[] = [[
-                    'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                    'url' => $payment->checkoutUrl,
-                    'style' => TelegramButtonStyle::Primary->value,
-                ]];
-            }
-        } catch (VerifyCheckoutException $exception) {
-            $pitchText .= "\n\n".TelegramHtml::escape($exception->customerSafeMessage());
+        $paymentBotUrl = $this->settings->paymentBotUrl($user);
+
+        if ($paymentBotUrl !== null) {
+            $rows[] = [[
+                'text' => $copy->get('opportunities.guidance_unlock_premium'),
+                'url' => $paymentBotUrl,
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        } else {
+            $pitchText .= "\n\nPayment is temporarily unavailable. Please try again later.";
         }
 
         $rows[] = [[

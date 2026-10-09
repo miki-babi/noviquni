@@ -72,6 +72,7 @@
                         <p class="study-card-title">{{ $premiumPitchTitle }}</p>
                         <p class="whitespace-pre-line text-sm leading-relaxed text-text-secondary">{{ $premiumPitchBody }}</p>
                         <p class="text-sm font-semibold text-primary-300">{{ $copy->get('opportunities.guidance_premium_required') }}</p>
+                        <p class="study-card-meta">Price: {{ $premiumPrice }} ETB</p>
                         <p class="text-sm text-text-secondary">
                             {{ $copy->get('opportunities.guidance_referral_progress', [
                                 'progress' => $referralProgress,
@@ -79,12 +80,13 @@
                             ]) }}
                         </p>
                     </div>
-                    <form method="POST" action="{{ route('tg.premium.pay') }}">
-                        @csrf
-                        <button type="submit" class="tg-btn w-full">
+                    @if ($paymentBotUrl)
+                        <a href="{{ $paymentBotUrl }}" target="_blank" rel="noopener noreferrer" class="tg-btn w-full text-center">
                             {{ $copy->get('opportunities.guidance_unlock_premium') }}
-                        </button>
-                    </form>
+                        </a>
+                    @else
+                        <p class="text-sm font-semibold text-primary-300">Payment is temporarily unavailable. Please try again later.</p>
+                    @endif
                     <a href="{{ route('tg.profile') }}" class="tg-btn tg-btn-secondary w-full text-center">
                         {{ $copy->get('menu.refer') }}
                     </a>

@@ -3,28 +3,25 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
-use App\Services\TelegramBotHandler;
-use App\Services\TelegramService;
+use App\Services\TelegramBotApi;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
-class TelegramWebhookController extends Controller
+class PaymentBotWebhookController extends Controller
 {
-    public function __invoke(Request $request, TelegramBotHandler $handler): Response
+    public function __invoke(Request $request): Response
     {
-        $handler->handle($request->all());
-
         return response('ok');
     }
 
-    public function status(Request $request, TelegramService $telegram): View|JsonResponse
+    public function status(Request $request): View|JsonResponse
     {
         abort_unless(auth()->user()?->role === UserRole::Admin, 403);
 
-        $payload = $this->statusPayload($telegram);
+        $payload = $this->statusPayload();
 
         if ($request->expectsJson()) {
             $status = match (true) {
@@ -36,31 +33,25 @@ class TelegramWebhookController extends Controller
             return response()->json($payload, $status);
         }
 
-        return view('telegram.webhook-status', array_merge($payload, [
-            'title' => 'Main bot webhook',
-            'subtitle' => 'Check registration status and set the main bot webhook to this app.',
-            'statusRoute' => 'telegram.webhook-status',
-            'setRoute' => 'telegram.webhook-set',
-            'otherBotLabel' => 'Payment bot webhook',
-            'otherBotRoute' => 'telegram.payment-bot.webhook-status',
-        ]));
+        return view('telegram.webhook-status', array_merge($payload, $this->viewMeta()));
     }
 
-    public function set(Request $request, TelegramService $telegram): RedirectResponse|JsonResponse
+    public function set(Request $request): RedirectResponse|JsonResponse
     {
         abort_unless(auth()->user()?->role === UserRole::Admin, 403);
 
-        $expectedUrl = route('telegram.webhook', absolute: true);
+        $expectedUrl = route('telegram.payment-bot.webhook', absolute: true);
+        $api = $this->api();
 
-        if (! $telegram->isConfigured()) {
-            $message = 'TELEGRAM_BOT_TOKEN is not set.';
+        if (! $api->isConfigured()) {
+            $message = 'TELEGRAM_PAYMENT_BOT_TOKEN is not set.';
 
             return $request->expectsJson()
                 ? response()->json(['ok' => false, 'message' => $message], 503)
                 : back()->with('error', $message);
         }
 
-        $result = $telegram->setWebhook($expectedUrl);
+        $result = $api->setWebhook($expectedUrl);
 
         if (! $result['ok']) {
             $message = $result['description'];
@@ -79,7 +70,7 @@ class TelegramWebhookController extends Controller
                 'expected_webhook_url' => $expectedUrl,
             ])
             : redirect()
-                ->route('telegram.webhook-status')
+                ->route('telegram.payment-bot.webhook-status')
                 ->with('success', $message);
     }
 
@@ -95,15 +86,16 @@ class TelegramWebhookController extends Controller
      *     webhook: ?array<string, mixed>
      * }
      */
-    protected function statusPayload(TelegramService $telegram): array
+    protected function statusPayload(): array
     {
-        $expectedUrl = route('telegram.webhook', absolute: true);
+        $expectedUrl = route('telegram.payment-bot.webhook', absolute: true);
+        $api = $this->api();
 
-        if (! $telegram->isConfigured()) {
+        if (! $api->isConfigured()) {
             return [
                 'ok' => false,
                 'configured' => false,
-                'message' => 'TELEGRAM_BOT_TOKEN is not set.',
+                'message' => 'TELEGRAM_PAYMENT_BOT_TOKEN is not set.',
                 'expected_webhook_url' => $expectedUrl,
                 'matches_expected_url' => false,
                 'webhook_is_set' => false,
@@ -112,7 +104,7 @@ class TelegramWebhookController extends Controller
             ];
         }
 
-        $info = $telegram->getWebhookInfo();
+        $info = $api->getWebhookInfo();
 
         if ($info === null) {
             return [
@@ -141,5 +133,30 @@ class TelegramWebhookController extends Controller
             'can_set_webhook' => ! $matches,
             'webhook' => $info,
         ];
+    }
+
+    /**
+     * @return array{title: string, subtitle: string, statusRoute: string, setRoute: string, otherBotLabel: string, otherBotRoute: string}
+     */
+    protected function viewMeta(): array
+    {
+        return [
+            'title' => 'Payment bot webhook',
+            'subtitle' => 'Check registration status and set the payment bot webhook to this app.',
+            'statusRoute' => 'telegram.payment-bot.webhook-status',
+            'setRoute' => 'telegram.payment-bot.webhook-set',
+            'otherBotLabel' => 'Main bot webhook',
+            'otherBotRoute' => 'telegram.webhook-status',
+        ];
+    }
+
+    protected function api(): TelegramBotApi
+    {
+        $token = config('services.payment_bot.token');
+
+        return new TelegramBotApi(
+            filled($token) ? (string) $token : null,
+            'TELEGRAM_PAYMENT_BOT_TOKEN is not set.',
+        );
     }
 }

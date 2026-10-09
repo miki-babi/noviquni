@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Payments\Tables;
 
 use App\Enums\PaymentStatus;
+use App\Models\Payment;
 use App\Services\PaymentService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -18,8 +19,6 @@ class PaymentsTable
             ->columns([
                 TextColumn::make('external_ref')->searchable(),
                 TextColumn::make('provider')->badge()->toggleable(),
-                TextColumn::make('deposit_id')->label('Deposit')->searchable()->toggleable()->placeholder('—'),
-                TextColumn::make('deposit_status')->label('Deposit status')->badge()->toggleable()->placeholder('—'),
                 TextColumn::make('user.name')->searchable(),
                 TextColumn::make('amount')->money('ETB'),
                 TextColumn::make('status')->badge(),
@@ -31,21 +30,21 @@ class PaymentsTable
             ->filters([
                 SelectFilter::make('status')->options(PaymentStatus::class),
                 SelectFilter::make('provider')->options([
-                    'manual' => 'Manual',
-                    'verify_checkout' => 'Verify Checkout',
+                    Payment::PROVIDER_MANUAL => 'Manual',
+                    Payment::PROVIDER_PAYMENT_BOT => 'Payment bot',
                 ]),
             ])
             ->recordActions([
                 EditAction::make(),
                 Action::make('verify')
-                    ->visible(fn ($record) => $record->provider === 'manual' && $record->status === PaymentStatus::Pending)
+                    ->visible(fn (Payment $record): bool => $record->isManuallyVerifiable())
                     ->requiresConfirmation()
-                    ->action(fn ($record) => app(PaymentService::class)->verify($record, auth()->user())),
+                    ->action(fn (Payment $record) => app(PaymentService::class)->verify($record, auth()->user())),
                 Action::make('reject')
                     ->color('danger')
-                    ->visible(fn ($record) => $record->provider === 'manual' && $record->status === PaymentStatus::Pending)
+                    ->visible(fn (Payment $record): bool => $record->isManuallyVerifiable())
                     ->requiresConfirmation()
-                    ->action(fn ($record) => app(PaymentService::class)->reject($record, auth()->user())),
+                    ->action(fn (Payment $record) => app(PaymentService::class)->reject($record, auth()->user())),
             ]);
     }
 }

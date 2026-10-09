@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Setting;
+use App\Models\User;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Facades\Cache;
 
@@ -17,6 +18,8 @@ class SettingsService
     public const PREMIUM_DURATION_DAYS = 'premium_duration_days';
 
     public const PAYMENT_INSTRUCTIONS = 'payment_instructions';
+
+    public const PAYMENT_BOT_USERNAME = 'payment_bot_username';
 
     public const TELEGRAM_START_IMAGE = 'telegram_start_image';
 
@@ -45,6 +48,7 @@ class SettingsService
             self::POINTS_PER_REFERRAL => '1',
             self::PREMIUM_DURATION_DAYS => '30',
             self::PAYMENT_INSTRUCTIONS => "Send {amount} ETB to the account provided by support.\nUse payment reference: {reference}",
+            self::PAYMENT_BOT_USERNAME => '',
             self::TELEGRAM_START_IMAGE => '',
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
@@ -98,6 +102,36 @@ class SettingsService
     public function paymentInstructions(): string
     {
         return $this->get(self::PAYMENT_INSTRUCTIONS);
+    }
+
+    public function paymentBotUsername(): ?string
+    {
+        $fromSettings = ltrim(trim($this->get(self::PAYMENT_BOT_USERNAME, '')), '@');
+
+        if ($fromSettings !== '') {
+            return $fromSettings;
+        }
+
+        $fromConfig = ltrim(trim((string) config('services.payment_bot.username', '')), '@');
+
+        return $fromConfig !== '' ? $fromConfig : null;
+    }
+
+    public function paymentBotUrl(?User $user = null): ?string
+    {
+        $username = $this->paymentBotUsername();
+
+        if ($username === null) {
+            return null;
+        }
+
+        $url = 'https://t.me/'.$username;
+
+        if ($user !== null) {
+            $url .= '?start=u'.$user->id;
+        }
+
+        return $url;
     }
 
     public function telegramStartImage(): ?string

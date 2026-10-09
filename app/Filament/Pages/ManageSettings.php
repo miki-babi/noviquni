@@ -55,6 +55,7 @@ class ManageSettings extends Page
             'required_referrals' => $settings->requiredReferrals(),
             'points_per_referral' => $settings->pointsPerReferral(),
             'payment_instructions' => $settings->paymentInstructions(),
+            'payment_bot_username' => $settings->paymentBotUsername() ?? '',
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
@@ -109,7 +110,12 @@ class ManageSettings extends Page
                             ->minValue(1),
                         Textarea::make('payment_instructions')
                             ->rows(4)
-                            ->helperText('Legacy manual payments only. Student Pay now uses Verify Checkout. Placeholders: {amount}, {reference}.')
+                            ->helperText('Shown to students via the payment bot. Placeholders: {amount}, {reference}.')
+                            ->columnSpanFull(),
+                        TextInput::make('payment_bot_username')
+                            ->label('Payment bot username')
+                            ->helperText('Telegram username without @. Students are sent to t.me/{username} to pay. Falls back to TELEGRAM_PAYMENT_BOT_USERNAME.')
+                            ->maxLength(64)
                             ->columnSpanFull(),
                         Textarea::make('cohort_urgency_copy')
                             ->label('Cohort urgency copy')
@@ -231,6 +237,10 @@ class ManageSettings extends Page
         $settings->set(SettingsService::REQUIRED_REFERRALS, (string) $data['required_referrals']);
         $settings->set(SettingsService::POINTS_PER_REFERRAL, (string) $data['points_per_referral']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);
+        $settings->set(
+            SettingsService::PAYMENT_BOT_USERNAME,
+            ltrim(trim((string) ($data['payment_bot_username'] ?? '')), '@'),
+        );
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_BODY, (string) ($data['premium_pitch_body'] ?? ''));

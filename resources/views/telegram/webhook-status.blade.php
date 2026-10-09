@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Telegram webhook status</title>
+    <title>{{ $title }}</title>
     <style>
         :root {
             color-scheme: light;
@@ -129,8 +129,8 @@
 <body>
     <div class="wrap">
         <div class="card">
-            <h1>Telegram webhook</h1>
-            <p class="sub">Check registration status and set the webhook to this app.</p>
+            <h1>{{ $title }}</h1>
+            <p class="sub">{{ $subtitle }}</p>
 
             @if (session('success'))
                 <div class="flash flash-success">{{ session('success') }}</div>
@@ -141,7 +141,7 @@
             @endif
 
             @if ($message)
-                <div class="flash {{ $configured ? 'flash-error' : 'flash-error' }}">{{ $message }}</div>
+                <div class="flash flash-error">{{ $message }}</div>
             @endif
 
             <div class="row">
@@ -200,7 +200,7 @@
 
             <div class="actions">
                 @if ($can_set_webhook)
-                    <form method="POST" action="{{ route('telegram.webhook-set') }}">
+                    <form method="POST" action="{{ route($setRoute) }}">
                         @csrf
                         <button type="submit">
                             {{ $webhook_is_set ? 'Update webhook to this app' : 'Set webhook' }}
@@ -208,7 +208,8 @@
                     </form>
                 @endif
 
-                <a class="link" href="{{ route('telegram.webhook-status') }}">Refresh</a>
+                <a class="link" href="{{ route($statusRoute) }}">Refresh</a>
+                <a class="link" href="{{ route($otherBotRoute) }}">{{ $otherBotLabel }}</a>
                 <a class="link" href="{{ url('/admin') }}">Admin</a>
             </div>
 

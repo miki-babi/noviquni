@@ -6,24 +6,24 @@ use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
-it('requires authentication', function () {
-    $this->getJson('/telegram/webhook-status')
+it('requires authentication for payment bot webhook status', function () {
+    $this->getJson('/telegram/payment-bot/webhook-status')
         ->assertUnauthorized();
 });
 
-it('forbids students', function () {
+it('forbids students from payment bot webhook status', function () {
     $student = User::factory()->student()->create([
         'email' => 'student@example.com',
         'password' => 'password',
     ]);
 
     $this->actingAs($student)
-        ->getJson('/telegram/webhook-status')
+        ->getJson('/telegram/payment-bot/webhook-status')
         ->assertForbidden();
 });
 
-it('returns webhook status for admins', function () {
-    config(['services.telegram.bot_token' => 'test-token']);
+it('returns payment bot webhook status for admins', function () {
+    config(['services.payment_bot.token' => 'payment-test-token']);
 
     Http::fake([
         'api.telegram.org/*/getWebhookInfo' => Http::response([
@@ -42,12 +42,13 @@ it('returns webhook status for admins', function () {
     ]);
 
     $this->actingAs($admin)
-        ->getJson('/telegram/webhook-status')
+        ->getJson('/telegram/payment-bot/webhook-status')
         ->assertOk()
         ->assertJsonPath('ok', true)
         ->assertJsonPath('configured', true)
         ->assertJsonPath('webhook_is_set', false)
         ->assertJsonPath('can_set_webhook', true)
+        ->assertJsonPath('expected_webhook_url', route('telegram.payment-bot.webhook', absolute: true))
         ->assertJsonStructure([
             'expected_webhook_url',
             'matches_expected_url',
@@ -55,9 +56,9 @@ it('returns webhook status for admins', function () {
         ]);
 });
 
-it('lets an admin set the webhook', function () {
+it('lets an admin set the payment bot webhook', function () {
     config([
-        'services.telegram.bot_token' => 'test-token',
+        'services.payment_bot.token' => 'payment-test-token',
         'app.url' => 'https://noviquni.test',
     ]);
 
@@ -70,7 +71,7 @@ it('lets an admin set the webhook', function () {
         'api.telegram.org/*/getWebhookInfo' => Http::response([
             'ok' => true,
             'result' => [
-                'url' => 'https://noviquni.test/telegram/webhook',
+                'url' => 'https://noviquni.test/telegram/payment-bot/webhook',
                 'pending_update_count' => 0,
             ],
         ], 200),
@@ -82,17 +83,18 @@ it('lets an admin set the webhook', function () {
     ]);
 
     $this->actingAs($admin)
-        ->post('/telegram/webhook-status')
-        ->assertRedirect(route('telegram.webhook-status'));
+        ->post('/telegram/payment-bot/webhook-status')
+        ->assertRedirect(route('telegram.payment-bot.webhook-status'));
 
     Http::assertSent(function ($request) {
         return str_contains($request->url(), 'setWebhook')
-            && $request['url'] === route('telegram.webhook', absolute: true);
+            && str_contains($request->url(), 'payment-test-token')
+            && $request['url'] === route('telegram.payment-bot.webhook', absolute: true);
     });
 });
 
-it('renders the status view for admins', function () {
-    config(['services.telegram.bot_token' => 'test-token']);
+it('renders the payment bot status view for admins', function () {
+    config(['services.payment_bot.token' => 'payment-test-token']);
 
     Http::fake([
         'api.telegram.org/*/getWebhookInfo' => Http::response([
@@ -110,9 +112,21 @@ it('renders the status view for admins', function () {
     ]);
 
     $this->actingAs($admin)
-        ->get('/telegram/webhook-status')
+        ->get('/telegram/payment-bot/webhook-status')
         ->assertOk()
         ->assertSee('Set webhook')
-        ->assertSee('Main bot webhook')
-        ->assertSee('Payment bot webhook');
+        ->assertSee('Payment bot webhook')
+        ->assertSee('Main bot webhook');
+});
+
+it('accepts payment bot webhook posts without csrf', function () {
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 1,
+        'message' => [
+            'message_id' => 1,
+            'chat' => ['id' => 1],
+            'text' => 'hi',
+        ],
+    ])->assertOk()
+        ->assertSee('ok');
 });

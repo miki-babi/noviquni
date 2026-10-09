@@ -483,59 +483,25 @@ class TelegramService
         return $this->call('answerCallbackQuery', $params);
     }
 
+    public function botApi(): TelegramBotApi
+    {
+        return new TelegramBotApi($this->token(), 'TELEGRAM_BOT_TOKEN is not set.');
+    }
+
     /**
      * @return array<string, mixed>|null
      */
     public function getWebhookInfo(): ?array
     {
-        return $this->call('getWebhookInfo');
+        return $this->botApi()->getWebhookInfo();
     }
 
     /**
-     * @return array{ok: bool, description?: string, result?: array<string, mixed>|null, error?: array<string, mixed>|null}
+     * @return array{ok: bool, description?: string, result?: array<string, mixed>|bool|null, error?: array<string, mixed>|null}
      */
     public function setWebhook(string $url): array
     {
-        if (! $this->isConfigured()) {
-            return [
-                'ok' => false,
-                'description' => 'TELEGRAM_BOT_TOKEN is not set.',
-                'result' => null,
-                'error' => null,
-            ];
-        }
-
-        $response = Http::timeout(15)->post(
-            "https://api.telegram.org/bot{$this->token()}/setWebhook",
-            [
-                'url' => $url,
-                'allowed_updates' => [
-                    'message',
-                    'callback_query',
-                ],
-                'drop_pending_updates' => false,
-            ],
-        );
-
-        $body = $response->json() ?? [];
-
-        if (! $response->successful() || ! ($body['ok'] ?? false)) {
-            Log::error('Telegram setWebhook error', ['body' => $body]);
-
-            return [
-                'ok' => false,
-                'description' => (string) ($body['description'] ?? 'Failed to set webhook.'),
-                'result' => null,
-                'error' => is_array($body) ? $body : null,
-            ];
-        }
-
-        return [
-            'ok' => true,
-            'description' => (string) ($body['description'] ?? 'Webhook was set.'),
-            'result' => $body['result'] ?? true,
-            'error' => null,
-        ];
+        return $this->botApi()->setWebhook($url);
     }
 
     /**
@@ -544,38 +510,18 @@ class TelegramService
      */
     public function call(string $method, array $params = []): ?array
     {
-        if (! $this->isConfigured()) {
-            Log::warning('Telegram bot token not configured.', ['method' => $method]);
+        $outcome = $this->botApi()->execute($method, $params);
+
+        if (! $outcome['ok']) {
+            $this->logStartOutbound($method, $params, false, $outcome['body']);
+            $this->logBlockedIfNeeded($method, $params, $outcome['body']);
 
             return null;
         }
 
-        $url = "https://api.telegram.org/bot{$this->token()}/{$method}";
+        $this->logStartOutbound($method, $params, true, $outcome['result']);
 
-        $response = $params === []
-            ? Http::timeout(15)->get($url)
-            : Http::timeout(15)->post($url, $params);
-
-        if (! $response->successful() || ! ($response->json('ok') ?? false)) {
-            $body = $response->json();
-            Log::error('Telegram API error', [
-                'method' => $method,
-                'body' => $body,
-            ]);
-            $this->logStartOutbound($method, $params, false, is_array($body) ? $body : null);
-            $this->logBlockedIfNeeded($method, $params, is_array($body) ? $body : null);
-
-            return null;
-        }
-
-        $result = $response->json('result');
-        $this->logStartOutbound($method, $params, true, is_array($result) ? $result : null);
-
-        if ($result === true) {
-            return [];
-        }
-
-        return is_array($result) ? $result : null;
+        return $outcome['result'];
     }
 
     /**

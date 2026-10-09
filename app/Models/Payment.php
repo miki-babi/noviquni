@@ -15,10 +15,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'currency',
     'provider',
     'external_ref',
-    'idempotency_key',
-    'deposit_id',
-    'deposit_status',
-    'expires_at',
     'status',
     'purpose',
     'meta',
@@ -33,12 +29,7 @@ class Payment extends Model
 
     public const PROVIDER_MANUAL = 'manual';
 
-    public const PROVIDER_VERIFY_CHECKOUT = 'verify_checkout';
-
-    /**
-     * Hosted checkout URL for the current request only — never persisted.
-     */
-    public ?string $checkoutUrl = null;
+    public const PROVIDER_PAYMENT_BOT = 'payment_bot';
 
     /**
      * @var array<string, mixed>
@@ -60,17 +51,10 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    public function isVerifyCheckout(): bool
+    public function isManuallyVerifiable(): bool
     {
-        return $this->provider === self::PROVIDER_VERIFY_CHECKOUT;
-    }
-
-    public function isOpenVerifyCheckoutAttempt(): bool
-    {
-        return $this->isVerifyCheckout()
-            && $this->status === PaymentStatus::Pending
-            && $this->fulfilled_at === null
-            && ($this->expires_at === null || $this->expires_at->isFuture());
+        return in_array($this->provider, [self::PROVIDER_MANUAL, self::PROVIDER_PAYMENT_BOT], true)
+            && $this->status === PaymentStatus::Pending;
     }
 
     /**
@@ -83,7 +67,6 @@ class Payment extends Model
             'status' => PaymentStatus::class,
             'meta' => 'array',
             'verified_at' => 'datetime',
-            'expires_at' => 'datetime',
             'fulfilled_at' => 'datetime',
         ];
     }
