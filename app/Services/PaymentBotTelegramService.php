@@ -4,6 +4,16 @@ namespace App\Services;
 
 class PaymentBotTelegramService
 {
+    public const BUTTON_WHAT_YOU_GET = 'What you get';
+
+    public const BUTTON_OUR_STORY = 'Our story';
+
+    public const BUTTON_OUR_MISSION = 'Our mission';
+
+    public const BUTTON_CONTACT_US = 'Contact us';
+
+    public const BUTTON_REGISTER = 'Register / Pay';
+
     public function api(): TelegramBotApi
     {
         $token = config('services.payment_bot.token');
@@ -17,6 +27,30 @@ class PaymentBotTelegramService
     public function isConfigured(): bool
     {
         return $this->api()->isConfigured();
+    }
+
+    /**
+     * @return array{keyboard: list<list<array{text: string}>>, resize_keyboard: true, is_persistent: true}
+     */
+    public function mainKeyboard(): array
+    {
+        return [
+            'keyboard' => [
+                [
+                    ['text' => self::BUTTON_WHAT_YOU_GET],
+                    ['text' => self::BUTTON_OUR_STORY],
+                ],
+                [
+                    ['text' => self::BUTTON_OUR_MISSION],
+                    ['text' => self::BUTTON_CONTACT_US],
+                ],
+                [
+                    ['text' => self::BUTTON_REGISTER],
+                ],
+            ],
+            'resize_keyboard' => true,
+            'is_persistent' => true,
+        ];
     }
 
     /**

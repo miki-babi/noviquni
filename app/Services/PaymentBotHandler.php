@@ -69,19 +69,25 @@ class PaymentBotHandler
             return;
         }
 
+        if ($this->handleMenuButton($chatId, $from, $text)) {
+            return;
+        }
+
         $student = $this->resolveStudent($from, null);
 
         if ($student === null) {
-            $this->telegram->sendMessage(
+            $this->sendWithKeyboard(
                 $chatId,
-                'Open <b>Premium</b> in the main NoviqUni bot first, then tap Become Premium to continue payment here.',
+                'Use the buttons below, or open <b>Premium</b> in the main NoviqUni bot and tap Become Premium to link your account.',
             );
 
             return;
         }
 
+        $this->syncTelegramProfile($student, $from);
+
         if ($student->hasActivePremium()) {
-            $this->telegram->sendMessage($chatId, 'Premium is already active. You are all set.');
+            $this->sendWithKeyboard($chatId, 'Premium is already active. You are all set.');
 
             return;
         }
@@ -96,41 +102,90 @@ class PaymentBotHandler
     {
         $student = $this->resolveStudent($from, $payload);
 
+        if ($student !== null) {
+            $this->syncTelegramProfile($student, $from);
+
+            if ($student->hasActivePremium()) {
+                $this->sendWithKeyboard($chatId, 'Premium is already active. You are all set.');
+
+                return;
+            }
+        }
+
+        $this->sendWithKeyboard(
+            $chatId,
+            TelegramHtml::escape($this->settings->paymentBotWelcome()),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $from
+     */
+    protected function handleMenuButton(int|string $chatId, array $from, string $text): bool
+    {
+        $answer = match ($text) {
+            PaymentBotTelegramService::BUTTON_WHAT_YOU_GET => $this->settings->paymentBotWhatYouGet(),
+            PaymentBotTelegramService::BUTTON_OUR_STORY => $this->settings->paymentBotOurStory(),
+            PaymentBotTelegramService::BUTTON_OUR_MISSION => $this->settings->paymentBotOurMission(),
+            PaymentBotTelegramService::BUTTON_CONTACT_US => $this->settings->paymentBotContactUs(),
+            default => null,
+        };
+
+        if ($answer !== null) {
+            $this->sendWithKeyboard($chatId, TelegramHtml::escape($answer));
+
+            return true;
+        }
+
+        if ($text !== PaymentBotTelegramService::BUTTON_REGISTER) {
+            return false;
+        }
+
+        $student = $this->resolveStudent($from, null);
+
         if ($student === null) {
-            $this->telegram->sendMessage(
+            $this->sendWithKeyboard(
                 $chatId,
-                'We could not match your account. Open <b>Premium</b> in the main NoviqUni bot and tap Become Premium so we can link you here.',
+                'To register, open <b>Premium</b> in the main NoviqUni bot and tap Become Premium so we can link your account here.',
             );
 
-            return;
+            return true;
         }
 
         $this->syncTelegramProfile($student, $from);
 
         if ($student->hasActivePremium()) {
-            $this->telegram->sendMessage($chatId, 'Premium is already active. You are all set.');
+            $this->sendWithKeyboard($chatId, 'Premium is already active. You are all set.');
 
-            return;
+            return true;
         }
 
         $this->sendPaymentBriefing($chatId, $student);
+
+        return true;
     }
 
     protected function sendPaymentBriefing(int|string $chatId, User $student): void
     {
         $payment = $this->payments->createOrReusePendingPaymentBotPayment($student);
         $title = $this->settings->premiumPitchTitle();
-        $body = $this->settings->premiumPitchBody();
         $instructions = $this->payments->instructionsFor($payment);
+        $registerPrompt = $this->settings->paymentBotRegisterPrompt();
 
         $text = '<b>'.TelegramHtml::escape($title)."</b>\n"
-            .TelegramHtml::escape($body)
-            ."\n\n<b>Price:</b> {$payment->amount} {$payment->currency}"
+            ."\n<b>Price:</b> {$payment->amount} {$payment->currency}"
             ."\n<b>Reference:</b> ".TelegramHtml::escape((string) $payment->external_ref)
             ."\n\n".TelegramHtml::escape($instructions)
-            ."\n\nWhen you have paid, send a <b>photo</b> of the transfer receipt here.";
+            ."\n\n".TelegramHtml::escape($registerPrompt);
 
-        $this->telegram->sendMessage($chatId, $text);
+        $this->sendWithKeyboard($chatId, $text);
+    }
+
+    protected function sendWithKeyboard(int|string $chatId, string $text): void
+    {
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->mainKeyboard(),
+        ]);
     }
 
     /**
@@ -141,7 +196,7 @@ class PaymentBotHandler
         $student = $this->resolveStudent($from, null);
 
         if ($student === null) {
-            $this->telegram->sendMessage(
+            $this->sendWithKeyboard(
                 $chatId,
                 'We could not match your account. Open Premium in the main bot first, then come back.',
             );
@@ -152,7 +207,7 @@ class PaymentBotHandler
         $this->syncTelegramProfile($student, $from);
 
         if ($student->hasActivePremium()) {
-            $this->telegram->sendMessage($chatId, 'Premium is already active. No receipt needed.');
+            $this->sendWithKeyboard($chatId, 'Premium is already active. No receipt needed.');
 
             return;
         }
@@ -166,7 +221,7 @@ class PaymentBotHandler
         $adminIds = $this->fileAdmins->telegramIds();
 
         if ($adminIds === []) {
-            $this->telegram->sendMessage(
+            $this->sendWithKeyboard(
                 $chatId,
                 'Thanks — we received your screenshot, but no reviewer is available right now. Please try again later or contact support.',
             );
@@ -203,7 +258,7 @@ class PaymentBotHandler
             }
         }
 
-        $this->telegram->sendMessage(
+        $this->sendWithKeyboard(
             $chatId,
             'Screenshot received. We will review it shortly and unlock Premium when approved.',
         );
@@ -268,7 +323,7 @@ class PaymentBotHandler
             }
 
             if ($payment->user?->telegram_id) {
-                $this->telegram->sendMessage(
+                $this->sendWithKeyboard(
                     $payment->user->telegram_id,
                     'Your payment approval was reverted. Premium from this payment is no longer active. Contact support if this is unexpected (ref '
                     .TelegramHtml::escape((string) $payment->external_ref).').',
@@ -301,7 +356,7 @@ class PaymentBotHandler
             }
 
             if ($payment->user?->telegram_id) {
-                $this->telegram->sendMessage(
+                $this->sendWithKeyboard(
                     $payment->user->telegram_id,
                     'Payment approved. Premium is now active — thank you!',
                 );
@@ -317,7 +372,7 @@ class PaymentBotHandler
         }
 
         if ($payment->user?->telegram_id) {
-            $this->telegram->sendMessage(
+            $this->sendWithKeyboard(
                 $payment->user->telegram_id,
                 'Your payment screenshot was not approved. Send a clearer receipt or contact support with reference '
                 .TelegramHtml::escape((string) $payment->external_ref).'.',

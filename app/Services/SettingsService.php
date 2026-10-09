@@ -21,6 +21,18 @@ class SettingsService
 
     public const PAYMENT_BOT_USERNAME = 'payment_bot_username';
 
+    public const PAYMENT_BOT_WELCOME = 'payment_bot_welcome';
+
+    public const PAYMENT_BOT_WHAT_YOU_GET = 'payment_bot_what_you_get';
+
+    public const PAYMENT_BOT_OUR_STORY = 'payment_bot_our_story';
+
+    public const PAYMENT_BOT_OUR_MISSION = 'payment_bot_our_mission';
+
+    public const PAYMENT_BOT_CONTACT_US = 'payment_bot_contact_us';
+
+    public const PAYMENT_BOT_REGISTER_PROMPT = 'payment_bot_register_prompt';
+
     public const TELEGRAM_START_IMAGE = 'telegram_start_image';
 
     public const TELEGRAM_START_CAPTION = 'telegram_start_caption';
@@ -49,6 +61,12 @@ class SettingsService
             self::PREMIUM_DURATION_DAYS => '30',
             self::PAYMENT_INSTRUCTIONS => "Send {amount} ETB to the account provided by support.\nUse payment reference: {reference}",
             self::PAYMENT_BOT_USERNAME => '',
+            self::PAYMENT_BOT_WELCOME => "Welcome to NoviqUni Premium payments.\n\nUse the buttons below to learn more, or tap Register / Pay when you are ready.",
+            self::PAYMENT_BOT_WHAT_YOU_GET => "Opportunity and internship links stay free for everyone.\n\nPremium gives you personal guidance on applications, plus full access to premium modules, notes, worksheets, quizzes, flashcards, and exams.\n\nPay once, or unlock Premium free by inviting friends.",
+            self::PAYMENT_BOT_OUR_STORY => 'We started NoviqUni to help Ethiopian university students find clearer paths through courses, opportunities, and guidance.',
+            self::PAYMENT_BOT_OUR_MISSION => 'Our mission is to make high-quality learning support and opportunity guidance accessible to every student who needs it.',
+            self::PAYMENT_BOT_CONTACT_US => 'Need help? Message support through the main NoviqUni bot, or reply here and our team will follow up.',
+            self::PAYMENT_BOT_REGISTER_PROMPT => 'When you have paid, send a photo of the transfer receipt here.',
             self::TELEGRAM_START_IMAGE => '',
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
@@ -134,6 +152,36 @@ class SettingsService
         return $url;
     }
 
+    public function paymentBotWelcome(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_WELCOME);
+    }
+
+    public function paymentBotWhatYouGet(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_WHAT_YOU_GET);
+    }
+
+    public function paymentBotOurStory(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_OUR_STORY);
+    }
+
+    public function paymentBotOurMission(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_OUR_MISSION);
+    }
+
+    public function paymentBotContactUs(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_CONTACT_US);
+    }
+
+    public function paymentBotRegisterPrompt(): string
+    {
+        return $this->settingOrDefault(self::PAYMENT_BOT_REGISTER_PROMPT);
+    }
+
     public function telegramStartImage(): ?string
     {
         $path = trim($this->get(self::TELEGRAM_START_IMAGE, ''));
@@ -217,5 +265,14 @@ class SettingsService
             Setting::query()->firstOrCreate(['key' => $key], ['value' => $value]);
             Cache::forget("settings.{$key}");
         }
+    }
+
+    protected function settingOrDefault(string $key): string
+    {
+        $value = trim($this->get($key, $this->defaults()[$key] ?? ''));
+
+        return $value !== ''
+            ? $value
+            : ($this->defaults()[$key] ?? '');
     }
 }

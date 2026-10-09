@@ -4,6 +4,7 @@ use App\Enums\OnboardingStep;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\PaymentBotTelegramService;
 use App\Services\PaymentService;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +24,24 @@ beforeEach(function () {
     ]);
 });
 
-it('creates a pending payment and sends instructions on start deep link', function () {
+function paymentBotHasMainKeyboard(mixed $replyMarkup): bool
+{
+    $encoded = is_string($replyMarkup)
+        ? $replyMarkup
+        : json_encode($replyMarkup, JSON_UNESCAPED_SLASHES);
+
+    if ($encoded === false || $encoded === null || $encoded === '') {
+        return false;
+    }
+
+    return str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_OUR_STORY)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_OUR_MISSION)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_REGISTER);
+}
+
+it('sends welcome with reply keyboard on start without creating a payment', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700001',
         'onboarding_step' => OnboardingStep::Complete,
@@ -44,6 +62,80 @@ it('creates a pending payment and sends instructions on start deep link', functi
         ],
     ])->assertOk();
 
+    expect(Payment::query()->where('user_id', $student->id)->exists())->toBeFalse();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) ($request['text'] ?? '');
+
+        return str_contains($text, 'Welcome to NoviqUni Premium payments')
+            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+    });
+});
+
+it('returns configured copy for each info button', function (string $button, string $needle) {
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, 'Custom what you get copy');
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_OUR_STORY, 'Custom our story copy');
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_OUR_MISSION, 'Custom our mission copy');
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_CONTACT_US, 'Custom contact us copy');
+
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 10,
+        'message' => [
+            'message_id' => 20,
+            'from' => [
+                'id' => 700010,
+                'first_name' => 'Guest',
+            ],
+            'chat' => ['id' => 700010],
+            'text' => $button,
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) use ($needle) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) ($request['text'] ?? ''), $needle)
+            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+    });
+})->with([
+    'what you get' => [PaymentBotTelegramService::BUTTON_WHAT_YOU_GET, 'Custom what you get copy'],
+    'our story' => [PaymentBotTelegramService::BUTTON_OUR_STORY, 'Custom our story copy'],
+    'our mission' => [PaymentBotTelegramService::BUTTON_OUR_MISSION, 'Custom our mission copy'],
+    'contact us' => [PaymentBotTelegramService::BUTTON_CONTACT_US, 'Custom contact us copy'],
+]);
+
+it('creates a pending payment and sends briefing when Register / Pay is tapped', function () {
+    $student = User::factory()->student()->create([
+        'telegram_id' => '700011',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_premium' => false,
+    ]);
+
+    app(SettingsService::class)->set(
+        SettingsService::PAYMENT_BOT_REGISTER_PROMPT,
+        'Custom register prompt for receipt photo.',
+    );
+
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 11,
+        'message' => [
+            'message_id' => 21,
+            'from' => [
+                'id' => 700011,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'chat' => ['id' => 700011],
+            'text' => PaymentBotTelegramService::BUTTON_REGISTER,
+        ],
+    ])->assertOk();
+
     $payment = Payment::query()->where('user_id', $student->id)->first();
 
     expect($payment)->not->toBeNull()
@@ -58,7 +150,38 @@ it('creates a pending payment and sends instructions on start deep link', functi
         $text = (string) ($request['text'] ?? '');
 
         return str_contains($text, (string) $payment->external_ref)
-            && str_contains($text, 'photo');
+            && str_contains($text, (string) $payment->amount)
+            && str_contains($text, 'Custom register prompt for receipt photo.')
+            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+    });
+});
+
+it('tells unlinked users to open the main bot when Register / Pay is tapped', function () {
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 12,
+        'message' => [
+            'message_id' => 22,
+            'from' => [
+                'id' => 700099,
+                'first_name' => 'Unknown',
+            ],
+            'chat' => ['id' => 700099],
+            'text' => PaymentBotTelegramService::BUTTON_REGISTER,
+        ],
+    ])->assertOk();
+
+    expect(Payment::query()->count())->toBe(0);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) ($request['text'] ?? '');
+
+        return str_contains($text, 'main NoviqUni bot')
+            && str_contains($text, 'Become Premium')
+            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
     });
 });
 

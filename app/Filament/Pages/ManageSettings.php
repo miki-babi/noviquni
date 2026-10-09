@@ -56,6 +56,12 @@ class ManageSettings extends Page
             'points_per_referral' => $settings->pointsPerReferral(),
             'payment_instructions' => $settings->paymentInstructions(),
             'payment_bot_username' => $settings->paymentBotUsername() ?? '',
+            'payment_bot_welcome' => $settings->paymentBotWelcome(),
+            'payment_bot_what_you_get' => $settings->paymentBotWhatYouGet(),
+            'payment_bot_our_story' => $settings->paymentBotOurStory(),
+            'payment_bot_our_mission' => $settings->paymentBotOurMission(),
+            'payment_bot_contact_us' => $settings->paymentBotContactUs(),
+            'payment_bot_register_prompt' => $settings->paymentBotRegisterPrompt(),
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
@@ -136,6 +142,42 @@ class ManageSettings extends Page
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+                Section::make('Payment bot')
+                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Our story, Our mission, Contact us, Register / Pay.')
+                    ->schema([
+                        Textarea::make('payment_bot_welcome')
+                            ->label('Welcome message')
+                            ->rows(4)
+                            ->required()
+                            ->helperText('Sent on /start with the reply keyboard.')
+                            ->columnSpanFull(),
+                        Textarea::make('payment_bot_what_you_get')
+                            ->label('What you get')
+                            ->rows(5)
+                            ->required()
+                            ->columnSpanFull(),
+                        Textarea::make('payment_bot_our_story')
+                            ->label('Our story')
+                            ->rows(4)
+                            ->required()
+                            ->columnSpanFull(),
+                        Textarea::make('payment_bot_our_mission')
+                            ->label('Our mission')
+                            ->rows(4)
+                            ->required()
+                            ->columnSpanFull(),
+                        Textarea::make('payment_bot_contact_us')
+                            ->label('Contact us')
+                            ->rows(3)
+                            ->required()
+                            ->columnSpanFull(),
+                        Textarea::make('payment_bot_register_prompt')
+                            ->label('Register / Pay prompt')
+                            ->rows(3)
+                            ->required()
+                            ->helperText('Shown after amount and payment instructions when students tap Register / Pay. Asks them to upload a receipt screenshot.')
+                            ->columnSpanFull(),
+                    ]),
                 Section::make('Opportunity guidance')
                     ->description('Default opening DM text sent to the student when a guide is assigned. Opportunities can override this. Admin notify still uses TELEGRAM_FILE_ADMIN_USERNAME.')
                     ->schema([
@@ -241,6 +283,12 @@ class ManageSettings extends Page
             SettingsService::PAYMENT_BOT_USERNAME,
             ltrim(trim((string) ($data['payment_bot_username'] ?? '')), '@'),
         );
+        $settings->set(SettingsService::PAYMENT_BOT_WELCOME, (string) ($data['payment_bot_welcome'] ?? ''));
+        $settings->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, (string) ($data['payment_bot_what_you_get'] ?? ''));
+        $settings->set(SettingsService::PAYMENT_BOT_OUR_STORY, (string) ($data['payment_bot_our_story'] ?? ''));
+        $settings->set(SettingsService::PAYMENT_BOT_OUR_MISSION, (string) ($data['payment_bot_our_mission'] ?? ''));
+        $settings->set(SettingsService::PAYMENT_BOT_CONTACT_US, (string) ($data['payment_bot_contact_us'] ?? ''));
+        $settings->set(SettingsService::PAYMENT_BOT_REGISTER_PROMPT, (string) ($data['payment_bot_register_prompt'] ?? ''));
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_BODY, (string) ($data['premium_pitch_body'] ?? ''));
