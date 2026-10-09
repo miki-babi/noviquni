@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Services\PaymentBotHandler;
 use App\Services\TelegramBotApi;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -12,8 +13,10 @@ use Illuminate\Http\Response;
 
 class PaymentBotWebhookController extends Controller
 {
-    public function __invoke(Request $request): Response
+    public function __invoke(Request $request, PaymentBotHandler $handler): Response
     {
+        $handler->handle($request->all());
+
         return response('ok');
     }
 
@@ -142,7 +145,7 @@ class PaymentBotWebhookController extends Controller
     {
         return [
             'title' => 'Payment bot webhook',
-            'subtitle' => 'Check registration status and set the payment bot webhook to this app.',
+            'subtitle' => 'Check registration status and set the payment bot webhook to this app. File admins must /start the payment bot once before they can receive screenshot reviews.',
             'statusRoute' => 'telegram.payment-bot.webhook-status',
             'setRoute' => 'telegram.payment-bot.webhook-set',
             'otherBotLabel' => 'Main bot webhook',

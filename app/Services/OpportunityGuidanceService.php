@@ -19,6 +19,7 @@ class OpportunityGuidanceService
         public PremiumService $premium,
         public ReferralService $referrals,
         public TelegramService $telegram,
+        public FileAdminRecipients $fileAdmins,
     ) {}
 
     public function hasRequested(User $student, Opportunity $opportunity): bool
@@ -237,34 +238,10 @@ class OpportunityGuidanceService
     }
 
     /**
-     * @return list<int|string>
+     * @return list<string>
      */
     protected function adminTelegramIds(): array
     {
-        return collect($this->fileAdminUsernames())
-            ->map(function (string $username): ?string {
-                return User::query()
-                    ->whereNotNull('telegram_id')
-                    ->whereRaw('LOWER(telegram_username) = ?', [$username])
-                    ->value('telegram_id');
-            })
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function fileAdminUsernames(): array
-    {
-        $raw = (string) config('services.telegram.file_admin_username', '');
-
-        return collect(explode(',', $raw))
-            ->map(fn (string $username): string => strtolower(ltrim(trim($username), '@')))
-            ->filter()
-            ->values()
-            ->all();
+        return $this->fileAdmins->telegramIds();
     }
 }

@@ -7,20 +7,15 @@ use App\Support\TelegramHtml;
 
 class NewStudentAdminNotifier
 {
+    public function __construct(
+        public FileAdminRecipients $fileAdmins,
+    ) {}
+
     public function notify(User $student, TelegramService $telegram): void
     {
-        $recipientTelegramIds = collect($this->fileAdminUsernames())
-            ->map(function (string $username): ?string {
-                return User::query()
-                    ->whereNotNull('telegram_id')
-                    ->whereRaw('LOWER(telegram_username) = ?', [$username])
-                    ->value('telegram_id');
-            })
-            ->filter()
-            ->unique()
-            ->values();
+        $recipientTelegramIds = $this->fileAdmins->telegramIds();
 
-        if ($recipientTelegramIds->isEmpty()) {
+        if ($recipientTelegramIds === []) {
             return;
         }
 
@@ -38,19 +33,5 @@ class NewStudentAdminNotifier
         foreach ($recipientTelegramIds as $telegramId) {
             $telegram->sendMessage($telegramId, $text);
         }
-    }
-
-    /**
-     * @return list<string>
-     */
-    protected function fileAdminUsernames(): array
-    {
-        $raw = (string) config('services.telegram.file_admin_username', '');
-
-        return collect(explode(',', $raw))
-            ->map(fn (string $username): string => strtolower(ltrim(trim($username), '@')))
-            ->filter()
-            ->values()
-            ->all();
     }
 }

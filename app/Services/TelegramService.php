@@ -43,24 +43,20 @@ class TelegramService
      */
     public function fileAdminUsernames(): array
     {
-        $raw = (string) config('services.telegram.file_admin_username', '');
+        return app(FileAdminRecipients::class)->usernames();
+    }
 
-        return collect(explode(',', $raw))
-            ->map(fn (string $username): string => strtolower(ltrim(trim($username), '@')))
-            ->filter()
-            ->values()
-            ->all();
+    /**
+     * @return list<string>
+     */
+    public function adminTelegramIds(): array
+    {
+        return app(FileAdminRecipients::class)->telegramIds();
     }
 
     public function isFileVaultAdmin(?string $username): bool
     {
-        if (blank($username)) {
-            return false;
-        }
-
-        $normalized = strtolower(ltrim(trim($username), '@'));
-
-        return in_array($normalized, $this->fileAdminUsernames(), true);
+        return app(FileAdminRecipients::class)->isAdmin($username);
     }
 
     /**
