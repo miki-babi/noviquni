@@ -35,10 +35,11 @@ function paymentBotHasMainKeyboard(mixed $replyMarkup): bool
     }
 
     return str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_OUR_STORY)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_OUR_MISSION)
         && str_contains($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_REGISTER);
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_REGISTER)
+        && str_contains($encoded, '"style":"primary"')
+        && ! str_contains($encoded, 'Our story')
+        && ! str_contains($encoded, 'Our mission');
 }
 
 it('sends welcome with reply keyboard on start without creating a payment', function () {
@@ -78,8 +79,6 @@ it('sends welcome with reply keyboard on start without creating a payment', func
 
 it('returns configured copy for each info button', function (string $button, string $needle) {
     app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, 'Custom what you get copy');
-    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_OUR_STORY, 'Custom our story copy');
-    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_OUR_MISSION, 'Custom our mission copy');
     app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_CONTACT_US, 'Custom contact us copy');
 
     $this->postJson('/telegram/payment-bot/webhook', [
@@ -105,12 +104,10 @@ it('returns configured copy for each info button', function (string $button, str
     });
 })->with([
     'what you get' => [PaymentBotTelegramService::BUTTON_WHAT_YOU_GET, 'Custom what you get copy'],
-    'our story' => [PaymentBotTelegramService::BUTTON_OUR_STORY, 'Custom our story copy'],
-    'our mission' => [PaymentBotTelegramService::BUTTON_OUR_MISSION, 'Custom our mission copy'],
     'contact us' => [PaymentBotTelegramService::BUTTON_CONTACT_US, 'Custom contact us copy'],
 ]);
 
-it('creates a pending payment and sends briefing when Register / Pay is tapped', function () {
+it('creates a pending payment and sends briefing when Register now is tapped', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700011',
         'onboarding_step' => OnboardingStep::Complete,
@@ -156,7 +153,7 @@ it('creates a pending payment and sends briefing when Register / Pay is tapped',
     });
 });
 
-it('tells unlinked users to open the main bot when Register / Pay is tapped', function () {
+it('tells unlinked users to open the main bot when Register now is tapped', function () {
     $this->postJson('/telegram/payment-bot/webhook', [
         'update_id' => 12,
         'message' => [

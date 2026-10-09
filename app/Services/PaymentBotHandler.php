@@ -125,8 +125,6 @@ class PaymentBotHandler
     {
         $answer = match ($text) {
             PaymentBotTelegramService::BUTTON_WHAT_YOU_GET => $this->settings->paymentBotWhatYouGet(),
-            PaymentBotTelegramService::BUTTON_OUR_STORY => $this->settings->paymentBotOurStory(),
-            PaymentBotTelegramService::BUTTON_OUR_MISSION => $this->settings->paymentBotOurMission(),
             PaymentBotTelegramService::BUTTON_CONTACT_US => $this->settings->paymentBotContactUs(),
             default => null,
         };

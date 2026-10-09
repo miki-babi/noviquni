@@ -61,7 +61,7 @@ class SettingsService
             self::PREMIUM_DURATION_DAYS => '30',
             self::PAYMENT_INSTRUCTIONS => "Send {amount} ETB to the account provided by support.\nUse payment reference: {reference}",
             self::PAYMENT_BOT_USERNAME => '',
-            self::PAYMENT_BOT_WELCOME => "Welcome to NoviqUni Premium payments.\n\nUse the buttons below to learn more, or tap Register / Pay when you are ready.",
+            self::PAYMENT_BOT_WELCOME => "Welcome to NoviqUni Premium payments.\n\nUse the buttons below to learn more, or tap Register now when you are ready.",
             self::PAYMENT_BOT_WHAT_YOU_GET => "Opportunity and internship links stay free for everyone.\n\nPremium gives you personal guidance on applications, plus full access to premium modules, notes, worksheets, quizzes, flashcards, and exams.\n\nPay once, or unlock Premium free by inviting friends.",
             self::PAYMENT_BOT_OUR_STORY => 'We started NoviqUni to help Ethiopian university students find clearer paths through courses, opportunities, and guidance.',
             self::PAYMENT_BOT_OUR_MISSION => 'Our mission is to make high-quality learning support and opportunity guidance accessible to every student who needs it.',

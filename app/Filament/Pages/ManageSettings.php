@@ -58,8 +58,6 @@ class ManageSettings extends Page
             'payment_bot_username' => $settings->paymentBotUsername() ?? '',
             'payment_bot_welcome' => $settings->paymentBotWelcome(),
             'payment_bot_what_you_get' => $settings->paymentBotWhatYouGet(),
-            'payment_bot_our_story' => $settings->paymentBotOurStory(),
-            'payment_bot_our_mission' => $settings->paymentBotOurMission(),
             'payment_bot_contact_us' => $settings->paymentBotContactUs(),
             'payment_bot_register_prompt' => $settings->paymentBotRegisterPrompt(),
             'telegram_start_image' => $settings->telegramStartImage(),
@@ -143,7 +141,7 @@ class ManageSettings extends Page
                     ])
                     ->columns(2),
                 Section::make('Payment bot')
-                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Our story, Our mission, Contact us, Register / Pay.')
+                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Contact us, Register now (blue).')
                     ->schema([
                         Textarea::make('payment_bot_welcome')
                             ->label('Welcome message')
@@ -156,26 +154,16 @@ class ManageSettings extends Page
                             ->rows(5)
                             ->required()
                             ->columnSpanFull(),
-                        Textarea::make('payment_bot_our_story')
-                            ->label('Our story')
-                            ->rows(4)
-                            ->required()
-                            ->columnSpanFull(),
-                        Textarea::make('payment_bot_our_mission')
-                            ->label('Our mission')
-                            ->rows(4)
-                            ->required()
-                            ->columnSpanFull(),
                         Textarea::make('payment_bot_contact_us')
                             ->label('Contact us')
                             ->rows(3)
                             ->required()
                             ->columnSpanFull(),
                         Textarea::make('payment_bot_register_prompt')
-                            ->label('Register / Pay prompt')
+                            ->label('Register now prompt')
                             ->rows(3)
                             ->required()
-                            ->helperText('Shown after amount and payment instructions when students tap Register / Pay. Asks them to upload a receipt screenshot.')
+                            ->helperText('Shown after amount and payment instructions when students tap Register now. Asks them to upload a receipt screenshot.')
                             ->columnSpanFull(),
                     ]),
                 Section::make('Opportunity guidance')
@@ -285,8 +273,6 @@ class ManageSettings extends Page
         );
         $settings->set(SettingsService::PAYMENT_BOT_WELCOME, (string) ($data['payment_bot_welcome'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, (string) ($data['payment_bot_what_you_get'] ?? ''));
-        $settings->set(SettingsService::PAYMENT_BOT_OUR_STORY, (string) ($data['payment_bot_our_story'] ?? ''));
-        $settings->set(SettingsService::PAYMENT_BOT_OUR_MISSION, (string) ($data['payment_bot_our_mission'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_CONTACT_US, (string) ($data['payment_bot_contact_us'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_REGISTER_PROMPT, (string) ($data['payment_bot_register_prompt'] ?? ''));
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));

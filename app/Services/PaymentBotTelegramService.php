@@ -2,17 +2,15 @@
 
 namespace App\Services;
 
+use App\Enums\TelegramButtonStyle;
+
 class PaymentBotTelegramService
 {
     public const BUTTON_WHAT_YOU_GET = 'What you get';
 
-    public const BUTTON_OUR_STORY = 'Our story';
-
-    public const BUTTON_OUR_MISSION = 'Our mission';
-
     public const BUTTON_CONTACT_US = 'Contact us';
 
-    public const BUTTON_REGISTER = 'Register / Pay';
+    public const BUTTON_REGISTER = 'Register now';
 
     public function api(): TelegramBotApi
     {
@@ -30,7 +28,7 @@ class PaymentBotTelegramService
     }
 
     /**
-     * @return array{keyboard: list<list<array{text: string}>>, resize_keyboard: true, is_persistent: true}
+     * @return array{keyboard: list<list<array<string, mixed>>>, resize_keyboard: true, is_persistent: true}
      */
     public function mainKeyboard(): array
     {
@@ -38,14 +36,15 @@ class PaymentBotTelegramService
             'keyboard' => [
                 [
                     ['text' => self::BUTTON_WHAT_YOU_GET],
-                    ['text' => self::BUTTON_OUR_STORY],
                 ],
                 [
-                    ['text' => self::BUTTON_OUR_MISSION],
                     ['text' => self::BUTTON_CONTACT_US],
                 ],
                 [
-                    ['text' => self::BUTTON_REGISTER],
+                    [
+                        'text' => self::BUTTON_REGISTER,
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
                 ],
             ],
             'resize_keyboard' => true,
