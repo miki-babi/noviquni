@@ -155,7 +155,16 @@ class TelegramBotHandler
             return;
         }
 
-        if ($text === $this->telegram->courseKeyboardBackLabel()) {
+        $copy = TelegramCopy::for($user);
+
+        if ($text === $this->telegram->courseKeyboardBackLabel()
+            || $text === $copy->get('keyboard.subject.back')) {
+            if (Cache::pull($this->gatSubjectSelectionCacheKey($user)) !== null) {
+                $this->sendReplyKeyboard($user, $chatId);
+
+                return;
+            }
+
             if (Cache::pull($this->resourceTypeSelectionCacheKey($user)) !== null) {
                 $this->showResourceKeyboard($user, $chatId);
 
@@ -163,6 +172,15 @@ class TelegramBotHandler
             }
 
             $this->sendReplyKeyboard($user, $chatId);
+
+            return;
+        }
+
+        $gatSubjectHub = $this->telegram->gatSubjectHubForKeyboardLabel($user, $text);
+        $gatCourseId = Cache::get($this->gatSubjectSelectionCacheKey($user));
+
+        if ($gatSubjectHub !== null && filled($gatCourseId)) {
+            $this->deliverGatSubjectHub($user, $chatId, (int) $gatCourseId, $gatSubjectHub);
 
             return;
         }
@@ -868,8 +886,8 @@ class TelegramBotHandler
     {
         match ($action) {
             'continue_exam' => $this->sendMiniAppOpen($user, $chatId, 'continue_exam', 'tg.browse'),
-            'maths' => $this->openGatSubject($user, $chatId, 'maths', 'maths'),
-            'reading_writing' => $this->openGatSubject($user, $chatId, 'reading_writing', 'reading-writing'),
+            'maths' => $this->openGatSubject($user, $chatId, 'maths'),
+            'reading_writing' => $this->openGatSubject($user, $chatId, 'reading-writing'),
             'contact' => $this->showContactUs($user, $chatId),
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
@@ -990,17 +1008,93 @@ class TelegramBotHandler
         ]);
     }
 
-    protected function openGatSubject(User $user, int|string $chatId, string $destination, string $courseSlug): void
+    protected function openGatSubject(User $user, int|string $chatId, string $courseSlug): void
     {
+        $copy = TelegramCopy::for($user);
         $course = Course::query()->where('slug', $courseSlug)->first();
 
-        if ($course !== null) {
-            $this->sendMiniAppOpen($user, $chatId, $destination, 'tg.courses.show', ['course' => $course]);
+        if ($course === null) {
+            $this->telegram->sendMessage($chatId, $copy->get('keyboard.subject.missing_course'), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ]);
 
             return;
         }
 
-        $this->sendMiniAppOpen($user, $chatId, $destination, 'tg.browse');
+        Cache::put($this->gatSubjectSelectionCacheKey($user), $course->id, now()->addHours(6));
+        Cache::forget($this->resourceTypeSelectionCacheKey($user));
+
+        $this->telegram->sendMessage($chatId, $copy->get('keyboard.subject.prompt', [
+            'course' => $course->name,
+        ]), [
+            'reply_markup' => $this->telegram->gatSubjectKeyboard($user),
+        ]);
+    }
+
+    protected function gatSubjectSelectionCacheKey(User $user): string
+    {
+        return 'telegram.gat_subject.'.$user->id;
+    }
+
+    protected function deliverGatSubjectHub(User $user, int|string $chatId, int $courseId, string $hub): void
+    {
+        $types = $this->telegram->resourceTypesForGatSubjectHub($hub);
+
+        if ($types === []) {
+            return;
+        }
+
+        $course = Course::query()->find($courseId);
+
+        if ($course === null) {
+            Cache::forget($this->gatSubjectSelectionCacheKey($user));
+            $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('keyboard.subject.missing_course'), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ]);
+
+            return;
+        }
+
+        if (count($types) === 1) {
+            $this->deliverCourseResourceType($user, $chatId, $course, $types[0]);
+
+            return;
+        }
+
+        $this->listResourcesByTypes($user, $chatId, $courseId, $types, $hub);
+    }
+
+    /**
+     * @param  list<ResourceType>  $types
+     */
+    protected function listResourcesByTypes(
+        User $user,
+        int|string $chatId,
+        int $courseId,
+        array $types,
+        string $hub,
+        ?int $messageId = null,
+    ): void {
+        $copy = TelegramCopy::for($user);
+        $course = Course::query()->find($courseId);
+        $typeLabel = $copy->get('keyboard.subject.'.$hub);
+        $heading = $this->resourceListHeading($copy, $course?->name, $typeLabel);
+
+        $resources = LearningResource::query()
+            ->published()
+            ->where('course_id', $courseId)
+            ->whereIn('type', array_map(fn (ResourceType $type): string => $type->value, $types))
+            ->orderBy('title')
+            ->get();
+
+        $this->replyWithResourceList(
+            $copy,
+            $chatId,
+            $resources,
+            "course:{$courseId}",
+            $messageId,
+            $heading,
+        );
     }
 
     protected function showContactUs(User $user, int|string $chatId): void

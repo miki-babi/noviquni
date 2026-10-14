@@ -37,14 +37,12 @@ class LearningsTable
                         'disk' => $record->diskFileCount().' disk file(s)',
                         default => null,
                     }),
-                TextColumn::make('stream.name'),
                 TextColumn::make('course.name'),
                 IconColumn::make('is_premium')->boolean(),
                 IconColumn::make('is_published')->boolean(),
                 TextColumn::make('sort_order')->sortable(),
             ])
             ->filters([
-                SelectFilter::make('stream')->relationship('stream', 'name'),
                 SelectFilter::make('course')->relationship('course', 'name'),
                 SelectFilter::make('delivery')
                     ->label('Delivery')

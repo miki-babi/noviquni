@@ -211,7 +211,7 @@ class LearningForm
                         ->dehydrated()
                         ->helperText('Free students can open any published resource that is not premium.'),
                     Toggle::make('is_published')->default(false),
-                    ...static::fileFields(required: true),
+                    ...static::fileFields(required: false),
                     ...SeoFields::make(),
                 ]),
         ];
@@ -283,7 +283,6 @@ class LearningForm
                             'existing' => 'Course library',
                         ])
                         ->default(fn (): string => TelegramFileAsset::vaultCount() > 0 ? 'telegram' : 'upload')
-                        ->required()
                         ->live()
                         ->grouped()
                         ->dehydrated()
@@ -308,7 +307,6 @@ class LearningForm
                             'multiple' => 'Multiple files',
                         ])
                         ->default('multiple')
-                        ->required()
                         ->live()
                         ->grouped()
                         ->dehydrated(false)

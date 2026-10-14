@@ -976,7 +976,7 @@ it('opens a mini app button when continue exam is tapped', function () {
     });
 });
 
-it('opens the maths course mini app when maths is tapped and the course exists', function () {
+it('opens the maths subject reply keyboard when maths is tapped and the course exists', function () {
     $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
 
     User::factory()->student()->create([
@@ -995,13 +995,16 @@ it('opens the maths course mini app when maths is tapped and the course exists',
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Maths in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course)
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🧮 Open Maths';
+        return str_contains((string) ($data['text'] ?? ''), $course->name)
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === 'quiz'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'reference books'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'past exams'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '← back';
     });
 });
 
-it('falls back to browse when reading/writing is tapped without a matching course', function () {
+it('tells the student when reading/writing is tapped without a matching course', function () {
     User::factory()->student()->create([
         'telegram_id' => '555303',
         'onboarding_step' => OnboardingStep::Complete,
@@ -1018,8 +1021,42 @@ it('falls back to browse when reading/writing is tapped without a matching cours
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Reading/Writing in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+        return str_contains((string) ($data['text'] ?? ''), 'That course is not set up yet')
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths';
+    });
+});
+
+it('lists quiz resources for the selected gat subject course', function () {
+    $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555304',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    LearningResource::factory()->published()->quiz()->create([
+        'course_id' => $course->id,
+        'stream_id' => $course->stream_id,
+        'title' => 'Algebra quiz',
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555304, 'maths', 604))
+        ->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555304, 'quiz', 605))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+
+        return str_contains($text, 'Algebra quiz')
+            || data_get($data, 'reply_markup.inline_keyboard.0.0.text') === 'Algebra quiz'
+            || str_contains((string) data_get($data, 'reply_markup.inline_keyboard.0.0.text'), 'Algebra quiz');
     });
 });
 

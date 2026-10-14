@@ -8,6 +8,15 @@ return [
         'premium' => 'unlock premium',
         'contact' => 'contact us',
         'refer' => 'share and reward',
+        'subject' => [
+            'prompt' => '<b>:course</b> — pick a resource type:',
+            'practice_exams' => 'Practice exams',
+            'quiz' => 'quiz',
+            'reference_books' => 'reference books',
+            'past_exams' => 'past exams',
+            'back' => '← back',
+            'missing_course' => 'That course is not set up yet. Try again after we publish it.',
+        ],
         // Legacy labels kept for old reply keyboards until /start refresh.
         'courses' => '📚 Courses',
         'resources' => '📚 Freshman resources',

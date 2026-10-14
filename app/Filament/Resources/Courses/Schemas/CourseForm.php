@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Courses\Schemas;
 
 use App\Filament\Forms\Components\SeoFields;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
@@ -15,11 +14,6 @@ class CourseForm
     {
         return $schema
             ->components([
-                Select::make('stream_id')
-                    ->relationship('stream', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
                 TextInput::make('name')
                     ->required()
                     ->live(onBlur: true)

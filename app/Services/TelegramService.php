@@ -216,6 +216,82 @@ class TelegramService
     }
 
     /**
+     * Subject hub reply keyboard after tapping maths or reading/writing.
+     *
+     * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
+     */
+    public function gatSubjectKeyboard(?User $user = null): array
+    {
+        $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
+
+        return [
+            'keyboard' => [
+                [
+                    [
+                        'text' => $copy->get('keyboard.subject.practice_exams'),
+                        'style' => TelegramButtonStyle::Success->value,
+                    ],
+                    [
+                        'text' => $copy->get('keyboard.subject.quiz'),
+                        'style' => TelegramButtonStyle::Success->value,
+                    ],
+                ],
+                [
+                    [
+                        'text' => $copy->get('keyboard.subject.reference_books'),
+                        'style' => TelegramButtonStyle::Success->value,
+                    ],
+                    [
+                        'text' => $copy->get('keyboard.subject.past_exams'),
+                        'style' => TelegramButtonStyle::Success->value,
+                    ],
+                ],
+                [
+                    [
+                        'text' => $copy->get('keyboard.subject.back'),
+                    ],
+                ],
+            ],
+            'resize_keyboard' => true,
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function gatSubjectHubKeys(): array
+    {
+        return ['practice_exams', 'quiz', 'reference_books', 'past_exams'];
+    }
+
+    public function gatSubjectHubForKeyboardLabel(User $user, string $label): ?string
+    {
+        $copy = TelegramCopy::for($user);
+
+        foreach ($this->gatSubjectHubKeys() as $key) {
+            if ($copy->get('keyboard.subject.'.$key) === $label) {
+                return $key;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<ResourceType>
+     */
+    public function resourceTypesForGatSubjectHub(string $hub): array
+    {
+        return match ($hub) {
+            'practice_exams' => [ResourceType::PracticeExams],
+            'quiz' => [ResourceType::Quiz],
+            'reference_books' => [ResourceType::ReferenceBooks],
+            'past_exams' => [ResourceType::MidExam, ResourceType::FinalExam],
+            default => [],
+        };
+    }
+
+    /**
      * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
      */
     public function courseKeyboard(User $user, ?ResourceType $resourceType = null): array

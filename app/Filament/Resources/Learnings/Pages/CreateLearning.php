@@ -191,11 +191,7 @@ class CreateLearning extends CreateRecord
             return $data;
         }
 
-        $streamId = Course::query()->whereKey($courseId)->value('stream_id');
-
-        if ($streamId !== null) {
-            $data['stream_id'] = $streamId;
-        }
+        $data['stream_id'] = Course::query()->whereKey($courseId)->value('stream_id');
 
         return $data;
     }

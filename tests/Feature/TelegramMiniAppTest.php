@@ -50,6 +50,21 @@ it('builds the GAT main keyboard for all students', function () {
         ->and(data_get($keyboard, 'keyboard.3.1.style'))->toBeNull();
 });
 
+it('builds the GAT subject reply keyboard', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+
+    $keyboard = app(TelegramService::class)->gatSubjectKeyboard($user);
+
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Practice exams')
+        ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('quiz')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('reference books')
+        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('past exams')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('← back')
+        ->and(data_get($keyboard, 'resize_keyboard'))->toBeTrue();
+});
+
 it('shows the bootstrap page for guests on mini app routes', function () {
     $this->get(route('tg.browse'))
         ->assertOk()
