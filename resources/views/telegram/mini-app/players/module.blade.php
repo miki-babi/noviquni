@@ -8,6 +8,7 @@
             :chunks="$chunks"
             :course="$course"
             :copy="$copy"
+            :pdfs="$pdfs ?? []"
         />
     </div>
 </x-telegram.mini-app.player-layout>

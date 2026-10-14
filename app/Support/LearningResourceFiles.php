@@ -133,6 +133,16 @@ class LearningResourceFiles
         return in_array($extension, self::acceptedExtensions(), true);
     }
 
+    public static function isPdfPath(string $path): bool
+    {
+        return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf';
+    }
+
+    public static function isPdfFileName(?string $name): bool
+    {
+        return filled($name) && self::isPdfPath($name);
+    }
+
     public static function isValidPathForCourse(string $path, int|string $courseId): bool
     {
         if ($path === '' || str_contains($path, '..')) {

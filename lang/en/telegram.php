@@ -58,7 +58,7 @@ return [
     'refer' => [
         'start_cta' => 'Start now',
         'stats' => "👥 Referrals\nProgress: :count/:required\nPoints: :points",
-        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it. Earn points for challenges when friends join.',
+        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it.',
         'share' => '📤 Share',
         'share_message' => "Hey! Join me on Noviq Uni for freshman study resources.\n:link",
     ],

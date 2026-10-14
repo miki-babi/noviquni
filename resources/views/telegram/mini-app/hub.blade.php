@@ -1,5 +1,4 @@
 @php
-    $deepLinks = app(\App\Services\TelegramDeepLink::class);
     $accentCycle = ['lime', 'mint', 'coral', 'teal'];
 @endphp
 
@@ -19,10 +18,9 @@
                 @php
                     $accent = $accentCycle[($loop->index) % count($accentCycle)];
                 @endphp
-                <x-telegram.mini-app.bot-link
-                    :href="$deepLinks->forResource($resource->id)"
-                    :confirm-title="$copy->get('bot_confirm.title')"
-                    :confirm-message="$copy->get('bot_confirm.resource', ['title' => $resource->title])"
+                <x-telegram.mini-app.open-resource
+                    :resource="$resource"
+                    :copy="$copy"
                     class="study-card study-card--{{ $accent }}"
                 >
                     <div class="study-card-inner">
@@ -34,7 +32,7 @@
                         </span>
                         <span class="tg-cell-chevron" aria-hidden="true">›</span>
                     </div>
-                </x-telegram.mini-app.bot-link>
+                </x-telegram.mini-app.open-resource>
             @endforeach
         @endif
     </div>

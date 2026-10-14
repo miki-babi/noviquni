@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ChallengeStatus;
 use App\Enums\OnboardingStep;
 use App\Enums\OpportunityType;
 use App\Enums\ResourceHub;
@@ -13,7 +12,6 @@ use App\Enums\UserEventName;
 use App\Enums\YearSlug;
 use App\Models\Bookmark;
 use App\Models\Broadcast;
-use App\Models\Challenge;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
@@ -42,7 +40,6 @@ class TelegramBotHandler
         public ReferralService $referrals,
         public PremiumService $premium,
         public SettingsService $settings,
-        public ChallengeService $challenges,
         public OpportunityGuidanceService $opportunityGuidance,
         public UserEventService $userEvents,
     ) {}
@@ -353,12 +350,6 @@ class TelegramBotHandler
             }),
             $data === 'profile:refer' => $this->guardComplete($user, function () use ($user, $chatId): void {
                 $this->showReferrals($user, $chatId);
-            }),
-            $data === 'challenges' => $this->guardComplete($user, function () use ($user, $chatId, $messageId): void {
-                $this->showChallenges($user, $chatId, $messageId);
-            }),
-            str_starts_with($data, 'challenge:') => $this->guardComplete($user, function () use ($user, $chatId, $data, $messageId): void {
-                $this->showChallenge($user, $chatId, (int) Str::after($data, 'challenge:'), $messageId);
             }),
             $data === 'profile:settings' => $this->guardComplete($user, function () use ($user, $chatId, $messageId): void {
                 $this->showSettings($user, $chatId, $messageId);
@@ -846,7 +837,6 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.courses')] = 'courses';
             $map[$copy->get('keyboard.resources')] = 'resources';
             $map[$copy->get('keyboard.scholarships')] = 'scholarships';
-            $map[$copy->get('keyboard.challenges')] = 'challenges';
             $map[$copy->get('keyboard.internships')] = 'internships';
             $map[$copy->get('keyboard.opportunities')] = 'opportunities';
             $map[$copy->get('keyboard.mentorship')] = 'mentorship';
@@ -863,7 +853,6 @@ class TelegramBotHandler
 
         $map['📚 My Courses'] = 'courses';
         $map['📖 Resources'] = 'resources';
-        $map['🏆 Challenges'] = 'challenges';
         $map['👤 My Profile'] = 'profile';
         $map['👥 Refer'] = 'refer';
         $map['👥 Refer & Earn'] = 'refer';
@@ -885,7 +874,6 @@ class TelegramBotHandler
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
             'saved' => $this->showSaved($user, $chatId),
-            'challenges' => $this->showChallenges($user, $chatId),
             'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
             'continue' => $this->showContinue($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),
@@ -1419,16 +1407,6 @@ class TelegramBotHandler
                 }
 
                 $this->showCourseHub($user, $chatId, $course->id);
-
-                return true;
-            }
-        }
-
-        if (str_starts_with($payload, 'challenge_')) {
-            $challengeId = (int) Str::after($payload, 'challenge_');
-
-            if ($challengeId > 0) {
-                $this->showChallenge($user, $chatId, $challengeId);
 
                 return true;
             }
@@ -3327,15 +3305,7 @@ class TelegramBotHandler
             'points' => $user->referral_points,
         ]);
 
-        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'), [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                [
-                    'text' => $copy->get('challenges.list_button'),
-                    'callback_data' => 'challenges',
-                    'style' => TelegramButtonStyle::Primary->value,
-                ],
-            ]]),
-        ]);
+        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'));
 
         if ($this->settings->hasCustomTelegramStartMessage()) {
             $this->sendCustomStartMessage($user, $chatId, sendReplyKeyboard: false);
@@ -3344,99 +3314,6 @@ class TelegramBotHandler
         }
 
         $this->sendDefaultStartMessage($user, $chatId, sendReplyKeyboard: false);
-    }
-
-    protected function showChallenges(User $user, int|string $chatId, ?int $messageId = null): void
-    {
-        $copy = TelegramCopy::for($user);
-
-        $challenges = Challenge::query()
-            ->listed()
-            ->orderBy('cost_points')
-            ->orderBy('id')
-            ->limit(10)
-            ->get();
-
-        if ($challenges->isEmpty()) {
-            $this->telegram->replyOrEdit($chatId, $copy->get('challenges.empty', [
-                'points' => $user->referral_points,
-            ]), [], $messageId);
-
-            return;
-        }
-
-        $rows = $challenges->map(fn (Challenge $challenge): array => [[
-            'text' => $copy->get('challenges.item_button', [
-                'title' => $challenge->title,
-                'cost' => $challenge->cost_points,
-            ]),
-            'callback_data' => 'challenge:'.$challenge->id,
-        ]])->values()->all();
-
-        $this->telegram->replyOrEdit($chatId, $copy->get('challenges.list', [
-            'points' => $user->referral_points,
-        ]), [
-            'reply_markup' => $this->telegram->inlineKeyboard($rows),
-        ], $messageId);
-    }
-
-    protected function showChallenge(User $user, int|string $chatId, int $challengeId, ?int $messageId = null): void
-    {
-        $copy = TelegramCopy::for($user);
-
-        $challenge = Challenge::query()->find($challengeId);
-
-        if (
-            $challenge === null
-            || $challenge->status !== ChallengeStatus::Active
-            || ! $challenge->hasAvailableSlots()
-        ) {
-            $this->telegram->replyOrEdit($chatId, $copy->get('challenges.not_found'), [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    ['text' => $copy->get('challenges.back'), 'callback_data' => 'challenges'],
-                ]]),
-            ], $messageId);
-
-            return;
-        }
-
-        $completed = $challenge->completions()->where('user_id', $user->id)->exists();
-        $description = filled($challenge->description)
-            ? TelegramHtml::escape($challenge->description)
-            : '';
-
-        $replacements = [
-            'title' => TelegramHtml::escape($challenge->title),
-            'description' => $description,
-            'cost' => $challenge->cost_points,
-            'points' => $user->referral_points,
-            'status' => $completed
-                ? $copy->get('challenges.status_completed')
-                : $copy->get('challenges.status_progress', [
-                    'points' => $user->referral_points,
-                    'cost' => $challenge->cost_points,
-                ]),
-        ];
-
-        if ($completed) {
-            $replacements['reward'] = filled($challenge->reward_message)
-                ? TelegramHtml::escape($challenge->reward_message)
-                : TelegramHtml::escape($challenge->title);
-
-            $body = $copy->get('challenges.detail_completed', $replacements);
-        } else {
-            $body = $copy->get('challenges.detail', $replacements);
-        }
-
-        $this->telegram->replyOrEdit($chatId, $body, [
-            'reply_markup' => $this->telegram->inlineKeyboard([[
-                ['text' => $copy->get('challenges.back'), 'callback_data' => 'challenges'],
-            ]]),
-        ], $messageId);
-
-        if (! $completed) {
-            $this->challenges->tryAutoRedeem($user->fresh());
-        }
     }
 
     protected function toggleNotifications(User $user, int|string $chatId): void

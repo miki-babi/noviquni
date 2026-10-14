@@ -217,13 +217,13 @@ it('shows profile course and saved-file bot deep links', function () {
         ->assertSee('Physics')
         ->assertSee($deepLinks->forCourse('physics'), false)
         ->assertSee('Week-1 notes')
-        ->assertSee($deepLinks->forResource($resource->id), false)
+        ->assertSee($resource->miniAppUrl(), false)
         ->assertSee('?start=course_physics', false)
-        ->assertSee('?start=resource_'.$resource->id, false)
+        ->assertDontSee('?start=resource_'.$resource->id, false)
         ->assertSee('data-tg-bot-link', false)
         ->assertSee('data-tg-bot-confirm', false)
         ->assertSee('Open in bot?', false)
-        ->assertSee('The bot will send the file.', false)
+        ->assertSee('Open Physics in Telegram?', false)
         ->assertSee('study-card--lime', false)
         ->assertSee('tgOpenBotLink', false)
         ->assertSee('x-data', false)
@@ -474,12 +474,10 @@ it('opens course hubs inside the mini app', function () {
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
         ->assertOk()
         ->assertSee('Week-1 notes')
-        ->assertSee(app(TelegramDeepLink::class)->forResource($notes->id), false)
-        ->assertSee('data-tg-bot-link', false)
-        ->assertSee('data-tg-bot-confirm', false)
-        ->assertSee('study-card--lime', false)
-        ->assertSee('Open in bot?', false)
-        ->assertDontSee($notes->miniAppUrl(), false);
+        ->assertSee($notes->miniAppUrl(), false)
+        ->assertDontSee(app(TelegramDeepLink::class)->forResource($notes->id), false)
+        ->assertDontSee('data-tg-bot-link', false)
+        ->assertSee('study-card--lime', false);
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

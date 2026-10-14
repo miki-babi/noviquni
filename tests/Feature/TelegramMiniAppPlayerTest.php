@@ -308,5 +308,6 @@ it('opens course hubs for free and premium students', function () {
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
         ->assertOk()
         ->assertSee('Chapter notes')
-        ->assertSee('?start=resource_'.$notes->id, false);
+        ->assertSee($notes->miniAppUrl(), false)
+        ->assertDontSee('?start=resource_'.$notes->id, false);
 });

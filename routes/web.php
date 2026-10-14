@@ -25,6 +25,7 @@ use App\Http\Controllers\Telegram\MiniApp\Players\WorksheetPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
+use App\Http\Controllers\Telegram\MiniApp\ResourceFileController;
 use App\Http\Controllers\Telegram\MiniApp\SavedController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
 use App\Http\Controllers\TelegramWebhookController;
@@ -72,6 +73,9 @@ Route::prefix('tg')->name('tg.')->group(function () {
             ->whereIn('hub', ResourceHub::miniAppRouteSlugs())
             ->name('courses.hub');
         Route::get('resources/{resource:slug}', [App\Http\Controllers\Telegram\MiniApp\ResourceController::class, 'show'])->name('resources.show');
+        Route::get('files/{resource:slug}/{index}', [ResourceFileController::class, 'show'])
+            ->whereNumber('index')
+            ->name('files.show');
         Route::get('play/module/{resource:slug}', ModulePlayerController::class)->name('play.module');
         Route::get('play/notes/{resource:slug}', NotesPlayerController::class)->name('play.notes');
         Route::get('play/worksheet/{resource:slug}', WorksheetPlayerController::class)->name('play.worksheet');

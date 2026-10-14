@@ -4,6 +4,8 @@
             <p class="text-sm text-text-secondary">{{ $course->name }}</p>
         @endif
 
+        <x-telegram.mini-app.pdf-viewer :pdfs="$pdfs ?? []" />
+
         @if ($payload)
             <x-study.quiz
                 :payload="$payload"

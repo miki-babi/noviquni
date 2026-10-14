@@ -1,5 +1,4 @@
 @php
-    $deepLinks = app(\App\Services\TelegramDeepLink::class);
     $accentCycle = ['lime', 'mint', 'coral', 'teal'];
     $tabLabels = [
         'resources' => $copy->get('saved.tab_resources'),
@@ -46,10 +45,9 @@
                     $accent = $accentCycle[($loop->index) % count($accentCycle)];
                 @endphp
                 @if ($item instanceof \App\Models\LearningResource)
-                    <x-telegram.mini-app.bot-link
-                        :href="$deepLinks->forResource($item->id)"
-                        :confirm-title="$copy->get('bot_confirm.title')"
-                        :confirm-message="$copy->get('bot_confirm.resource', ['title' => $item->title])"
+                    <x-telegram.mini-app.open-resource
+                        :resource="$item"
+                        :copy="$copy"
                         class="study-card study-card--{{ $accent }}"
                     >
                         <div class="study-card-inner">
@@ -65,7 +63,7 @@
                             </span>
                             <span class="tg-cell-chevron" aria-hidden="true">›</span>
                         </div>
-                    </x-telegram.mini-app.bot-link>
+                    </x-telegram.mini-app.open-resource>
                 @elseif ($item instanceof \App\Models\Opportunity)
                     <a href="{{ route('tg.opportunities.show', $item) }}" class="study-card study-card--{{ $accent }}">
                         <div class="study-card-inner">

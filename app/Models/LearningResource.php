@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CollegeResourceKind;
 use App\Enums\ResourceType;
 use App\Models\Concerns\HasSeo;
+use App\Support\LearningResourceFiles;
 use Database\Factories\LearningResourceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -118,6 +119,69 @@ class LearningResource extends Model
     public function hasFiles(): bool
     {
         return filled($this->files) || filled($this->telegram_files);
+    }
+
+    /**
+     * PDF attachments available for Mini App in-browser viewing.
+     *
+     * @return list<array{source: 'disk'|'telegram', key: string, name: string, index: int}>
+     */
+    public function pdfAttachments(): array
+    {
+        $attachments = [];
+
+        foreach ($this->files ?? [] as $path) {
+            if (! is_string($path) || ! LearningResourceFiles::isPdfPath($path)) {
+                continue;
+            }
+
+            $attachments[] = [
+                'source' => 'disk',
+                'key' => $path,
+                'name' => basename($path),
+                'index' => count($attachments),
+            ];
+        }
+
+        foreach ($this->telegram_files ?? [] as $telegramFile) {
+            if (! is_array($telegramFile)) {
+                continue;
+            }
+
+            $fileId = $telegramFile['file_id'] ?? null;
+            $fileName = $telegramFile['file_name'] ?? null;
+
+            if (! is_string($fileId) || ! filled($fileId) || ! LearningResourceFiles::isPdfFileName(is_string($fileName) ? $fileName : null)) {
+                continue;
+            }
+
+            $attachments[] = [
+                'source' => 'telegram',
+                'key' => $fileId,
+                'name' => is_string($fileName) && filled($fileName) ? $fileName : 'document.pdf',
+                'index' => count($attachments),
+            ];
+        }
+
+        return $attachments;
+    }
+
+    public function hasPdfAttachments(): bool
+    {
+        return $this->pdfAttachments() !== [];
+    }
+
+    /**
+     * Whether the Mini App should open this resource (PDF or study content)
+     * instead of bouncing to the bot for document delivery.
+     */
+    public function opensInMiniApp(): bool
+    {
+        if ($this->hasPdfAttachments() || $this->playerPayload() !== null) {
+            return true;
+        }
+
+        return ! $this->hasFiles();
     }
 
     /**

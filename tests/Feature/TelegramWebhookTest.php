@@ -5,8 +5,6 @@ use App\Enums\ResourceType;
 use App\Enums\YearSlug;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Bookmark;
-use App\Models\Challenge;
-use App\Models\ChallengeCompletion;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
@@ -34,29 +32,38 @@ beforeEach(function () {
     ]);
 });
 
-it('accepts a start update and creates a student immediately without queueing', function () {
+it('accepts a start update and creates a completed GAT student without onboarding', function () {
     Queue::fake();
-
-    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555001, '/start'))
         ->assertOk();
 
-    expect(User::query()->where('telegram_id', '555001')->exists())->toBeTrue();
+    $user = User::query()->where('telegram_id', '555001')->firstOrFail();
+
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->is_gat)->toBeTrue()
+        ->and($user->stream_id)->toBeNull();
 
     Queue::assertNotPushed(ProcessTelegramUpdateJob::class);
 
-    Http::assertSent(function ($request) use ($freshman) {
+    Http::assertNotSent(function ($request) {
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'What year are you in')
+            || str_contains($text, 'Tap your stream')
+            || str_contains($text, 'What is your department');
+    });
+
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'What year are you in')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === 'Freshman'
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:year:{$freshman->id}"
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.style') === 'success';
+        return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward';
     });
 });
 
@@ -66,162 +73,8 @@ it('marks new students as GAT on /start', function () {
 
     $user = User::query()->where('telegram_id', '555012')->firstOrFail();
 
-    expect($user->is_gat)->toBeTrue();
-});
-
-it('completes onboarding when Freshman year is tapped without asking for stream', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    $otherStream = Stream::factory()->create(['name' => 'Social']);
-    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
-    $math = Course::factory()->create([
-        'stream_id' => $stream->id,
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-    $civics = Course::factory()->create([
-        'stream_id' => $otherStream->id,
-        'name' => 'Civics',
-        'is_active' => true,
-    ]);
-    Course::factory()->create([
-        'stream_id' => $stream->id,
-        'name' => 'Inactive',
-        'is_active' => false,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555002, '/start'))->assertOk();
-
-    $user = User::query()->where('telegram_id', '555002')->firstOrFail();
-    expect($user->onboarding_step)->toBe(OnboardingStep::Year)
-        ->and($user->is_gat)->toBeTrue();
-
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555002, "ob:year:{$freshman->id}"))
-        ->assertOk();
-
-    $user->refresh();
-
-    expect($user->stream_id)->toBeNull()
-        ->and($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->year()?->slug)->toBe(YearSlug::Freshman->value)
-        ->and($user->courses()->pluck('courses.id')->sort()->values()->all())->toBe(collect([$math->id, $civics->id])->sort()->values()->all());
-
-    Http::assertNotSent(function ($request) {
-        return str_contains((string) data_get($request->data(), 'text'), 'Tap your stream');
-    });
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-
-        return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'contact us'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward'
-            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
-            && data_get($data, 'reply_markup.keyboard.1.0.style') === null
-            && data_get($data, 'reply_markup.keyboard.2.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.3.0.style') === null
-            && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.3.1.web_app') === null;
-    });
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-
-        return str_contains((string) ($data['text'] ?? ''), 'Set or change your university, semester, and courses')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Edit study profile';
-    });
-});
-
-it('asks for department when a non-Freshman year is tapped and completes after the reply', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    $second = Year::query()->where('slug', YearSlug::Second->value)->firstOrFail();
-    Course::factory()->create([
-        'stream_id' => $stream->id,
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555212, '/start', 212))->assertOk();
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555212, "ob:year:{$second->id}", 213, 2120))
-        ->assertOk();
-
-    $user = User::query()->where('telegram_id', '555212')->firstOrFail();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Department)
-        ->and($user->stream_id)->toBeNull()
-        ->and($user->year()?->slug)->toBe(YearSlug::Second->value)
-        ->and($user->courses()->count())->toBe(0);
-
-    Http::assertNotSent(function ($request) {
-        return str_contains((string) data_get($request->data(), 'text'), 'Tap your stream');
-    });
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
-            return false;
-        }
-
-        return str_contains((string) data_get($request->data(), 'text'), 'What is your department');
-    });
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555212, 'Computer Science', 214))
-        ->assertOk();
-
-    $user->refresh();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->department_name)->toBe('Computer Science')
-        ->and($user->courses()->count())->toBe(0);
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-        $labels = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1)->pluck('text');
-
-        return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
-            && $labels->contains('share and reward');
-    });
-});
-
-it('reprompts when department text is empty during onboarding', function () {
-    $second = Year::query()->where('slug', YearSlug::Second->value)->firstOrFail();
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555213, '/start', 215))->assertOk();
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555213, "ob:year:{$second->id}", 216, 2150))
-        ->assertOk();
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555213, '   ', 217))
-        ->assertOk();
-
-    $user = User::query()->where('telegram_id', '555213')->firstOrFail();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Department)
-        ->and($user->department_name)->toBeNull();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        return str_contains((string) data_get($request->data(), 'text'), 'Please send your department name');
-    });
+    expect($user->is_gat)->toBeTrue()
+        ->and($user->onboarding_step)->toBe(OnboardingStep::Complete);
 });
 
 it('treats legacy university and course onboarding callbacks as stale', function () {
@@ -826,19 +679,26 @@ it('still routes the legacy My Courses label to the course reply keyboard', func
     });
 });
 
-it('reprompts with buttons when free text is sent during onboarding', function () {
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555005, '/start'))->assertOk();
+it('completes mid-funnel users when they send free text instead of asking for year', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555005',
+        'onboarding_step' => OnboardingStep::Year,
+        'is_active' => true,
+    ]);
+
     $this->postJson('/telegram/webhook', telegramMessagePayload(555005, 'Social', 2))->assertOk();
 
-    $user = User::query()->where('telegram_id', '555005')->firstOrFail();
+    $user->refresh();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Year)
-        ->and($user->stream_id)->toBeNull()
-        ->and($user->year()?->slug)->toBe(YearSlug::Freshman->value);
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->stream_id)->toBeNull();
 
     Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/editMessageText')
-            && data_get($request->data(), 'message_id') === 99;
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'continue exam';
     });
 });
 
@@ -909,31 +769,29 @@ it('does not resend onboarding complete message for stale confirm callbacks', fu
 });
 
 it('ignores duplicate update ids', function () {
-    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
     University::factory()->create(['name' => 'AAU']);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555009, '/start', 200))->assertOk();
-
-    $payload = telegramCallbackPayload(555009, "ob:year:{$freshman->id}", 20, 2001);
+    $payload = telegramMessagePayload(555009, '/start', 200);
 
     $this->postJson('/telegram/webhook', $payload)->assertOk();
     $this->postJson('/telegram/webhook', $payload)->assertOk();
 
     $user = User::query()->where('telegram_id', '555009')->firstOrFail();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->is_gat)->toBeTrue();
 
-    $yearCallbacks = collect(Http::recorded())
+    $startMenus = collect(Http::recorded())
         ->filter(function (array $record): bool {
             $url = $record[0]->url();
             $text = (string) data_get($record[0]->data(), 'text');
 
-            return (str_contains($url, '/editMessageText') || str_contains($url, '/sendMessage'))
-                && str_contains($text, 'Onboarding complete');
+            return str_contains($url, '/sendMessage')
+                && str_contains($text, 'Your study menu is ready');
         })
         ->count();
 
-    expect($yearCallbacks)->toBe(1);
+    expect($startMenus)->toBe(1);
 });
 
 it('uses editMessageText for back to courses navigation', function () {
@@ -967,23 +825,25 @@ it('uses editMessageText for back to courses navigation', function () {
     });
 });
 
-it('rate limits free text reprompts during onboarding', function () {
-    $stream = Stream::factory()->create(['name' => 'Social']);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, '/start', 300))->assertOk();
-
-    $editCountAfterStart = collect(Http::recorded())
-        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
-        ->count();
+it('completes mid-funnel users on free text without onboarding reprompts', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555011',
+        'onboarding_step' => OnboardingStep::Stream,
+        'is_active' => true,
+    ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555011, 'hello', 301))->assertOk();
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, 'hello again', 302))->assertOk();
 
-    $editCountAfterReprompts = collect(Http::recorded())
-        ->filter(fn (array $record) => str_contains($record[0]->url(), '/editMessageText'))
-        ->count();
+    $user = User::query()->where('telegram_id', '555011')->firstOrFail();
 
-    expect($editCountAfterReprompts - $editCountAfterStart)->toBe(1);
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
+
+    Http::assertNotSent(function ($request) {
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'What year are you in')
+            || str_contains($text, 'Tap your stream');
+    });
 });
 
 it('opens a bait course path from /start bait', function () {
@@ -1443,116 +1303,5 @@ it('paginates quick saved with next and back callbacks', function () {
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:0'
                 && ($button['text'] ?? '') === '‹ Back')
             && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:1');
-    });
-});
-
-it('opens active challenges when the Challenges keyboard button is tapped', function () {
-    User::factory()->student()->create([
-        'telegram_id' => '555050',
-        'onboarding_step' => OnboardingStep::Complete,
-        'referral_points' => 2,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555050, '🏆 Challenges', 550))
-        ->assertOk();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $text = (string) data_get($request->data(), 'text', '');
-
-        return str_contains($text, 'Challenges')
-            && str_contains($text, '2');
-    });
-});
-
-it('lists active challenges and hides draft ones from the Challenges keyboard', function () {
-    User::factory()->student()->create([
-        'telegram_id' => '555052',
-        'onboarding_step' => OnboardingStep::Complete,
-        'referral_points' => 0,
-    ]);
-
-    Challenge::factory()->create([
-        'title' => 'Active mentorship',
-        'cost_points' => 10,
-        'reward_message' => 'Secret prize text',
-    ]);
-
-    Challenge::factory()->draft()->create([
-        'title' => 'Draft mentorship',
-        'cost_points' => 5,
-        'reward_message' => 'Draft prize text',
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555052, '🏆 Challenges', 553))
-        ->assertOk();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $text = (string) data_get($request->data(), 'text', '');
-        $buttons = collect(data_get($request->data(), 'reply_markup.inline_keyboard', []))->flatten(1);
-
-        return ! str_contains($text, 'No active challenges')
-            && $buttons->contains(fn (array $button) => str_contains((string) ($button['text'] ?? ''), 'Active mentorship'))
-            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), 'Draft mentorship'))
-            && $buttons->every(fn (array $button) => ! str_contains((string) ($button['text'] ?? ''), 'Secret prize text'));
-    });
-});
-
-it('hides the prize message until the challenge is completed', function () {
-    $user = User::factory()->student()->create([
-        'telegram_id' => '555051',
-        'onboarding_step' => OnboardingStep::Complete,
-        'referral_points' => 0,
-    ]);
-
-    $challenge = Challenge::factory()->create([
-        'title' => 'Mentorship challenge',
-        'description' => 'Invite friends to unlock mentorship.',
-        'cost_points' => 5,
-        'reward_message' => 'Secret scholarship mentorship prize',
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555051, 'challenge:'.$challenge->id, 20, 551))
-        ->assertOk();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $text = (string) data_get($request->data(), 'text', '');
-
-        return str_contains($text, 'Mentorship challenge')
-            && ! str_contains($text, 'Secret scholarship mentorship prize')
-            && ! str_contains($text, 'Prize:');
-    });
-
-    ChallengeCompletion::factory()->create([
-        'challenge_id' => $challenge->id,
-        'user_id' => $user->id,
-        'points_spent' => 5,
-        'completed_at' => now(),
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555051, 'challenge:'.$challenge->id, 21, 552))
-        ->assertOk();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/editMessageText') && ! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $text = (string) data_get($request->data(), 'text', '');
-
-        return str_contains($text, 'Mentorship challenge')
-            && str_contains($text, 'Secret scholarship mentorship prize')
-            && str_contains($text, 'Prize:');
     });
 });

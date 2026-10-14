@@ -3,14 +3,12 @@
 use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Enums\UserEventName;
-use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\ResourceDownload;
 use App\Models\Stream;
 use App\Models\User;
 use App\Models\UserEvent;
-use App\Models\Year;
 use App\Services\SettingsService;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,24 +31,21 @@ beforeEach(function () {
     ]);
 });
 
-it('defaults new students to freshman and still shows the year picker on start', function () {
+it('creates completed GAT students on start without year or stream onboarding', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(700001, '/start'))->assertOk();
 
     $user = User::query()->where('telegram_id', '700001')->firstOrFail();
 
-    expect($user->year()?->slug)->toBe(YearSlug::Freshman->value)
-        ->and($user->onboarding_step)->toBe(OnboardingStep::Year)
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->is_gat)->toBeTrue()
+        ->and($user->year())->toBeNull()
         ->and(UserEvent::query()->where('user_id', $user->id)->where('event', UserEventName::Start)->exists())->toBeTrue();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
-            return false;
-        }
+    Http::assertNotSent(function ($request) {
+        $text = (string) data_get($request->data(), 'text');
 
-        $keyboard = data_get($request->data(), 'reply_markup.inline_keyboard');
-
-        return is_array($keyboard)
-            && collect($keyboard)->flatten(1)->contains(fn ($button) => ($button['callback_data'] ?? null) === 'ob:year:'.Year::query()->where('slug', YearSlug::Freshman->value)->value('id'));
+        return str_contains($text, 'What year are you in')
+            || str_contains($text, 'Tap your stream');
     });
 });
 
@@ -187,13 +182,17 @@ it('logs blocked when telegram refuses a message because the user blocked the bo
         ->exists())->toBeTrue();
 });
 
-it('logs onboarding_done when Freshman year completes without stream', function () {
-    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
+it('logs onboarding_done when a mid-funnel student is completed on /start', function () {
+    $user = User::factory()->student()->create([
+        'telegram_id' => '700006',
+        'onboarding_step' => OnboardingStep::Year,
+        'is_active' => true,
+        'is_gat' => true,
+    ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(700006, '/start'))->assertOk();
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(700006, "ob:year:{$freshman->id}"))->assertOk();
 
-    $user = User::query()->where('telegram_id', '700006')->firstOrFail();
+    $user->refresh();
 
     $event = UserEvent::query()
         ->where('user_id', $user->id)
@@ -202,7 +201,5 @@ it('logs onboarding_done when Freshman year completes without stream', function 
 
     expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
         ->and($user->is_gat)->toBeTrue()
-        ->and($user->stream_id)->toBeNull()
-        ->and($event)->not->toBeNull()
-        ->and($event->details)->not->toHaveKey('stream');
+        ->and($event)->not->toBeNull();
 });

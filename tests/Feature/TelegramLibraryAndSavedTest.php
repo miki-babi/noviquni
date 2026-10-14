@@ -77,11 +77,10 @@ it('lists resource hubs across enrolled courses only', function () {
         ->assertOk()
         ->assertSee('Physics')
         ->assertSee('Enrolled notes')
-        ->assertSee(app(TelegramDeepLink::class)->forResource($enrolled->id), false)
-        ->assertSee('data-tg-bot-link', false)
-        ->assertSee('data-tg-bot-confirm', false)
+        ->assertSee($enrolled->miniAppUrl(), false)
+        ->assertDontSee(app(TelegramDeepLink::class)->forResource($enrolled->id), false)
+        ->assertDontSee('data-tg-bot-link', false)
         ->assertSee('study-card--lime', false)
-        ->assertSee('Open in bot?', false)
         ->assertDontSee('Other course notes')
         ->assertDontSee('🔒');
 });
@@ -127,10 +126,10 @@ it('shows empty quick saved state and toggles bookmarks', function () {
         ->get(route('tg.saved'))
         ->assertOk()
         ->assertSee('Savable notes')
-        ->assertSee(app(TelegramDeepLink::class)->forResource($resource->id), false)
-        ->assertSee('data-tg-bot-link', false)
-        ->assertSee('study-card--lime', false)
-        ->assertSee('Open in bot?', false);
+        ->assertSee($resource->miniAppUrl(), false)
+        ->assertDontSee(app(TelegramDeepLink::class)->forResource($resource->id), false)
+        ->assertDontSee('data-tg-bot-link', false)
+        ->assertSee('study-card--lime', false);
 
     $this->actingAs($user)
         ->from(route('tg.play.notes', $resource))
@@ -184,7 +183,8 @@ it('lists a worksheet card separately from notes', function () {
         ->assertOk()
         ->assertSee('Problem set 1')
         ->assertDontSee('Lecture notes')
-        ->assertSee(app(TelegramDeepLink::class)->forResource($worksheet->id), false);
+        ->assertSee($worksheet->miniAppUrl(), false)
+        ->assertDontSee(app(TelegramDeepLink::class)->forResource($worksheet->id), false);
 });
 
 it('keeps legacy modules hub alias working', function () {

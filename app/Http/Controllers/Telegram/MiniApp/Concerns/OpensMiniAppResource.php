@@ -26,6 +26,7 @@ trait OpensMiniAppResource
         PremiumService $premium,
         SettingsService $settings,
         ReferralService $referrals,
+        bool $recordOpen = true,
     ): array|RedirectResponse|View {
         /** @var User $user */
         $user = Auth::user();
@@ -51,8 +52,10 @@ trait OpensMiniAppResource
             ]);
         }
 
-        $user->downloads()->create(['learning_resource_id' => $resource->id]);
-        app(UserEventService::class)->logResourceOpen($user, $resource);
+        if ($recordOpen) {
+            $user->downloads()->create(['learning_resource_id' => $resource->id]);
+            app(UserEventService::class)->logResourceOpen($user, $resource);
+        }
 
         return [
             'user' => $user,
@@ -94,6 +97,14 @@ trait OpensMiniAppResource
             $payload = $playerPayload;
         }
 
+        $pdfs = collect($resource->pdfAttachments())
+            ->map(fn (array $attachment): array => [
+                'name' => $attachment['name'],
+                'url' => route('tg.files.show', ['resource' => $resource, 'index' => $attachment['index']]),
+            ])
+            ->values()
+            ->all();
+
         return view($view, [
             'copy' => $access['copy'],
             'user' => $access['user'],
@@ -101,6 +112,7 @@ trait OpensMiniAppResource
             'course' => $resource->course,
             'payload' => $payload,
             'chunks' => $payload === null ? $formatter->format($resource) : [],
+            'pdfs' => $pdfs,
             'isBookmarked' => $access['isBookmarked'],
             'backUrl' => $resource->course
                 ? route('tg.courses.show', $resource->course)

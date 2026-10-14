@@ -91,6 +91,40 @@ class TelegramService
     }
 
     /**
+     * @return array{file_id?: string, file_unique_id?: string, file_size?: int, file_path?: string}|null
+     */
+    public function getFile(string $fileId): ?array
+    {
+        $result = $this->call('getFile', ['file_id' => $fileId]);
+
+        return is_array($result) ? $result : null;
+    }
+
+    public function downloadFileContents(string $fileId): ?string
+    {
+        $file = $this->getFile($fileId);
+        $path = $file['file_path'] ?? null;
+        $token = $this->token();
+
+        if (! is_string($path) || ! filled($path) || ! filled($token)) {
+            return null;
+        }
+
+        $response = Http::timeout(60)->get('https://api.telegram.org/file/bot'.$token.'/'.$path);
+
+        if (! $response->successful()) {
+            Log::warning('Telegram file download failed', [
+                'file_id' => $fileId,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        return $response->body();
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>|null
      */

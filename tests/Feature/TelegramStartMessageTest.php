@@ -50,7 +50,7 @@ function telegramStartPayload(int $telegramId, int $updateId = 1): array
     ];
 }
 
-it('sends the custom start message to new users before the stream onboarding prompt', function () {
+it('sends the custom start message to new users without onboarding prompts', function () {
     Storage::disk('public')->put('telegram/start/welcome.jpg', 'fake-image');
 
     $settings = app(SettingsService::class);
@@ -65,13 +65,11 @@ it('sends the custom start message to new users before the stream onboarding pro
         ],
     ], JSON_THROW_ON_ERROR));
 
-    Stream::factory()->create(['name' => 'Natural']);
-    $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
-
     $this->postJson('/telegram/webhook', telegramStartPayload(555910, 9010))->assertOk();
 
     $user = User::query()->where('telegram_id', '555910')->firstOrFail();
-    expect($user->onboarding_step)->toBe(OnboardingStep::Year);
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->is_gat)->toBeTrue();
 
     Http::assertSent(function ($request) use ($user) {
         if (! str_contains($request->url(), '/sendPhoto')) {
@@ -92,25 +90,22 @@ it('sends the custom start message to new users before the stream onboarding pro
             && data_get($markup, 'inline_keyboard.0.0.url') === 'https://noviquni.test/about';
     });
 
-    Http::assertSent(function ($request) use ($freshman) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'What year are you in')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === "ob:year:{$freshman->id}";
+        return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam';
     });
 
     Http::assertNotSent(function ($request) {
-        $data = $request->data();
+        $text = (string) data_get($request->data(), 'text');
 
-        return str_contains($request->url(), '/sendMessage')
-            && (
-                str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-                || filled(data_get($data, 'reply_markup.keyboard'))
-            );
+        return str_contains($text, 'What year are you in')
+            || str_contains($text, 'Tap your stream');
     });
 });
 
