@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\RequiresSuperAdmin;
 use App\Models\ActivityLog;
 use App\Services\ArtisanCommandRunner;
 use BackedEnum;
@@ -23,6 +24,8 @@ use UnitEnum;
  */
 class RunArtisanCommands extends Page
 {
+    use RequiresSuperAdmin;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCommandLine;
 
     protected static string|UnitEnum|null $navigationGroup = 'System';

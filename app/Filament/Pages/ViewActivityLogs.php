@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\RequiresSuperAdmin;
 use App\Models\ActivityLog;
 use BackedEnum;
 use Filament\Pages\Page;
@@ -15,6 +16,7 @@ use UnitEnum;
 class ViewActivityLogs extends Page implements HasTable
 {
     use InteractsWithTable;
+    use RequiresSuperAdmin;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

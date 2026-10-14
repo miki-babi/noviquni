@@ -85,6 +85,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->role === UserRole::Admin;
     }
 
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole((string) config('filament-shield.super_admin.name'));
+    }
+
     public function isStudent(): bool
     {
         return $this->role === UserRole::Student;

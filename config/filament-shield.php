@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use App\Filament\Pages\ManageSettings;
+use App\Filament\Pages\RunArtisanCommands;
+use App\Filament\Pages\ViewActivityLogs;
 use BezhanSalleh\FilamentShield\Resources\Roles\RoleResource;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
@@ -215,6 +218,9 @@ return [
         'prefix' => 'view',
         'exclude' => [
             Dashboard::class,
+            ManageSettings::class,
+            RunArtisanCommands::class,
+            ViewActivityLogs::class,
         ],
     ],
 

@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Enums\BroadcastButtonType;
 use App\Enums\TelegramButtonStyle;
+use App\Filament\Concerns\RequiresSuperAdmin;
 use App\Services\SettingsService;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -29,6 +30,8 @@ use UnitEnum;
  */
 class ManageSettings extends Page
 {
+    use RequiresSuperAdmin;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     protected static string|UnitEnum|null $navigationGroup = 'System';
