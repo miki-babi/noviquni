@@ -137,11 +137,13 @@
         border-bottom: 0;
     }
 
-    /* PDF Mini App: Telegram fullscreen + immersive in-app chrome */
+    /* PDF Mini App: Telegram fullscreen + immersive in-app chrome (portrait & landscape) */
     html.tg-pdf-fullscreen,
     body.tg-pdf-fullscreen.tg-page {
+        width: 100%;
         height: 100%;
         min-height: 100dvh;
+        min-height: 100svh;
         overflow: hidden;
     }
 
@@ -151,14 +153,18 @@
 
     body.tg-pdf-fullscreen > .mx-auto {
         max-width: none;
+        width: 100%;
         height: 100dvh;
+        height: 100svh;
         min-height: 100dvh;
+        min-height: 100svh;
     }
 
     body.tg-pdf-fullscreen main {
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
+        width: 100%;
         height: 100%;
         min-height: 0;
         padding: 0;
@@ -169,8 +175,25 @@
         display: flex;
         flex: 1 1 auto;
         flex-direction: column;
+        width: 100%;
         height: 100%;
         min-height: 0;
+    }
+
+    body.tg-pdf-fullscreen [data-pdf-pages] {
+        width: 100%;
+    }
+
+    @media (orientation: landscape) {
+        body.tg-pdf-fullscreen [data-pdf-zoom-bar] {
+            gap: 0.75rem;
+            padding-top: 0.35rem;
+            padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
+        }
+
+        body.tg-pdf-fullscreen [data-pdf-pages] {
+            padding-bottom: 3.75rem;
+        }
     }
 
     .tg-page-title {
