@@ -6,12 +6,15 @@
     <div {{ $attributes->class('') }} data-pdf-viewer-root>
         @foreach ($pdfs as $pdf)
             <div
-                class="flex h-[calc(100dvh-3.75rem)] flex-col bg-black/5"
+                class="flex h-full min-h-[100dvh] flex-col bg-black/5"
                 data-pdf-viewer
                 data-pdf-url="{{ $pdf['url'] }}"
                 data-pdf-name="{{ $pdf['name'] }}"
             >
-                <div class="min-h-0 flex-1 space-y-2 overflow-auto" data-pdf-pages>
+                <div
+                    class="min-h-0 flex-1 space-y-2 overflow-auto pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
+                    data-pdf-pages
+                >
                     <p class="hidden px-4 py-10 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this PDF.</p>
                 </div>
             </div>
@@ -22,6 +25,37 @@
         import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
 
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+
+        function launchPdfFullscreen() {
+            document.documentElement.classList.add('tg-pdf-fullscreen');
+            document.body.classList.add('tg-pdf-fullscreen');
+
+            const tg = window.Telegram?.WebApp;
+
+            if (! tg) {
+                return;
+            }
+
+            try {
+                tg.ready();
+            } catch (e) {}
+
+            try {
+                tg.expand();
+            } catch (e) {}
+
+            if (typeof tg.requestFullscreen === 'function') {
+                try {
+                    tg.requestFullscreen();
+                } catch (e) {}
+            }
+
+            if (typeof tg.disableVerticalSwipes === 'function') {
+                try {
+                    tg.disableVerticalSwipes();
+                } catch (e) {}
+            }
+        }
 
         async function mountViewer(root) {
             const url = root.dataset.pdfUrl;
@@ -34,7 +68,7 @@
 
             try {
                 const pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: true }).promise;
-                const width = Math.max(stage.clientWidth || 320, 280);
+                const width = Math.max(stage.clientWidth || window.innerWidth || 320, 280);
 
                 for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
                     const page = await pdfDoc.getPage(pageNumber);
@@ -57,6 +91,8 @@
                 error?.classList.remove('hidden');
             }
         }
+
+        launchPdfFullscreen();
 
         document.querySelectorAll('[data-pdf-viewer]').forEach((root) => {
             mountViewer(root);

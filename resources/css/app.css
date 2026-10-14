@@ -137,6 +137,42 @@
         border-bottom: 0;
     }
 
+    /* PDF Mini App: Telegram fullscreen + immersive in-app chrome */
+    html.tg-pdf-fullscreen,
+    body.tg-pdf-fullscreen.tg-page {
+        height: 100%;
+        min-height: 100dvh;
+        overflow: hidden;
+    }
+
+    body.tg-pdf-fullscreen .tg-header {
+        display: none;
+    }
+
+    body.tg-pdf-fullscreen > .mx-auto {
+        max-width: none;
+        height: 100dvh;
+        min-height: 100dvh;
+    }
+
+    body.tg-pdf-fullscreen main {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        padding: 0;
+    }
+
+    body.tg-pdf-fullscreen [data-pdf-viewer-root],
+    body.tg-pdf-fullscreen [data-pdf-viewer] {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+    }
+
     .tg-page-title {
         font-size: 1.375rem;
         font-weight: 700;
