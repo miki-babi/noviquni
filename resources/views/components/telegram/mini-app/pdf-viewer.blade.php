@@ -12,6 +12,18 @@
                 data-pdf-name="{{ $pdf['name'] }}"
             >
                 <div
+                    class="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-[var(--tg-bg)] px-6"
+                    data-pdf-loader
+                >
+                    <div
+                        class="h-9 w-9 animate-spin rounded-full border-2 border-border-light border-t-text-primary"
+                        aria-hidden="true"
+                    ></div>
+                    <p class="text-sm text-text-secondary" data-pdf-loader-label>Loading PDF…</p>
+                    <p class="hidden text-xs tabular-nums text-text-secondary" data-pdf-loader-progress></p>
+                </div>
+
+                <div
                     class="min-h-0 w-full flex-1 touch-pan-x touch-pan-y space-y-2 overflow-auto pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
                     data-pdf-pages
                 >
@@ -83,6 +95,9 @@
             const url = root.dataset.pdfUrl;
             const stage = root.querySelector('[data-pdf-pages]');
             const error = root.querySelector('[data-pdf-error]');
+            const loader = root.querySelector('[data-pdf-loader]');
+            const loaderLabel = root.querySelector('[data-pdf-loader-label]');
+            const loaderProgress = root.querySelector('[data-pdf-loader-progress]');
 
             if (! url || ! stage) {
                 return;
@@ -97,6 +112,33 @@
             let layoutTimer = null;
             let pinchStartDistance = 0;
             let pinchStartZoom = 1;
+            let initialLoadDone = false;
+
+            function setLoaderVisible(visible) {
+                if (! loader) {
+                    return;
+                }
+
+                loader.classList.toggle('hidden', ! visible);
+            }
+
+            function setLoaderStatus(label, progressText = null) {
+                if (loaderLabel) {
+                    loaderLabel.textContent = label;
+                }
+
+                if (! loaderProgress) {
+                    return;
+                }
+
+                if (progressText) {
+                    loaderProgress.textContent = progressText;
+                    loaderProgress.classList.remove('hidden');
+                } else {
+                    loaderProgress.textContent = '';
+                    loaderProgress.classList.add('hidden');
+                }
+            }
 
             function measureLayoutWidth() {
                 return Math.max(stage.clientWidth || window.innerWidth || 320, 280);
@@ -125,7 +167,7 @@
 
                 sharpTimer = window.setTimeout(() => {
                     sharpTimer = null;
-                    renderPages(zoom);
+                    renderPages(zoom, { blocking: false });
                 }, SHARP_RENDER_DELAY_MS);
             }
 
@@ -144,11 +186,11 @@
                     }
 
                     layoutWidth = nextWidth;
-                    renderPages(zoom);
+                    renderPages(zoom, { blocking: false });
                 }, LAYOUT_REFLOW_DELAY_MS);
             }
 
-            async function renderPages(targetZoom) {
+            async function renderPages(targetZoom, { blocking = false } = {}) {
                 if (! pdfDoc) {
                     return;
                 }
@@ -159,14 +201,27 @@
 
                 layoutWidth = baseWidth;
 
+                if (blocking) {
+                    setLoaderVisible(true);
+                    setLoaderStatus('Preparing pages…');
+                }
+
                 try {
                     const width = baseWidth * zoomAtRender;
                     const outputScale = Math.min(window.devicePixelRatio || 1, 3);
                     const nextCanvases = [];
+                    const totalPages = pdfDoc.numPages;
 
-                    for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
+                    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
                         if (token !== renderToken) {
                             return;
+                        }
+
+                        if (blocking) {
+                            setLoaderStatus(
+                                'Rendering pages…',
+                                `${pageNumber} / ${totalPages}`,
+                            );
                         }
 
                         const page = await pdfDoc.getPage(pageNumber);
@@ -213,6 +268,8 @@
                     nextCanvases.forEach((canvas) => stage.appendChild(canvas));
 
                     renderedZoom = zoomAtRender;
+                    initialLoadDone = true;
+                    setLoaderVisible(false);
 
                     if (zoom !== renderedZoom) {
                         applyLiveZoom();
@@ -220,6 +277,7 @@
                     }
                 } catch (e) {
                     if (token === renderToken) {
+                        setLoaderVisible(false);
                         error?.classList.remove('hidden');
                     }
                 }
@@ -234,10 +292,25 @@
                 }
             }
 
+            setLoaderVisible(true);
+            setLoaderStatus('Loading PDF…');
+
             try {
-                pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: true }).promise;
-                await renderPages(1);
+                const loadingTask = pdfjsLib.getDocument({ url, withCredentials: true });
+
+                loadingTask.onProgress = ({ loaded, total }) => {
+                    if (initialLoadDone || ! total || total <= 0) {
+                        return;
+                    }
+
+                    const percent = Math.min(100, Math.round((loaded / total) * 100));
+                    setLoaderStatus('Downloading PDF…', `${percent}%`);
+                };
+
+                pdfDoc = await loadingTask.promise;
+                await renderPages(1, { blocking: true });
             } catch (e) {
+                setLoaderVisible(false);
                 error?.classList.remove('hidden');
 
                 return;

@@ -83,22 +83,10 @@
                     </a>
                 </div>
             @else
-                <div class="flex items-center gap-2">
-                    @if ($backUrl)
-                        <a
-                            href="{{ $backUrl }}"
-                            class="tg-header-back"
-                            aria-label="{{ $copy->get('nav.back') }}"
-                            data-tg-header-back
-                        >
-                            ‹
-                        </a>
+                <div class="flex min-w-0 flex-1 items-center gap-2">
+                    @if ($title)
+                        <h1 class="tg-page-title truncate">{{ $title }}</h1>
                     @endif
-                    <div class="min-w-0 flex-1">
-                        @if ($title)
-                            <h1 class="tg-page-title truncate">{{ $title }}</h1>
-                        @endif
-                    </div>
                 </div>
             @endif
         </header>
