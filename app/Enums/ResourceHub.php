@@ -35,17 +35,11 @@ enum ResourceHub: string
     public function types(): array
     {
         return match ($this) {
-            self::Modules => [ResourceType::Module, ResourceType::Slides],
-            self::Notes => [
-                ResourceType::Notes,
-                ResourceType::Worksheet,
-                ResourceType::ReferenceBooks,
-                ResourceType::Assignment,
-            ],
-            self::Exams => [ResourceType::MidExam, ResourceType::FinalExam],
+            self::Modules => [],
+            self::Notes => [ResourceType::ReferenceBooks],
+            self::Exams => [ResourceType::PastExams],
             self::Practice => [
                 ResourceType::Quiz,
-                ResourceType::Flashcards,
                 ResourceType::PracticeExams,
             ],
         };

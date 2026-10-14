@@ -31,7 +31,7 @@ it('creates a learning resource from a single uploaded file', function () {
         ->fillForm([
             'file_source' => 'upload',
             'file_mode' => 'single',
-            'type' => ResourceType::Notes->value,
+            'type' => ResourceType::ReferenceBooks->value,
             'title' => 'Week 1 Lecture Notes',
             'slug' => 'week-1-lecture-notes',
             'description' => 'Uploaded short notes for week 1.',
@@ -53,7 +53,7 @@ it('creates a learning resource from a single uploaded file', function () {
 
     expect($resource)->not->toBeNull()
         ->and($resource->title)->toBe('Week 1 Lecture Notes')
-        ->and($resource->type)->toBe(ResourceType::Notes)
+        ->and($resource->type)->toBe(ResourceType::ReferenceBooks)
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->content)->toBeNull()
         ->and($resource->course_id)->toBe($course->id)
@@ -138,7 +138,7 @@ it('creates a learning resource from an existing course library file', function 
         ->fillForm([
             'file_source' => 'existing',
             'file_mode' => 'single',
-            'type' => ResourceType::Notes->value,
+            'type' => ResourceType::ReferenceBooks->value,
             'title' => 'Shared Notes Resource',
             'slug' => 'shared-notes-resource',
             'description' => 'Attached from the course library.',

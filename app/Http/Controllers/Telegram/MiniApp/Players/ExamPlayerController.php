@@ -29,8 +29,7 @@ class ExamPlayerController extends Controller
             $resource,
             [
                 ResourceType::PracticeExams,
-                ResourceType::MidExam,
-                ResourceType::FinalExam,
+                ResourceType::PastExams,
             ],
             'telegram.mini-app.players.exam',
             $premium,

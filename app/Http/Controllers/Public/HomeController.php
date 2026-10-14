@@ -49,15 +49,10 @@ class HomeController extends PublicController
             'universities' => University::query()->active()->count(),
             'courses' => Course::query()->active()->count(),
             'resources' => LearningResource::query()->published()->count(),
-            'modules' => LearningResource::query()->published()->where('type', ResourceType::Module)->count(),
-            'notes' => LearningResource::query()->published()->whereIn('type', [
-                ResourceType::Notes,
-                ResourceType::Worksheet,
-                ResourceType::ReferenceBooks,
-            ])->count(),
+            'modules' => 0,
+            'notes' => LearningResource::query()->published()->where('type', ResourceType::ReferenceBooks)->count(),
             'exams' => LearningResource::query()->published()->whereIn('type', [
-                ResourceType::MidExam,
-                ResourceType::FinalExam,
+                ResourceType::PastExams,
                 ResourceType::PracticeExams,
             ])->count(),
         ];

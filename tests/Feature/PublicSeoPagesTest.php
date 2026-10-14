@@ -59,7 +59,7 @@ it('shows course pages with resource counts and hub links', function () {
     LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Module,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Mathematics Module 1',
         'slug' => 'mathematics-module-1',
     ]);
@@ -79,7 +79,7 @@ it('shows published resources and hides unpublished ones', function () {
         'slug' => 'physics-notes-pack',
         'description' => 'Core freshman physics notes.',
         'topics' => ['Mechanics', 'Waves'],
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'content' => null,
         'generation_kind' => null,
     ]);
@@ -110,7 +110,7 @@ it('renders resource hubs and course-filtered hubs', function () {
     LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $course->stream_id,
-        'type' => ResourceType::MidExam,
+        'type' => ResourceType::PastExams,
         'title' => 'Chemistry Mid Exam',
         'slug' => 'chemistry-mid-exam',
     ]);

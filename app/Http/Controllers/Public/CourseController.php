@@ -58,22 +58,13 @@ class CourseController extends PublicController
             ->get();
 
         $counts = [
-            'modules' => $resources->where('type', ResourceType::Module)->count(),
-            'notes' => $resources->whereIn('type', [
-                ResourceType::Notes,
-                ResourceType::Worksheet,
-                ResourceType::ReferenceBooks,
-                ResourceType::Assignment,
-            ])->count(),
+            'modules' => 0,
+            'notes' => $resources->where('type', ResourceType::ReferenceBooks)->count(),
             'exams' => $resources->whereIn('type', [
-                ResourceType::MidExam,
-                ResourceType::FinalExam,
+                ResourceType::PastExams,
                 ResourceType::PracticeExams,
             ])->count(),
-            'practice' => $resources->whereIn('type', [
-                ResourceType::Quiz,
-                ResourceType::Flashcards,
-            ])->count(),
+            'practice' => $resources->where('type', ResourceType::Quiz)->count(),
         ];
 
         $title = $course->seoTitle('Freshman '.$course->name.' resources');

@@ -22,10 +22,10 @@ enum CollegeResourceKind: string
     public function resourceType(): ResourceType
     {
         return match ($this) {
-            self::Notes => ResourceType::Notes,
+            self::Notes => ResourceType::ReferenceBooks,
             self::Quiz => ResourceType::Quiz,
             self::Exam => ResourceType::PracticeExams,
-            self::Flashcards => ResourceType::Flashcards,
+            self::Flashcards => ResourceType::Quiz,
         };
     }
 
@@ -37,10 +37,9 @@ enum CollegeResourceKind: string
     public function miniAppRouteName(): string
     {
         return match ($this) {
-            self::Notes => 'tg.play.notes',
-            self::Quiz => 'tg.play.quiz',
+            self::Notes => 'tg.play.reference-books',
+            self::Quiz, self::Flashcards => 'tg.play.quiz',
             self::Exam => 'tg.play.exam',
-            self::Flashcards => 'tg.play.flashcards',
         };
     }
 }

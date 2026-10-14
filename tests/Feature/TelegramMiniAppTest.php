@@ -460,33 +460,25 @@ it('opens course hubs inside the mini app', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $notes = LearningResource::factory()->published()->notes()->create([
+    $notes = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
-    ]);
-    LearningResource::factory()->published()->module()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Module 1',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.courses.show', $course))
         ->assertOk()
         ->assertSee('Chemistry')
-        ->assertSee('Notes')
-        ->assertSee('Module')
-        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']), false)
-        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'module']), false)
+        ->assertSee('Reference books')
+        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'reference_books']), false)
         ->assertDontSee('Week-1 notes')
-        ->assertDontSee('Module 1')
         ->assertSee('data-tg-header-back', false)
         ->assertDontSee('data-tg-nav-bar', false)
         ->assertSee(route('tg.browse'), false);
 
     $this->actingAs($user)
-        ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
+        ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'reference_books']))
         ->assertOk()
         ->assertSee('Week-1 notes')
         ->assertSee($notes->miniAppUrl(), false)

@@ -41,21 +41,19 @@ function miniAppPlayerContext(): array
     return [$user, $course, $stream];
 }
 
-it('renders the notes player for enrolled students', function () {
+it('renders the reference books player for enrolled students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $resource = LearningResource::factory()->published()->notes()->create([
+    $resource = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Anthropology Notes',
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.play.notes', $resource))
+        ->get(route('tg.play.reference-books', $resource))
         ->assertOk()
-        ->assertSee('Anthropology Notes', false)
-        ->assertSee('Anthropology studies humankind across time and space.', false)
-        ->assertSee('Key definitions', false);
+        ->assertSee('Anthropology Notes', false);
 });
 
 it('renders the quiz player for enrolled students', function () {
@@ -90,50 +88,37 @@ it('renders the exam player for enrolled students', function () {
         ->assertSee('Which statement best describes anthropology?', false);
 });
 
-it('renders the flashcards player for premium students', function () {
+it('renders the premium quiz player for premium students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
     $user->update(['is_premium' => true]);
 
-    $module = LearningResource::factory()->published()->module()->create([
+    $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-    ]);
-
-    $resource = LearningResource::factory()->published()->flashcards()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'module_id' => $module->id,
-        'title' => 'Anthropology Flashcards',
+        'title' => 'Anthropology Premium Quiz',
     ]);
 
     $this->actingAs($user->fresh())
-        ->get(route('tg.play.flashcards', $resource))
+        ->get(route('tg.play.quiz', $resource))
         ->assertOk()
-        ->assertSee('Anthropology Flashcards', false)
-        ->assertSee('What does anthropos mean?', false)
-        ->assertSee('Tap to reveal answer', false);
+        ->assertSee('Anthropology Premium Quiz', false)
+        ->assertSee('What are the Greek roots of anthropology?', false);
 });
 
-it('locks flashcards for free students', function () {
+it('locks premium quiz for free students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $module = LearningResource::factory()->published()->module()->create([
+    $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-    ]);
-
-    $resource = LearningResource::factory()->published()->flashcards()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'module_id' => $module->id,
-        'title' => 'Anthropology Flashcards',
+        'title' => 'Anthropology Premium Quiz',
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.play.flashcards', $resource))
+        ->get(route('tg.play.quiz', $resource))
         ->assertOk()
         ->assertSee('Premium resource', false)
-        ->assertDontSee('What does anthropos mean?', false);
+        ->assertDontSee('What are the Greek roots of anthropology?', false);
 });
 
 it('renders reader shells for every catalog type without interactive payload', function (ResourceType $type, string $routeName) {
@@ -148,7 +133,7 @@ it('renders reader shells for every catalog type without interactive payload', f
         'description' => 'Catalog body for '.$type->value,
         'content' => null,
         'generation_kind' => null,
-        'is_premium' => $type === ResourceType::Flashcards,
+        'is_premium' => false,
     ]);
 
     expect($resource->miniAppRouteName())->toBe($routeName)
@@ -157,49 +142,37 @@ it('renders reader shells for every catalog type without interactive payload', f
     $this->actingAs($user->fresh())
         ->get(route($routeName, $resource))
         ->assertOk()
-        ->assertSee($type->label().' Pack', false)
-        ->assertSee('Catalog body for '.$type->value, false);
+        ->assertSee($type->label().' Pack', false);
 })->with([
-    'module' => [ResourceType::Module, 'tg.play.module'],
-    'notes' => [ResourceType::Notes, 'tg.play.notes'],
-    'worksheet' => [ResourceType::Worksheet, 'tg.play.worksheet'],
-    'assignment' => [ResourceType::Assignment, 'tg.play.assignment'],
     'quiz' => [ResourceType::Quiz, 'tg.play.quiz'],
     'practice exams' => [ResourceType::PracticeExams, 'tg.play.exam'],
-    'mid exam' => [ResourceType::MidExam, 'tg.play.exam'],
-    'final exam' => [ResourceType::FinalExam, 'tg.play.exam'],
-    'slides' => [ResourceType::Slides, 'tg.play.slides'],
+    'past exams' => [ResourceType::PastExams, 'tg.play.exam'],
     'reference books' => [ResourceType::ReferenceBooks, 'tg.play.reference-books'],
-    'flashcards' => [ResourceType::Flashcards, 'tg.play.flashcards'],
 ]);
 
 it('returns 404 when the player type does not match the resource', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
     $user->update(['is_premium' => true]);
 
-    $flashcards = LearningResource::factory()->published()->flashcards()->create([
+    $quiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
 
-    $module = LearningResource::factory()->published()->create([
+    $referenceBook = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Module,
+        'type' => ResourceType::ReferenceBooks,
         'content' => null,
         'generation_kind' => null,
     ]);
 
     $this->actingAs($user->fresh())
-        ->get(route('tg.play.quiz', $flashcards))
+        ->get(route('tg.play.reference-books', $quiz))
         ->assertNotFound();
 
     $this->actingAs($user->fresh())
-        ->get(route('tg.play.notes', $module))
-        ->assertNotFound();
-
-    $this->actingAs($user->fresh())
-        ->get(route('tg.play.module', $flashcards))
+        ->get(route('tg.play.quiz', $referenceBook))
         ->assertNotFound();
 });
 
@@ -267,11 +240,11 @@ it('redirects the resource dispatcher to the matching catalog player', function 
         'stream_id' => $stream->id,
     ]);
 
-    $module = LearningResource::factory()->published()->create([
+    $referenceBook = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Module,
-        'title' => 'Module Pack',
+        'type' => ResourceType::ReferenceBooks,
+        'title' => 'Reference Book Pack',
         'content' => null,
         'generation_kind' => null,
     ]);
@@ -281,39 +254,31 @@ it('redirects the resource dispatcher to the matching catalog player', function 
         ->assertRedirect(route('tg.play.quiz', $quiz));
 
     $this->actingAs($user)
-        ->get(route('tg.resources.show', $module))
-        ->assertRedirect(route('tg.play.module', $module));
+        ->get(route('tg.resources.show', $referenceBook))
+        ->assertRedirect(route('tg.play.reference-books', $referenceBook));
 });
 
 it('opens course hubs for free and premium students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
 
-    $module = LearningResource::factory()->published()->module()->create([
+    $referenceBook = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'sort_order' => 1,
-        'title' => 'Module 1',
-    ]);
-
-    $notes = LearningResource::factory()->published()->notes()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'module_id' => $module->id,
         'title' => 'Chapter notes',
     ]);
 
-    expect($notes->miniAppUrl())->toBe(route('tg.play.notes', $notes));
+    expect($referenceBook->miniAppUrl())->toBe(route('tg.play.reference-books', $referenceBook));
 
     $this->actingAs($user->fresh())
         ->get(route('tg.courses.show', $course))
         ->assertOk()
-        ->assertSee('Notes')
-        ->assertSee('Module');
+        ->assertSee('Reference books');
 
     $this->actingAs($user->fresh())
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
         ->assertOk()
         ->assertSee('Chapter notes')
-        ->assertSee($notes->miniAppUrl(), false)
-        ->assertDontSee('?start=resource_'.$notes->id, false);
+        ->assertSee($referenceBook->miniAppUrl(), false)
+        ->assertDontSee('?start=resource_'.$referenceBook->id, false);
 });

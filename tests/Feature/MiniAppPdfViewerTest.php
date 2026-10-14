@@ -56,7 +56,7 @@ it('streams a disk PDF for an enrolled student', function () {
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Week 1 PDF notes',
     ]);
 
@@ -89,7 +89,7 @@ it('proxies a telegram vault PDF through the stream route', function () {
     ])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Vault PDF notes',
     ]);
 
@@ -112,7 +112,7 @@ it('shows the bootstrap page for guests on the PDF stream', function () {
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
     ]);
 
     $this->get(route('tg.files.show', ['resource' => $resource, 'index' => 0]))
@@ -132,7 +132,7 @@ it('shows the locked view when streaming a premium PDF without entitlement', fun
     $resource = LearningResource::factory()->published()->premium()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Premium PDF',
     ]);
 
@@ -154,7 +154,7 @@ it('returns 404 for a non-PDF attachment index', function () {
     $resource = LearningResource::factory()->published()->withFiles([$docx])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
     ]);
 
     expect($resource->pdfAttachments())->toBe([]);
@@ -176,12 +176,12 @@ it('links PDF resources from the hub to the Mini App player', function () {
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Hub PDF notes',
     ]);
 
     expect($resource->opensInMiniApp())->toBeTrue()
-        ->and($resource->miniAppUrl())->toBe(route('tg.play.notes', $resource));
+        ->and($resource->miniAppUrl())->toBe(route('tg.play.reference-books', $resource));
 
     $this->actingAs($user)
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'notes']))
@@ -204,7 +204,7 @@ it('keeps non-PDF file resources on the bot deep link', function () {
     $resource = LearningResource::factory()->published()->withFiles([$docx])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Word notes',
     ]);
 
@@ -231,7 +231,7 @@ it('renders the PDF viewer markup on the notes player with a relative stream URL
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Player PDF notes',
     ]);
 
@@ -241,7 +241,7 @@ it('renders the PDF viewer markup on the notes player with a relative stream URL
     ], absolute: false);
 
     $this->actingAs($user)
-        ->get(route('tg.play.notes', $resource))
+        ->get(route('tg.play.reference-books', $resource))
         ->assertOk()
         ->assertSee('data-pdf-viewer', false)
         ->assertSee('data-pdf-url="'.$streamUrl.'"', false)
@@ -272,7 +272,7 @@ it('opens the PDF notes player for an unenrolled student and enrolls them', func
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'title' => 'Unenrolled PDF notes',
     ]);
 
@@ -284,7 +284,7 @@ it('opens the PDF notes player for an unenrolled student and enrolls them', func
     expect($user->courses()->where('courses.id', $course->id)->exists())->toBeFalse();
 
     $this->actingAs($user)
-        ->get(route('tg.play.notes', $resource))
+        ->get(route('tg.play.reference-books', $resource))
         ->assertOk()
         ->assertSee('data-pdf-viewer', false)
         ->assertSee('data-pdf-url="'.$streamUrl.'"', false)

@@ -27,7 +27,7 @@ it('includes published indexable urls and excludes unpublished resources', funct
         'course_id' => $course->id,
         'stream_id' => $course->stream_id,
         'slug' => 'physics-module-1',
-        'type' => ResourceType::Module,
+        'type' => ResourceType::ReferenceBooks,
         'is_indexable' => true,
     ]);
 
@@ -54,7 +54,7 @@ it('includes published indexable urls and excludes unpublished resources', funct
     $response->assertSee(route('universities.show', $university), false);
     $response->assertSee(route('courses.show', $course), false);
     $response->assertSee(route('resources.show', $published), false);
-    $response->assertSee(route('hubs.course', ['modules', $course]), false);
+    $response->assertSee(route('hubs.course', ['notes', $course]), false);
     $response->assertDontSee(route('resources.show', $unpublished), false);
     $response->assertDontSee(route('resources.show', $noindex), false);
 });

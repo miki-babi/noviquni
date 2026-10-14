@@ -73,12 +73,7 @@ class LearningForm
                     )->all())
                     ->required()
                     ->live()
-                    ->native(false)
-                    ->afterStateUpdated(function (Set $set, ?string $state): void {
-                        if ($state === ResourceType::Flashcards->value) {
-                            $set('is_premium', true);
-                        }
-                    }),
+                    ->native(false),
                 Select::make('generation_kind')
                     ->label('Generation kind')
                     ->options(CollegeResourceKind::class)
@@ -96,19 +91,17 @@ class LearningForm
                     ->searchable()
                     ->afterStateUpdated(static::onCourseUpdated()),
                 Select::make('module_id')
-                    ->label('Parent module')
+                    ->label('Parent resource')
                     ->options(fn (Get $get): array => filled($get('course_id'))
                         ? LearningResource::query()
                             ->where('course_id', $get('course_id'))
-                            ->where('type', ResourceType::Module)
                             ->orderBy('sort_order')
                             ->orderBy('title')
                             ->pluck('title', 'id')
                             ->all()
                         : [])
                     ->searchable()
-                    ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                    ->helperText('Optional. Groups this resource under a parent module.'),
+                    ->helperText('Optional. Groups this resource under another catalog item.'),
                 TextInput::make('sort_order')
                     ->numeric()
                     ->integer()
@@ -125,7 +118,6 @@ class LearningForm
                 Toggle::make('is_premium')
                     ->default(false)
                     ->live()
-                    ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
                     ->dehydrated()
                     ->helperText('Free students can open any published resource that is not premium.'),
                 Toggle::make('is_published')->default(false),
@@ -150,12 +142,7 @@ class LearningForm
                         )->all())
                         ->required()
                         ->live()
-                        ->native(false)
-                        ->afterStateUpdated(function (Set $set, ?string $state): void {
-                            if ($state === ResourceType::Flashcards->value) {
-                                $set('is_premium', true);
-                            }
-                        }),
+                        ->native(false),
                     TextInput::make('title')
                         ->required()
                         ->live(onBlur: true)
@@ -178,19 +165,17 @@ class LearningForm
                         ->searchable()
                         ->afterStateUpdated(static::onCourseUpdated()),
                     Select::make('module_id')
-                        ->label('Parent module')
+                        ->label('Parent resource')
                         ->options(fn (Get $get): array => filled($get('course_id'))
                             ? LearningResource::query()
                                 ->where('course_id', $get('course_id'))
-                                ->where('type', ResourceType::Module)
                                 ->orderBy('sort_order')
                                 ->orderBy('title')
                                 ->pluck('title', 'id')
                                 ->all()
                             : [])
                         ->searchable()
-                        ->visible(fn (Get $get): bool => $get('type') !== ResourceType::Module->value)
-                        ->helperText('Optional. Groups this resource under a parent module.'),
+                        ->helperText('Optional. Groups this resource under another catalog item.'),
                     TextInput::make('sort_order')
                         ->numeric()
                         ->integer()
@@ -207,7 +192,6 @@ class LearningForm
                     Toggle::make('is_premium')
                         ->default(false)
                         ->live()
-                        ->disabled(fn (Get $get): bool => $get('type') === ResourceType::Flashcards->value)
                         ->dehydrated()
                         ->helperText('Free students can open any published resource that is not premium.'),
                     Toggle::make('is_published')->default(false),

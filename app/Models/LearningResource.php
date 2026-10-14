@@ -56,15 +56,6 @@ class LearningResource extends Model
         'sort_order' => 0,
     ];
 
-    protected static function booted(): void
-    {
-        static::saving(function (LearningResource $resource): void {
-            if ($resource->type === ResourceType::Flashcards) {
-                $resource->is_premium = true;
-            }
-        });
-    }
-
     public function stream(): BelongsTo
     {
         return $this->belongsTo(Stream::class);
@@ -299,7 +290,7 @@ class LearningResource extends Model
     #[Scope]
     protected function modules(Builder $query): Builder
     {
-        return $query->where('type', ResourceType::Module);
+        return $query->where('type', ResourceType::ReferenceBooks);
     }
 
     /**

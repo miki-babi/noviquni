@@ -286,7 +286,7 @@ class TelegramService
             'practice_exams' => [ResourceType::PracticeExams],
             'quiz' => [ResourceType::Quiz],
             'reference_books' => [ResourceType::ReferenceBooks],
-            'past_exams' => [ResourceType::MidExam, ResourceType::FinalExam],
+            'past_exams' => [ResourceType::PastExams],
             default => [],
         };
     }

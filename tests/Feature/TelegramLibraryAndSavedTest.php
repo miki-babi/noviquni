@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\OnboardingStep;
-use App\Enums\ResourceType;
 use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -65,7 +64,7 @@ it('lists resource hubs across enrolled courses only', function () {
     $this->actingAs($user)
         ->get(route('tg.library'))
         ->assertOk()
-        ->assertSee('Notes')
+        ->assertSee('Reference books')
         ->assertSee('Quick saved')
         ->assertSee(route('tg.saved'), false)
         ->assertSee('data-tg-tabbar', false)
@@ -132,9 +131,9 @@ it('shows empty quick saved state and toggles bookmarks', function () {
         ->assertSee('study-card--lime', false);
 
     $this->actingAs($user)
-        ->from(route('tg.play.notes', $resource))
+        ->from(route('tg.play.reference-books', $resource))
         ->post(route('tg.saved.toggle', $resource))
-        ->assertRedirect(route('tg.play.notes', $resource));
+        ->assertRedirect(route('tg.play.reference-books', $resource));
 
     expect(Bookmark::query()->where('user_id', $user->id)->whereMorphedTo('bookmarkable', $resource)->exists())->toBeFalse();
 });
@@ -145,59 +144,58 @@ it('shows save control on the notes player', function () {
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'type' => ResourceType::Notes,
         'title' => 'Player notes',
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.play.notes', $resource))
+        ->get(route('tg.play.reference-books', $resource))
         ->assertOk()
         ->assertSee('Save', false)
         ->assertSee(route('tg.saved.toggle', $resource), false);
 });
 
-it('lists a worksheet card separately from notes', function () {
+it('lists reference books and quiz as separate hubs', function () {
     [$user, $course, $stream] = libraryContext();
 
-    LearningResource::factory()->published()->notes()->create([
+    $refBook = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'title' => 'Lecture notes',
+        'title' => 'Chapter notes',
     ]);
 
-    $worksheet = LearningResource::factory()->published()->worksheet()->create([
+    LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'title' => 'Problem set 1',
+        'title' => 'Chapter quiz',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.library'))
         ->assertOk()
-        ->assertSee('Notes')
-        ->assertSee('Worksheet')
-        ->assertSee(route('tg.library.hub', 'worksheet'), false);
+        ->assertSee('Reference books')
+        ->assertSee('Quiz')
+        ->assertSee(route('tg.library.hub', 'reference_books'), false);
 
     $this->actingAs($user)
-        ->get(route('tg.library.hub', 'worksheet'))
+        ->get(route('tg.library.hub', 'reference_books'))
         ->assertOk()
-        ->assertSee('Problem set 1')
-        ->assertDontSee('Lecture notes')
-        ->assertSee($worksheet->miniAppUrl(), false)
-        ->assertDontSee(app(TelegramDeepLink::class)->forResource($worksheet->id), false);
+        ->assertSee('Chapter notes')
+        ->assertDontSee('Chapter quiz')
+        ->assertSee($refBook->miniAppUrl(), false)
+        ->assertDontSee(app(TelegramDeepLink::class)->forResource($refBook->id), false);
 });
 
-it('keeps legacy modules hub alias working', function () {
+it('keeps legacy notes hub alias working for reference books resources', function () {
     [$user, $course, $stream] = libraryContext();
 
-    LearningResource::factory()->published()->module()->create([
+    LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'title' => 'Legacy module pack',
+        'title' => 'Legacy reference pack',
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.library.hub', 'modules'))
+        ->get(route('tg.library.hub', 'notes'))
         ->assertOk()
-        ->assertSee('Legacy module pack');
+        ->assertSee('Legacy reference pack');
 });

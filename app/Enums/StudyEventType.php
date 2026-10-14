@@ -13,8 +13,7 @@ enum StudyEventType: string
     {
         return match ($type) {
             ResourceType::Quiz => self::Quiz,
-            ResourceType::Flashcards => self::Flashcards,
-            ResourceType::PracticeExams, ResourceType::MidExam, ResourceType::FinalExam => self::PastExam,
+            ResourceType::PracticeExams, ResourceType::PastExams => self::PastExam,
             default => self::Note,
         };
     }

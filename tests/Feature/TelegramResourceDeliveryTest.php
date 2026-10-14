@@ -197,7 +197,7 @@ it('opens pdf resources with a mini app player button instead of sending the doc
         'title' => 'Week 1 Lecture Notes',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,
@@ -234,7 +234,7 @@ it('opens pdf resources with a mini app player button instead of sending the doc
 
         return str_contains((string) ($data['text'] ?? ''), 'Week 1 Lecture Notes')
             && ($openButton['text'] ?? null) === 'Open PDF player'
-            && ($openButton['web_app']['url'] ?? null) === route('tg.play.notes', $resource)
+            && ($openButton['web_app']['url'] ?? null) === route('tg.play.reference-books', $resource)
             && ($saveShare[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && ($saveShare[0]['text'] ?? null) === 'Quick save'
             && str_contains($shareUrl, 't.me/share/url')
@@ -266,7 +266,7 @@ it('shows a green Saved button when a pdf resource is already bookmarked', funct
         'description' => 'Lecture summary for week 2',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
         'files' => null,
         'telegram_files' => [
@@ -342,7 +342,7 @@ it('toggles a bookmark from the quick save callback and updates the button marku
         'title' => 'Saveable Notes',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
         'files' => null,
         'telegram_files' => [
@@ -427,7 +427,7 @@ it('blocks quick save when onboarding is incomplete', function () {
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Locked Notes',
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
     ]);
 

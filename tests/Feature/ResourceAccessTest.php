@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\ResourceType;
 use App\Models\LearningResource;
 use App\Models\User;
 use App\Services\PremiumService;
@@ -29,18 +28,11 @@ it('blocks premium resources for free students', function () {
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeFalse();
 });
 
-it('blocks flashcards for free students because they are always premium', function () {
+it('blocks premium quiz for free students', function () {
     $student = User::factory()->student()->create();
-    $module = LearningResource::factory()->published()->module()->create();
-    $resource = LearningResource::factory()->published()->flashcards()->create([
-        'module_id' => $module->id,
-        'course_id' => $module->course_id,
-        'stream_id' => $module->stream_id,
-        'is_premium' => false,
-    ]);
+    $resource = LearningResource::factory()->published()->quiz()->premium()->create();
 
-    expect($resource->fresh()->is_premium)->toBeTrue()
-        ->and(app(PremiumService::class)->canAccess($student, $resource->fresh()))->toBeFalse();
+    expect(app(PremiumService::class)->canAccess($student, $resource))->toBeFalse();
 });
 
 it('allows premium resources when the student has premium', function () {
@@ -50,15 +42,9 @@ it('allows premium resources when the student has premium', function () {
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });
 
-it('allows flashcards for premium students', function () {
+it('allows premium quiz for premium students', function () {
     $student = User::factory()->student()->premium()->create();
-    $module = LearningResource::factory()->published()->module()->create();
-    $resource = LearningResource::factory()->published()->flashcards()->create([
-        'module_id' => $module->id,
-        'course_id' => $module->course_id,
-        'stream_id' => $module->stream_id,
-        'type' => ResourceType::Flashcards,
-    ]);
+    $resource = LearningResource::factory()->published()->quiz()->premium()->create();
 
     expect(app(PremiumService::class)->canAccess($student, $resource))->toBeTrue();
 });

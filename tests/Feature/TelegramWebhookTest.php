@@ -214,7 +214,7 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Motion notes',
@@ -224,13 +224,6 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Motion quiz',
-    ]);
-
-    LearningResource::factory()->published()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Motion references',
-        'type' => ResourceType::ReferenceBooks,
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555025, '📚 Freshman resources'))
@@ -246,19 +239,16 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
             ->flatten(1)
             ->keyBy('text');
 
-        $notes = $buttons->get('📚 Notes');
-        $quiz = $buttons->get('📚 Quiz');
         $references = $buttons->get('📚 Reference books');
+        $quiz = $buttons->get('📚 Quiz');
         $back = $buttons->get('← Back');
 
         return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
-            && $notes !== null
-            && $quiz !== null
             && $references !== null
+            && $quiz !== null
             && $back !== null
-            && ($notes['style'] ?? null) === 'success'
-            && ($quiz['style'] ?? null) === 'primary'
             && ($references['style'] ?? null) === 'danger'
+            && ($quiz['style'] ?? null) === 'success'
             && ! array_key_exists('style', $back);
     });
 });
@@ -274,19 +264,19 @@ it('shows courses with the selected resource type in a reply keyboard', function
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Notes'))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Reference books'))
         ->assertOk();
 
     Http::assertSent(function ($request) use ($course) {
         $data = $request->data();
 
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) ($data['text'] ?? ''), 'Choose a course for Notes')
+            && str_contains((string) ($data['text'] ?? ''), 'Choose a course for Reference books')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 '.$course->name
             && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
     });
@@ -302,17 +292,17 @@ it('sends the file directly when a course has one file-backed resource of the se
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
-    $resource = LearningResource::factory()->published()->notes()->create([
+    $resource = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Motion notes',
         'files' => null,
         'telegram_files' => [
-            ['file_id' => 'BQACAgQAAxkBAAI-direct-notes', 'file_name' => 'notes.pdf'],
+            ['file_id' => 'BQACAgQAAxkBAAI-direct-notes', 'file_name' => 'notes.docx'],
         ],
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📚 Notes', 600))->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📚 Reference books', 600))->assertOk();
     $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📗 Physics', 601))->assertOk();
 
     Http::assertSent(function ($request) use ($resource) {
@@ -333,7 +323,7 @@ it('sends the file directly when a course has one file-backed resource of the se
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Notes for Physics in the study app')
+        return str_contains((string) ($data['text'] ?? ''), 'Open Reference books for Physics in the study app')
             || filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
     });
 });
@@ -349,26 +339,26 @@ it('lists resources inline when a course has multiple resources of the selected 
     ]);
     $user->courses()->sync([$course->id]);
 
-    $first = LearningResource::factory()->published()->notes()->create([
+    $first = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week 1 notes',
         'files' => null,
         'telegram_files' => [
-            ['file_id' => 'BQACAgQAAxkBAAI-week1', 'file_name' => 'week1.pdf'],
+            ['file_id' => 'BQACAgQAAxkBAAI-week1', 'file_name' => 'week1.docx'],
         ],
     ]);
-    $second = LearningResource::factory()->published()->notes()->create([
+    $second = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week 2 notes',
         'files' => null,
         'telegram_files' => [
-            ['file_id' => 'BQACAgQAAxkBAAI-week2', 'file_name' => 'week2.pdf'],
+            ['file_id' => 'BQACAgQAAxkBAAI-week2', 'file_name' => 'week2.docx'],
         ],
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📚 Notes', 602))->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📚 Reference books', 602))->assertOk();
     $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📗 Chemistry', 603))->assertOk();
 
     Http::assertSent(function ($request) use ($course, $first, $second) {
@@ -454,15 +444,15 @@ it('shows course resource types after course tap', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Week-1 notes',
     ]);
-    LearningResource::factory()->published()->module()->create([
+    LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'title' => 'Module 1',
+        'title' => 'Physics Quiz',
     ]);
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555023, "course:{$course->id}", 30, 403))
@@ -476,17 +466,15 @@ it('shows course resource types after course tap', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        $notesButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:notes:{$course->id}");
-        $moduleButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:module:{$course->id}");
+        $refBooksButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:reference_books:{$course->id}");
+        $quizButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:quiz:{$course->id}");
 
         return str_contains((string) ($data['text'] ?? ''), 'Physics')
             && str_contains((string) ($data['text'] ?? ''), 'choose a type')
-            && is_array($notesButton)
-            && ($notesButton['text'] ?? null) === 'Notes'
-            && ($notesButton['style'] ?? null) === 'success'
-            && is_array($moduleButton)
-            && ($moduleButton['text'] ?? null) === 'Module'
-            && ($moduleButton['style'] ?? null) === 'success'
+            && is_array($refBooksButton)
+            && ($refBooksButton['text'] ?? null) === 'Reference books'
+            && is_array($quizButton)
+            && ($quizButton['text'] ?? null) === 'Quiz'
             && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype_soon:'))
             && $buttons->every(fn (array $button) => ($button['web_app']['url'] ?? null) !== route('tg.courses.show', $course));
     });
@@ -862,7 +850,7 @@ it('opens a bait course path from /start bait', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $notes = LearningResource::factory()->published()->notes()->create([
+    LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Bait notes',
@@ -881,8 +869,7 @@ it('opens a bait course path from /start bait', function () {
 
         return str_contains((string) ($data['text'] ?? ''), 'Chemistry')
             && str_contains((string) ($data['text'] ?? ''), 'choose a type')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:notes:{$course->id}"
-                && ($button['style'] ?? null) === 'success');
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:reference_books:{$course->id}");
     });
 });
 
@@ -1223,13 +1210,13 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Older notes',
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
     ]);
     $newer = LearningResource::factory()->published()->worksheet()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Newer worksheet',
-        'type' => ResourceType::Worksheet,
+        'type' => ResourceType::ReferenceBooks,
     ]);
 
     Bookmark::query()->create([
@@ -1270,9 +1257,9 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         $buttons = $rows->flatten(1);
 
         return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/1)')
-            && data_get($rows, '0.0.web_app.url') === route('tg.play.worksheet', $newer)
+            && data_get($rows, '0.0.web_app.url') === route('tg.play.reference-books', $newer)
             && data_get($rows, '0.0.style') === 'success'
-            && data_get($rows, '1.0.web_app.url') === route('tg.play.notes', $older)
+            && data_get($rows, '1.0.web_app.url') === route('tg.play.reference-books', $older)
             && data_get($rows, '1.0.style') === 'success'
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Newer worksheet')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Older notes')

@@ -80,7 +80,7 @@ it('logs resource_open with study details when a mini app resource is opened', f
 
     $resource = LearningResource::factory()->create([
         'title' => 'Chapter 3 — Kinship',
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'is_published' => true,
@@ -88,7 +88,7 @@ it('logs resource_open with study details when a mini app resource is opened', f
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.play.notes', $resource))
+        ->get(route('tg.play.reference-books', $resource))
         ->assertOk();
 
     expect(ResourceDownload::query()->where('user_id', $user->id)->where('learning_resource_id', $resource->id)->exists())->toBeTrue();
@@ -103,7 +103,7 @@ it('logs resource_open with study details when a mini app resource is opened', f
         ->and($event->details['course'])->toBe('Anthropology')
         ->and($event->details['chapter'])->toBe('Chapter 3 — Kinship')
         ->and($event->details['type'])->toBe('note')
-        ->and($event->details['resource_type'])->toBe(ResourceType::Notes->value);
+        ->and($event->details['resource_type'])->toBe(ResourceType::ReferenceBooks->value);
 });
 
 it('logs quiz_done when a quiz result is posted', function () {

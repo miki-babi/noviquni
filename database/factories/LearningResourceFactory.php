@@ -77,57 +77,45 @@ class LearningResourceFactory extends Factory
         ]);
     }
 
-    public function module(): static
+    public function referenceBooks(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::Module,
-            'module_id' => null,
+            'type' => ResourceType::ReferenceBooks,
             'generation_kind' => null,
             'content' => null,
         ]);
     }
 
-    public function worksheet(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::Worksheet,
-            'generation_kind' => null,
-            'content' => [
-                'body' => fake()->paragraphs(2, true),
-            ],
-        ]);
-    }
-
+    /**
+     * @deprecated Use referenceBooks() — kept for existing tests that still call notes()/module()/worksheet().
+     */
     public function notes(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::Notes,
-            'generation_kind' => CollegeResourceKind::Notes,
-            'content' => [
-                'kind' => CollegeResourceKind::Notes->value,
-                'scope_type' => 'section',
-                'scope_id' => 'section-1',
-                'from_cache' => false,
-                'generated_at' => now()->toIso8601String(),
-                'payload' => [
-                    'title' => 'Anthropology Notes',
-                    'summary' => 'Anthropology studies humankind across time and space.',
-                    'keyDefinitions' => [
-                        [
-                            'term' => 'Anthropology',
-                            'definition' => 'The study of human beings.',
-                        ],
-                    ],
-                    'corePrinciples' => [
-                        'Culture and biology are inseparable.',
-                    ],
-                    'commonMistakes' => [
-                        'Confusing anthropology with sociology alone.',
-                    ],
-                    'keyFormulas' => [],
-                ],
-            ],
-        ]);
+        return $this->referenceBooks();
+    }
+
+    /**
+     * @deprecated Use referenceBooks().
+     */
+    public function module(): static
+    {
+        return $this->referenceBooks();
+    }
+
+    /**
+     * @deprecated Use referenceBooks().
+     */
+    public function worksheet(): static
+    {
+        return $this->referenceBooks();
+    }
+
+    /**
+     * @deprecated Use quiz().
+     */
+    public function flashcards(): static
+    {
+        return $this->quiz()->premium();
     }
 
     public function quiz(): static
@@ -194,29 +182,12 @@ class LearningResourceFactory extends Factory
         ]);
     }
 
-    public function flashcards(): static
+    public function pastExams(): static
     {
         return $this->state(fn (array $attributes) => [
-            'type' => ResourceType::Flashcards,
-            'is_premium' => true,
-            'generation_kind' => CollegeResourceKind::Flashcards,
-            'content' => [
-                'kind' => CollegeResourceKind::Flashcards->value,
-                'scope_type' => 'section',
-                'scope_id' => 'section-1',
-                'from_cache' => false,
-                'generated_at' => now()->toIso8601String(),
-                'payload' => [
-                    'cards' => [
-                        [
-                            'front' => 'What does anthropos mean?',
-                            'back' => 'Human being or mankind',
-                            'hint' => 'Think of the Greek root.',
-                            'category' => 'Etymology',
-                        ],
-                    ],
-                ],
-            ],
+            'type' => ResourceType::PastExams,
+            'generation_kind' => null,
+            'content' => null,
         ]);
     }
 }

@@ -161,7 +161,7 @@ it('publishes a learning resource through the telegram wizard', function () {
 
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9202, $telegramId, 'admin:publish:'.$asset->id))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9203, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9204, $telegramId, 'admin:pub:type:notes'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9204, $telegramId, 'admin:pub:type:reference_books'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9205, $telegramId, 'admin:pub:title:filename'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9206, $telegramId, 'admin:pub:premium:0'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9207, $telegramId, 'admin:pub:confirm'))->assertOk();
@@ -171,7 +171,7 @@ it('publishes a learning resource through the telegram wizard', function () {
     expect($resource)->not->toBeNull()
         ->and($resource->is_published)->toBeTrue()
         ->and($resource->is_premium)->toBeFalse()
-        ->and($resource->type)->toBe(ResourceType::Notes)
+        ->and($resource->type)->toBe(ResourceType::ReferenceBooks)
         ->and($resource->course_id)->toBe($course->id)
         ->and($resource->stream_id)->toBe($stream->id)
         ->and($resource->telegram_files)->toBe([
@@ -277,7 +277,7 @@ it('bulk publishes multiple vault files through one shared wizard', function () 
 
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9313, $telegramId, 'admin:publish:bulk'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9314, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9315, $telegramId, 'admin:pub:type:module'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9315, $telegramId, 'admin:pub:type:reference_books'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9316, $telegramId, 'admin:pub:premium:1'))->assertOk();
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9317, $telegramId, 'admin:pub:confirm'))->assertOk();
 
@@ -286,7 +286,7 @@ it('bulk publishes multiple vault files through one shared wizard', function () 
     expect($resources)->toHaveCount(2)
         ->and($resources->pluck('title')->all())->toBe(['dynamics', 'kinematics'])
         ->and($resources->every(fn (LearningResource $resource) => $resource->course_id === $course->id))->toBeTrue()
-        ->and($resources->every(fn (LearningResource $resource) => $resource->type === ResourceType::Module))->toBeTrue()
+        ->and($resources->every(fn (LearningResource $resource) => $resource->type === ResourceType::ReferenceBooks))->toBeTrue()
         ->and($resources->every(fn (LearningResource $resource) => $resource->is_premium === true))->toBeTrue()
         ->and($resources->every(fn (LearningResource $resource) => $resource->is_published === true))->toBeTrue()
         ->and(cache()->get('telegram.publish.'.$telegramId))->toBeNull()
@@ -466,7 +466,7 @@ it('opens telegram vault pdfs with a mini app player button', function () {
         'title' => 'Telegram Vault Notes',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,
@@ -505,7 +505,7 @@ it('opens telegram vault pdfs with a mini app player button', function () {
         $shareUrl = (string) ($buttons[1]['url'] ?? '');
 
         return ($openButton['text'] ?? null) === 'Open PDF player'
-            && ($openButton['web_app']['url'] ?? null) === route('tg.play.notes', $resource)
+            && ($openButton['web_app']['url'] ?? null) === route('tg.play.reference-books', $resource)
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && ($buttons[0]['text'] ?? null) === 'Quick save'
             && str_contains($shareUrl, 't.me/share/url')
@@ -542,7 +542,7 @@ it('still sends non-pdf disk files as telegram documents', function () {
         'title' => 'Disk Fallback Notes',
         'stream_id' => $stream->id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,
         'content' => null,
         'is_premium' => false,

@@ -12,16 +12,10 @@ use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\LibraryController;
 use App\Http\Controllers\Telegram\MiniApp\OpportunityController;
-use App\Http\Controllers\Telegram\MiniApp\Players\AssignmentPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
-use App\Http\Controllers\Telegram\MiniApp\Players\FlashcardsPlayerController;
-use App\Http\Controllers\Telegram\MiniApp\Players\ModulePlayerController;
-use App\Http\Controllers\Telegram\MiniApp\Players\NotesPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ReferenceBooksPlayerController;
-use App\Http\Controllers\Telegram\MiniApp\Players\SlidesPlayerController;
-use App\Http\Controllers\Telegram\MiniApp\Players\WorksheetPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
@@ -76,15 +70,9 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('files/{resource:slug}/{index}', [ResourceFileController::class, 'show'])
             ->whereNumber('index')
             ->name('files.show');
-        Route::get('play/module/{resource:slug}', ModulePlayerController::class)->name('play.module');
-        Route::get('play/notes/{resource:slug}', NotesPlayerController::class)->name('play.notes');
-        Route::get('play/worksheet/{resource:slug}', WorksheetPlayerController::class)->name('play.worksheet');
         Route::get('play/exam/{resource:slug}', ExamPlayerController::class)->name('play.exam');
-        Route::get('play/assignment/{resource:slug}', AssignmentPlayerController::class)->name('play.assignment');
         Route::get('play/quiz/{resource:slug}', QuizPlayerController::class)->name('play.quiz');
         Route::post('play/quiz/{resource:slug}/result', QuizResultController::class)->name('play.quiz.result');
-        Route::get('play/flashcards/{resource:slug}', FlashcardsPlayerController::class)->name('play.flashcards');
-        Route::get('play/slides/{resource:slug}', SlidesPlayerController::class)->name('play.slides');
         Route::get('play/reference-books/{resource:slug}', ReferenceBooksPlayerController::class)->name('play.reference-books');
         Route::get('profile', [ProfileController::class, 'show'])->name('profile');
         Route::get('profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -2684,17 +2684,7 @@ class TelegramBotHandler
      */
     protected function publishableResourceTypes(): array
     {
-        return [
-            ResourceType::Notes,
-            ResourceType::Module,
-            ResourceType::Slides,
-            ResourceType::Worksheet,
-            ResourceType::Assignment,
-            ResourceType::MidExam,
-            ResourceType::FinalExam,
-            ResourceType::PracticeExams,
-            ResourceType::ReferenceBooks,
-        ];
+        return ResourceType::creatableCases();
     }
 
     protected function uniqueLearningSlug(string $title): string

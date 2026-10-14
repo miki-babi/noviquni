@@ -110,11 +110,11 @@ it('delivers a free learning resource and records a download', function () {
         'title' => 'Command Notes',
         'stream_id' => $user->stream_id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
         'files' => null,
         'telegram_files' => [
-            ['file_id' => $fileId, 'file_name' => 'notes.pdf'],
+            ['file_id' => $fileId, 'file_name' => 'notes.docx'],
         ],
     ]);
 
@@ -150,10 +150,10 @@ it('locks a premium learning resource without sending its file', function () {
         'title' => 'Premium Pack',
         'stream_id' => $user->stream_id,
         'course_id' => $course->id,
-        'type' => ResourceType::Notes,
+        'type' => ResourceType::ReferenceBooks,
         'files' => null,
         'telegram_files' => [
-            ['file_id' => $fileId, 'file_name' => 'premium.pdf'],
+            ['file_id' => $fileId, 'file_name' => 'premium.docx'],
         ],
     ]);
 
