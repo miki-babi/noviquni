@@ -13,6 +13,7 @@ use App\Services\College\TelegramResourceFormatter;
 use App\Services\SettingsService;
 use App\Support\StudyRichText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -87,6 +88,112 @@ it('persists rich quiz questions and generation kind from the learning create fo
         ->and($resource->content['payload']['questions'][0]['answerIndex'])->toBe(1)
         ->and(StudyRichText::toPlain($resource->content['payload']['questions'][0]['question']))->toContain('Greek roots')
         ->and(StudyRichText::toHtml($resource->content['payload']['questions'][1]['options'][1]))->toContain('diagram.png');
+});
+
+/**
+ * @return array{type: string, content: list<array<string, mixed>>}
+ */
+function tipTapImageDocument(string $path, string $alt): array
+{
+    return [
+        'type' => 'doc',
+        'content' => [
+            [
+                'type' => 'paragraph',
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => $alt.' caption',
+                    ],
+                ],
+            ],
+            [
+                'type' => 'image',
+                'attrs' => [
+                    'id' => $path,
+                    'src' => null,
+                    'alt' => $alt,
+                    'title' => null,
+                    'width' => null,
+                    'height' => null,
+                ],
+            ],
+        ],
+    ];
+}
+
+it('persists tip tap images on exam questions choices and explanations and renders them in the player', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->admin()->create();
+    $course = Course::factory()->create(['stream_id' => null]);
+
+    $questionPath = StudyRichText::attachmentsDirectory($course->id).'/question.png';
+    $choicePath = StudyRichText::attachmentsDirectory($course->id).'/choice.png';
+    $explanationPath = StudyRichText::attachmentsDirectory($course->id).'/explanation.png';
+
+    Storage::disk('public')->put($questionPath, 'question-bytes');
+    Storage::disk('public')->put($choicePath, 'choice-bytes');
+    Storage::disk('public')->put($explanationPath, 'explanation-bytes');
+
+    $this->actingAs($admin);
+
+    Livewire::test(CreateLearning::class)
+        ->fillForm([
+            'type' => ResourceType::PracticeExams->value,
+            'title' => 'Exam with images',
+            'slug' => 'exam-with-images',
+            'course_id' => $course->id,
+            'sort_order' => 0,
+            'is_premium' => false,
+            'is_published' => true,
+            'is_indexable' => true,
+            'file_source' => 'telegram',
+            'telegram_file_ids' => [],
+            'exam_title' => 'Image exam',
+            'exam_instructions' => 'Use the diagrams.',
+            'quiz_questions' => [
+                [
+                    'question' => tipTapImageDocument($questionPath, 'question diagram'),
+                    'options' => [
+                        ['body' => tipTapImageDocument($choicePath, 'choice diagram')],
+                        ['body' => StudyRichText::forEditor('Text only choice')],
+                    ],
+                    'answerIndex' => 0,
+                    'explanation' => tipTapImageDocument($explanationPath, 'explanation diagram'),
+                ],
+            ],
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors()
+        ->assertNotified()
+        ->assertRedirect();
+
+    $resource = LearningResource::query()->where('slug', 'exam-with-images')->first();
+
+    $savedQuestion = $resource->content['payload']['questions'][0];
+
+    expect($resource)->not->toBeNull()
+        ->and($savedQuestion['question']['content'][1]['attrs']['id'] ?? null)->toBe($questionPath)
+        ->and($savedQuestion['options'][0]['content'][1]['attrs']['id'] ?? null)->toBe($choicePath)
+        ->and($savedQuestion['explanation']['content'][1]['attrs']['id'] ?? null)->toBe($explanationPath)
+        ->and(StudyRichText::toHtml($savedQuestion['question']))->toContain('question.png')
+        ->and(StudyRichText::toHtml($savedQuestion['options'][0]))->toContain('choice.png')
+        ->and(StudyRichText::toHtml($savedQuestion['explanation']))->toContain('explanation.png');
+
+    $student = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+    $student->courses()->sync([$course->id]);
+
+    $this->actingAs($student)
+        ->get(route('tg.play.exam', $resource))
+        ->assertOk()
+        ->assertSee('question.png', false)
+        ->assertSee('choice.png', false)
+        ->assertSee('explanation.png', false)
+        ->assertSee('data-id="'.$questionPath.'"', false);
 });
 
 it('updates practice exam content from the rich questions builder', function () {

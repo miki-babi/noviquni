@@ -186,6 +186,7 @@ class StudyRichText
     protected static function renderer(mixed $content): RichContentRenderer
     {
         return RichContentRenderer::make($content)
-            ->fileAttachmentsDisk(self::AttachmentsDisk);
+            ->fileAttachmentsDisk(self::AttachmentsDisk)
+            ->fileAttachmentsVisibility('public');
     }
 }

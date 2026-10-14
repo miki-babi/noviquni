@@ -9,6 +9,7 @@ use App\Filament\Resources\TelegramFileAssets\TelegramFileAssetResource;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\TelegramFileAsset;
+use App\Services\Study\ExamQuestionZipImporter;
 use App\Support\LearningResourceFiles;
 use App\Support\StudyRichText;
 use Closure;
@@ -25,13 +26,17 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class LearningForm
@@ -425,8 +430,13 @@ class LearningForm
     {
         return [
             Section::make('Questions')
-                ->description('Multiple-choice questions with rich text, images, and an optional explanation for the correct answer.')
+                ->key('quizQuestionsSection')
+                ->description('Multiple-choice questions with rich text. Use the paperclip toolbar button to insert images in the question, each choice, and the answer explanation.')
                 ->visible(fn (Get $get): bool => static::isInteractiveMcqType($get('type')))
+                ->headerActions([
+                    static::importQuestionsZipAction(),
+                    static::downloadSampleExamZipAction(),
+                ])
                 ->schema([
                     TextInput::make('exam_title')
                         ->label('Exam title')
@@ -514,6 +524,178 @@ class LearningForm
         ];
     }
 
+    protected static function importQuestionsZipAction(): Action
+    {
+        return Action::make('importQuestionsZip')
+            ->label('Import questions (ZIP)')
+            ->icon(Heroicon::OutlinedArrowUpTray)
+            ->color('gray')
+            ->disabled(fn (Get $schemaGet): bool => blank($schemaGet('course_id')))
+            ->modalHeading('Import exam questions')
+            ->modalDescription('Upload a ZIP with questions.json and an images/ folder. Review the Questions repeater before saving.')
+            ->schema([
+                FileUpload::make('archive')
+                    ->label('Questions ZIP')
+                    ->acceptedFileTypes([
+                        'application/zip',
+                        'application/x-zip-compressed',
+                        'application/octet-stream',
+                    ])
+                    ->rules(['file', 'mimes:zip'])
+                    ->storeFiles(false)
+                    ->required()
+                    ->helperText('Must include questions.json. Image filenames are relative to images/.'),
+                Select::make('mode')
+                    ->label('Import mode')
+                    ->options([
+                        'replace' => 'Replace existing questions',
+                        'append' => 'Append to existing questions',
+                    ])
+                    ->default('replace')
+                    ->required()
+                    ->native(false),
+            ])
+            ->action(function (
+                array $data,
+                Get $schemaGet,
+                Set $schemaSet,
+                ExamQuestionZipImporter $importer,
+            ): void {
+                $courseId = $schemaGet('course_id');
+
+                if (blank($courseId)) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Select a course before importing questions')
+                        ->send();
+
+                    return;
+                }
+
+                $zipPath = static::resolveUploadedZipPath($data['archive'] ?? null);
+
+                if ($zipPath === null) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Could not read the uploaded ZIP')
+                        ->send();
+
+                    return;
+                }
+
+                try {
+                    $result = $importer->import($zipPath, $courseId);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Import failed')
+                        ->body($exception->getMessage())
+                        ->send();
+
+                    return;
+                }
+
+                if ($result['questions'] === []) {
+                    Notification::make()
+                        ->danger()
+                        ->title('No questions imported')
+                        ->body(implode(' ', $result['errors']))
+                        ->send();
+
+                    return;
+                }
+
+                $mode = ($data['mode'] ?? 'replace') === 'append' ? 'append' : 'replace';
+                $existing = is_array($schemaGet('quiz_questions') ?? null)
+                    ? array_values($schemaGet('quiz_questions'))
+                    : [];
+
+                $schemaSet(
+                    'quiz_questions',
+                    $mode === 'append'
+                        ? array_values([...$existing, ...$result['questions']])
+                        : $result['questions'],
+                );
+
+                if (($schemaGet('type') ?? null) === ResourceType::PracticeExams->value) {
+                    if (filled($result['title'])) {
+                        $schemaSet('exam_title', $result['title']);
+                    }
+
+                    if (filled($result['instructions'])) {
+                        $schemaSet('exam_instructions', $result['instructions']);
+                    }
+
+                    if ($result['timeLimitMinutes'] !== null) {
+                        $schemaSet('exam_time_limit_minutes', $result['timeLimitMinutes']);
+                    }
+                }
+
+                $count = count($result['questions']);
+                $notification = Notification::make()
+                    ->success()
+                    ->title($count === 1 ? 'Imported 1 question' : "Imported {$count} questions");
+
+                if ($result['errors'] !== []) {
+                    $notification
+                        ->warning()
+                        ->title($count === 1
+                            ? 'Imported 1 question with warnings'
+                            : "Imported {$count} questions with warnings")
+                        ->body(implode("\n", $result['errors']));
+                }
+
+                $notification->send();
+            });
+    }
+
+    protected static function downloadSampleExamZipAction(): Action
+    {
+        return Action::make('downloadSampleExamZip')
+            ->label('Download sample ZIP')
+            ->icon(Heroicon::OutlinedArrowDownTray)
+            ->color('gray')
+            ->link()
+            ->action(function (ExamQuestionZipImporter $importer): StreamedResponse {
+                return response()->streamDownload(
+                    function () use ($importer): void {
+                        echo $importer->sampleZipContents();
+                    },
+                    'exam-questions-sample.zip',
+                    ['Content-Type' => 'application/zip'],
+                );
+            });
+    }
+
+    protected static function resolveUploadedZipPath(mixed $archive): ?string
+    {
+        if (is_array($archive)) {
+            return static::resolveUploadedZipPath($archive[0] ?? null);
+        }
+
+        if ($archive instanceof TemporaryUploadedFile) {
+            $path = $archive->getRealPath();
+
+            return is_string($path) && is_file($path) ? $path : null;
+        }
+
+        if (! is_string($archive) || $archive === '') {
+            return null;
+        }
+
+        if (is_file($archive)) {
+            return $archive;
+        }
+
+        foreach (['local', 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($archive)) {
+                return Storage::disk($disk)->path($archive);
+            }
+        }
+
+        return null;
+    }
+
     protected static function quizRichEditor(string $name): RichEditor
     {
         return RichEditor::make($name)
@@ -526,9 +708,20 @@ class LearningForm
             ])
             ->fileAttachmentsDisk(StudyRichText::AttachmentsDisk)
             ->fileAttachmentsDirectory(fn (Get $get): string => StudyRichText::attachmentsDirectory(
-                $get('../../course_id') ?? $get('../course_id') ?? $get('course_id'),
+                $get('../../../../course_id')
+                    ?? $get('../../../course_id')
+                    ?? $get('../../course_id')
+                    ?? $get('../course_id')
+                    ?? $get('course_id'),
             ))
             ->fileAttachmentsVisibility('public')
+            ->fileAttachmentsAcceptedFileTypes([
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/gif',
+            ])
+            ->resizableImages()
             ->preventFileAttachmentPathTampering(fn (?LearningResource $record): bool => $record !== null)
             ->afterStateHydrated(function (RichEditor $component, mixed $state): void {
                 if (is_array($state) && ($state['type'] ?? null) === 'doc') {
