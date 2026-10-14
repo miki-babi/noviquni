@@ -33,6 +33,8 @@ class SettingsService
 
     public const PAYMENT_BOT_REGISTER_PROMPT = 'payment_bot_register_prompt';
 
+    public const TELEGRAM_CONTACT_US = 'telegram_contact_us';
+
     public const TELEGRAM_START_IMAGE = 'telegram_start_image';
 
     public const TELEGRAM_START_CAPTION = 'telegram_start_caption';
@@ -67,6 +69,7 @@ class SettingsService
             self::PAYMENT_BOT_OUR_MISSION => 'Our mission is to make high-quality learning support and opportunity guidance accessible to every student who needs it.',
             self::PAYMENT_BOT_CONTACT_US => 'Need help? Message support through the main NoviqUni bot, or reply here and our team will follow up.',
             self::PAYMENT_BOT_REGISTER_PROMPT => 'When you have paid, send a photo of the transfer receipt here.',
+            self::TELEGRAM_CONTACT_US => 'Need help? Message us here and our team will follow up.',
             self::TELEGRAM_START_IMAGE => '',
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
@@ -180,6 +183,11 @@ class SettingsService
     public function paymentBotRegisterPrompt(): string
     {
         return $this->settingOrDefault(self::PAYMENT_BOT_REGISTER_PROMPT);
+    }
+
+    public function telegramContactUs(): string
+    {
+        return $this->settingOrDefault(self::TELEGRAM_CONTACT_US);
     }
 
     public function telegramStartImage(): ?string

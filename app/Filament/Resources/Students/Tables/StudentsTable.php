@@ -33,6 +33,7 @@ class StudentsTable
                 TextColumn::make('stream.name')->toggleable(),
                 TextColumn::make('university.name')->toggleable(),
                 IconColumn::make('is_premium')->label('Premium')->boolean()->sortable(),
+                IconColumn::make('is_gat')->label('GAT')->boolean()->sortable()->toggleable(),
                 IconColumn::make('is_active')->boolean(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
@@ -40,6 +41,7 @@ class StudentsTable
                 SelectFilter::make('stream')->relationship('stream', 'name'),
                 SelectFilter::make('university')->relationship('university', 'name'),
                 TernaryFilter::make('is_premium')->label('Premium'),
+                TernaryFilter::make('is_gat')->label('GAT'),
                 TernaryFilter::make('is_active'),
             ])
             ->recordActions([

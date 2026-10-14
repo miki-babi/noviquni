@@ -862,6 +862,13 @@ class TelegramBotHandler
 
         foreach ([TelegramLocale::English, TelegramLocale::Amharic] as $locale) {
             $copy = new TelegramCopy($locale->value);
+            $map[$copy->get('keyboard.continue_exam')] = 'continue_exam';
+            $map[$copy->get('keyboard.maths')] = 'maths';
+            $map[$copy->get('keyboard.reading_writing')] = 'reading_writing';
+            $map[$copy->get('keyboard.premium')] = 'premium';
+            $map[$copy->get('keyboard.contact')] = 'contact';
+            $map[$copy->get('keyboard.refer')] = 'refer';
+            // Legacy reply-keyboard labels until users refresh via /start.
             $map[$copy->get('keyboard.courses')] = 'courses';
             $map[$copy->get('keyboard.resources')] = 'resources';
             $map[$copy->get('keyboard.scholarships')] = 'scholarships';
@@ -871,14 +878,13 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.mentorship')] = 'mentorship';
             $map[$copy->get('keyboard.saved')] = 'saved';
             $map[$copy->get('keyboard.profile')] = 'profile';
-            $map[$copy->get('keyboard.refer')] = 'refer';
-            // Legacy reply-keyboard labels until users refresh via /start.
             $map[$copy->get('keyboard.resources_legacy')] = 'resources';
             $map[$copy->get('keyboard.scholarships_legacy')] = 'scholarships';
             $map[$copy->get('keyboard.refer_legacy')] = 'refer';
+            $map[$copy->get('keyboard.refer_invite')] = 'refer';
             $map[$copy->get('keyboard.continue')] = 'continue';
             $map[$copy->get('keyboard.browse')] = 'courses';
-            $map[$copy->get('keyboard.premium')] = 'premium';
+            $map[$copy->get('keyboard.premium_legacy')] = 'premium';
         }
 
         $map['📚 My Courses'] = 'courses';
@@ -888,6 +894,7 @@ class TelegramBotHandler
         $map['👥 Refer'] = 'refer';
         $map['👥 Refer & Earn'] = 'refer';
         $map['👥 Refer and earn'] = 'refer';
+        $map['👥 Invite friends'] = 'refer';
         $map['🔔 Notifications'] = 'notify';
         $map['⭐ Premium'] = 'premium';
 
@@ -897,6 +904,10 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
+            'continue_exam' => $this->sendMiniAppOpen($user, $chatId, 'continue_exam', 'tg.browse'),
+            'maths' => $this->openGatSubject($user, $chatId, 'maths', 'maths'),
+            'reading_writing' => $this->openGatSubject($user, $chatId, 'reading_writing', 'reading-writing'),
+            'contact' => $this->showContactUs($user, $chatId),
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
             'saved' => $this->showSaved($user, $chatId),
@@ -994,18 +1005,46 @@ class TelegramBotHandler
             : '';
     }
 
-    protected function sendMiniAppOpen(User $user, int|string $chatId, string $destination, string $routeName): void
-    {
+    /**
+     * @param  array<string, mixed>  $routeParameters
+     */
+    protected function sendMiniAppOpen(
+        User $user,
+        int|string $chatId,
+        string $destination,
+        string $routeName,
+        array $routeParameters = [],
+    ): void {
         $copy = TelegramCopy::for($user);
 
         $this->telegram->sendMessage($chatId, $copy->get('mini_app.open_prompt.'.$destination), [
             'reply_markup' => $this->telegram->inlineKeyboard([[
                 [
                     'text' => $copy->get('mini_app.open_button.'.$destination),
-                    'web_app' => ['url' => $this->telegram->miniAppUrl($routeName)],
+                    'web_app' => ['url' => $this->telegram->miniAppUrl($routeName, $routeParameters)],
                     'style' => TelegramButtonStyle::Success->value,
                 ],
             ]]),
+        ]);
+    }
+
+    protected function openGatSubject(User $user, int|string $chatId, string $destination, string $courseSlug): void
+    {
+        $course = Course::query()->where('slug', $courseSlug)->first();
+
+        if ($course !== null) {
+            $this->sendMiniAppOpen($user, $chatId, $destination, 'tg.courses.show', ['course' => $course]);
+
+            return;
+        }
+
+        $this->sendMiniAppOpen($user, $chatId, $destination, 'tg.browse');
+    }
+
+    protected function showContactUs(User $user, int|string $chatId): void
+    {
+        $this->telegram->sendMessage($chatId, $this->settings->telegramContactUs(), [
+            'reply_markup' => $this->telegram->mainKeyboard($user),
         ]);
     }
 

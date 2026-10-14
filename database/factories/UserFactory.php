@@ -77,6 +77,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function gat(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_gat' => true,
+        ]);
+    }
+
     public function configure(): static
     {
         return $this->afterCreating(function (User $user): void {

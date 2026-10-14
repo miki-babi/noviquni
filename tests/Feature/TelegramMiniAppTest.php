@@ -28,50 +28,26 @@ beforeEach(function () {
     ]);
 });
 
-it('builds main keyboard buttons with freshman resources career rows and invite friends', function () {
+it('builds the GAT main keyboard for all students', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
     ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('📚 Freshman resources')
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('continue exam')
         ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('🎓 Scholarship opportunities')
-        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.2.0.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🏆 Challenges')
-        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('💼 Internships')
-        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('🌍 Opportunities')
-        ->and(data_get($keyboard, 'keyboard.4.1.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('🎤 Mentorship')
-        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.6.0.text'))->toBe('👤 Profile')
-        ->and(data_get($keyboard, 'keyboard.6.0.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.6.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.6.1.text'))->toBe('👥 Invite friends')
-        ->and(data_get($keyboard, 'keyboard.6.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.6.1.style'))->toBeNull();
-});
-
-it('hides freshman resources on the main keyboard for non-freshman students', function () {
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Second->value)->firstOrFail());
-
-    $keyboard = app(TelegramService::class)->mainKeyboard($user);
-    $labels = collect($keyboard['keyboard'])->flatten(1)->pluck('text');
-
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('🎓 Scholarship opportunities')
-        ->and($labels)->not->toContain('📚 Freshman resources')
-        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('👥 Invite friends');
+        ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('maths')
+        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('reading/writing')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('unlock premium')
+        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('contact us')
+        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.3.1.text'))->toBe('share and reward')
+        ->and(data_get($keyboard, 'keyboard.3.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.3.1.style'))->toBeNull();
 });
 
 it('shows the bootstrap page for guests on mini app routes', function () {

@@ -39,6 +39,7 @@ use Illuminate\Support\Str;
     'notifications_enabled',
     'premium_until',
     'is_premium',
+    'is_gat',
     'university_id',
     'stream_id',
     'semester_id',
@@ -61,6 +62,7 @@ class User extends Authenticatable implements FilamentUser
         'theme' => 'dark',
         'referral_points' => 0,
         'is_premium' => false,
+        'is_gat' => false,
     ];
 
     protected static function booted(): void
@@ -257,6 +259,7 @@ class User extends Authenticatable implements FilamentUser
             'is_active' => 'boolean',
             'notifications_enabled' => 'boolean',
             'is_premium' => 'boolean',
+            'is_gat' => 'boolean',
             'premium_until' => 'datetime',
             'referral_points' => 'integer',
         ];

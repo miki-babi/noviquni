@@ -2,6 +2,12 @@
 
 return [
     'keyboard' => [
+        'continue_exam' => 'ፈተና ቀጥል',
+        'maths' => 'ሂሳብ',
+        'reading_writing' => 'ንባብ/ጽሁፍ',
+        'premium' => 'ፕሪሚየም ክፈት',
+        'contact' => 'ያግኙን',
+        'refer' => 'አጋራ እና ሽልማት',
         'courses' => '📚 ኮርሶች',
         'resources' => '📚 የመጀመሪያ ዓመት መርጃዎች',
         'scholarships' => '🎓 የስኮላርሺፕ እድሎች',
@@ -12,12 +18,12 @@ return [
         'mentorship' => '🎤 አማካሪነት',
         'saved' => '🔖 በፍጥነት የተቀመጡ',
         'profile' => '👤 መገለጫ',
-        'refer' => '👥 ጓደኞችን ይጋብዙ',
         'resources_legacy' => '📖 መርጃዎች',
         'refer_legacy' => '👥 ይጋብዙ',
+        'refer_invite' => '👥 ጓደኞችን ይጋብዙ',
         'continue' => '📚 ቀጥል',
         'browse' => '📖 ያስሱ',
-        'premium' => '⭐ ፕሪሚየም',
+        'premium_legacy' => '⭐ ፕሪሚየም',
     ],
     'mini_app' => [
         'open_prompt' => [
@@ -26,6 +32,9 @@ return [
             'saved' => 'በፍጥነት የተቀመጡን በጥናት መተግበሪያ ይክፈቱ፦',
             'profile' => 'መገለጫን በጥናት መተግበሪያ ይክፈቱ፦',
             'profile_edit' => 'ዩኒቨርሲቲ፣ ሴሚስተር እና ኮርሶች ለማዋቀር መገለጫን ይክፈቱ፦',
+            'continue_exam' => 'ፈተናዎን በጥናት መተግበሪያ ይቀጥሉ፦',
+            'maths' => 'ሂሳብን በጥናት መተግበሪያ ይክፈቱ፦',
+            'reading_writing' => 'ንባብ/ጽሁፍን በጥናት መተግበሪያ ይክፈቱ፦',
         ],
         'open_button' => [
             'courses' => '📚 ኮርሶች ክፈት',
@@ -33,6 +42,9 @@ return [
             'saved' => '🔖 በፍጥነት የተቀመጡ ክፈት',
             'profile' => '👤 መገለጫ ክፈት',
             'profile_edit' => '👤 የጥናት መገለጫ አርትዕ',
+            'continue_exam' => '📝 ፈተና ቀጥል',
+            'maths' => '🧮 ሂሳብ ክፈት',
+            'reading_writing' => '📖 ንባብ/ጽሁፍ ክፈት',
         ],
     ],
     'start' => [
@@ -40,7 +52,7 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን በመገለጫ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 በመገለጫ አዋቅር',
-        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\n📚 የመጀመሪያ ዓመት መርጃዎች · 🎓 የስኮላርሺፕ እድሎች · 🔖 በፍጥነት የተቀመጡ · 🏆 ፈተናዎች · 💼 የስራ ልምምዶች · 🌍 እድሎች · 🎤 አማካሪነት · 👤 መገለጫ · 👥 ጓደኞችን ይጋብዙ",
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\nፈተና ቀጥል · ሂሳብ · ንባብ/ጽሁፍ · ፕሪሚየም ክፈት · ያግኙን · አጋራ እና ሽልማት",
     ],
     'refer' => [
         'start_cta' => 'አሁን ጀምር',

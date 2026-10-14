@@ -60,6 +60,7 @@ class ManageSettings extends Page
             'payment_bot_what_you_get' => $settings->paymentBotWhatYouGet(),
             'payment_bot_contact_us' => $settings->paymentBotContactUs(),
             'payment_bot_register_prompt' => $settings->paymentBotRegisterPrompt(),
+            'telegram_contact_us' => $settings->telegramContactUs(),
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
@@ -140,6 +141,16 @@ class ManageSettings extends Page
                             ->columnSpanFull(),
                     ])
                     ->columns(2),
+                Section::make('Main bot')
+                    ->description('Reply-keyboard answers for the main NoviqUni Telegram bot.')
+                    ->schema([
+                        Textarea::make('telegram_contact_us')
+                            ->label('Contact us')
+                            ->rows(3)
+                            ->required()
+                            ->helperText('Sent when students tap Contact us on the main reply keyboard.')
+                            ->columnSpanFull(),
+                    ]),
                 Section::make('Payment bot')
                     ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Contact us, Register now (blue).')
                     ->schema([
@@ -275,6 +286,7 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, (string) ($data['payment_bot_what_you_get'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_CONTACT_US, (string) ($data['payment_bot_contact_us'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_REGISTER_PROMPT, (string) ($data['payment_bot_register_prompt'] ?? ''));
+        $settings->set(SettingsService::TELEGRAM_CONTACT_US, (string) ($data['telegram_contact_us'] ?? ''));
         $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_BODY, (string) ($data['premium_pitch_body'] ?? ''));

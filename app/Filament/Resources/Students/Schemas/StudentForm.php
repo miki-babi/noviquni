@@ -74,6 +74,7 @@ class StudentForm
                     ->preload()
                     ->searchable(),
                 Toggle::make('is_premium')->label('Premium')->default(false),
+                Toggle::make('is_gat')->label('GAT')->default(false),
                 Toggle::make('is_active')->default(true),
                 Toggle::make('notifications_enabled')->default(true),
             ]);

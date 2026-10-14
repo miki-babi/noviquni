@@ -142,28 +142,18 @@ it('completes onboarding when Freshman year then stream is tapped', function () 
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 Scholarship opportunities'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 Challenges'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '💼 Internships'
-            && data_get($data, 'reply_markup.keyboard.4.1.text') === '🌍 Opportunities'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === '🎤 Mentorship'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === '👤 Profile'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 Invite friends'
-            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.1.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.2.0.style') === null
-            && data_get($data, 'reply_markup.keyboard.3.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.4.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.4.1.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.5.0.style') === 'success'
-            && data_get($data, 'reply_markup.keyboard.6.0.style') === null
-            && data_get($data, 'reply_markup.keyboard.6.1.style') === null
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'contact us'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward'
+            && data_get($data, 'reply_markup.keyboard.0.0.style') === 'primary'
+            && data_get($data, 'reply_markup.keyboard.1.0.style') === null
+            && data_get($data, 'reply_markup.keyboard.2.0.style') === 'success'
+            && data_get($data, 'reply_markup.keyboard.3.0.style') === null
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.2.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.6.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.6.1.web_app') === null;
+            && data_get($data, 'reply_markup.keyboard.3.1.web_app') === null;
     });
 
     Http::assertSent(function ($request) {
@@ -229,8 +219,9 @@ it('asks for department when a non-Freshman year is tapped and completes after t
         $labels = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1)->pluck('text');
 
         return str_contains((string) ($data['text'] ?? ''), 'Onboarding complete')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '🎓 Scholarship opportunities'
-            && ! $labels->contains('📚 Freshman resources');
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
+            && $labels->contains('share and reward');
     });
 });
 
@@ -375,12 +366,12 @@ it('restores the main reply keyboard when Back is tapped from courses', function
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 Freshman resources'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 Scholarship opportunities'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 Challenges'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === '👤 Profile'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 Invite friends';
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'contact us'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward';
     });
 });
 
@@ -791,15 +782,12 @@ it('switches language and refreshes keyboard labels', function () {
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📚 የመጀመሪያ ዓመት መርጃዎች'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '🎓 የስኮላርሺፕ እድሎች'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🏆 ፈተናዎች'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '💼 የስራ ልምምዶች'
-            && data_get($data, 'reply_markup.keyboard.4.1.text') === '🌍 እድሎች'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === '🎤 አማካሪነት'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === '👤 መገለጫ'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === '👥 ጓደኞችን ይጋብዙ';
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ፈተና ቀጥል'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'ሂሳብ'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'ንባብ/ጽሁፍ'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'ፕሪሚየም ክፈት'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'ያግኙን'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'አጋራ እና ሽልማት';
     });
 });
 
@@ -1134,6 +1122,100 @@ it('opens a course from /start course deep link', function () {
     });
 });
 
+it('opens a mini app button when continue exam is tapped', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555301',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555301, 'continue exam', 601))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Continue your exam in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📝 Continue exam';
+    });
+});
+
+it('opens the maths course mini app when maths is tapped and the course exists', function () {
+    $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
+
+    User::factory()->student()->create([
+        'telegram_id' => '555302',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555302, 'maths', 602))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Open Maths in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course)
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🧮 Open Maths';
+    });
+});
+
+it('falls back to browse when reading/writing is tapped without a matching course', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555303',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555303, 'reading/writing', 603))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Open Reading/Writing in the study app')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+    });
+});
+
+it('sends contact us copy from settings when contact us is tapped', function () {
+    app(SettingsService::class)->set(SettingsService::TELEGRAM_CONTACT_US, 'Custom GAT contact copy');
+
+    User::factory()->student()->create([
+        'telegram_id' => '555304',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555304, 'contact us', 604))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return ($data['text'] ?? '') === 'Custom GAT contact copy'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam';
+    });
+});
+
 it('opens refer stats and a forwardable start message from the invite friends reply keyboard label', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555033',
@@ -1168,6 +1250,29 @@ it('opens refer stats and a forwardable start message from the invite friends re
             && str_contains($text, 'Start now</a>')
             && str_contains($text, 'start='.$user->referral_code)
             && ! str_contains((string) data_get($data, 'reply_markup.inline_keyboard.0.0.url'), 't.me/share/url');
+    });
+});
+
+it('opens refer stats from the share and reward reply keyboard label', function () {
+    User::factory()->student()->create([
+        'telegram_id' => '555305',
+        'name' => 'Mikiyas',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555305, 'share and reward', 605))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'Progress: 0/')
+            && str_contains($text, 'Forward the start message below');
     });
 });
 

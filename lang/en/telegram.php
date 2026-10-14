@@ -2,6 +2,13 @@
 
 return [
     'keyboard' => [
+        'continue_exam' => 'continue exam',
+        'maths' => 'maths',
+        'reading_writing' => 'reading/writing',
+        'premium' => 'unlock premium',
+        'contact' => 'contact us',
+        'refer' => 'share and reward',
+        // Legacy labels kept for old reply keyboards until /start refresh.
         'courses' => '📚 Courses',
         'resources' => '📚 Freshman resources',
         'scholarships' => '🎓 Scholarship opportunities',
@@ -12,13 +19,12 @@ return [
         'mentorship' => '🎤 Mentorship',
         'saved' => '🔖 Quick saved',
         'profile' => '👤 Profile',
-        'refer' => '👥 Invite friends',
-        // Legacy labels kept for old reply keyboards until /start refresh.
         'resources_legacy' => '📖 Resources',
         'refer_legacy' => '👥 Refer',
+        'refer_invite' => '👥 Invite friends',
         'continue' => '📚 Continue',
         'browse' => '📖 Browse',
-        'premium' => '⭐ Premium',
+        'premium_legacy' => '⭐ Premium',
     ],
     'mini_app' => [
         'open_prompt' => [
@@ -27,6 +33,9 @@ return [
             'saved' => 'Open Quick saved in the study app:',
             'profile' => 'Open Profile in the study app:',
             'profile_edit' => 'Open Profile to set your university, semester, and courses:',
+            'continue_exam' => 'Continue your exam in the study app:',
+            'maths' => 'Open Maths in the study app:',
+            'reading_writing' => 'Open Reading/Writing in the study app:',
         ],
         'open_button' => [
             'courses' => '📚 Open Courses',
@@ -34,6 +43,9 @@ return [
             'saved' => '🔖 Open Quick saved',
             'profile' => '👤 Open Profile',
             'profile_edit' => '👤 Edit study profile',
+            'continue_exam' => '📝 Continue exam',
+            'maths' => '🧮 Open Maths',
+            'reading_writing' => '📖 Open Reading/Writing',
         ],
     ],
     'start' => [
@@ -41,7 +53,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\n📚 Freshman resources · 🎓 Scholarship opportunities · 🔖 Quick saved · 🏆 Challenges · 💼 Internships · 🌍 Opportunities · 🎤 Mentorship · 👤 Profile · 👥 Invite friends",
+        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · unlock premium · contact us · share and reward",
     ],
     'refer' => [
         'start_cta' => 'Start now',
