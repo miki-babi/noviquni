@@ -31,15 +31,12 @@ class StatsOverview extends StatsOverviewWidget
             ->distinct()
             ->count('user_id');
 
-        // Temporary display overrides for the admin overview.
-        $displaySuffix = '7';
-
         return [
             Stat::make('Weekly active study', (string) $weeklyActiveStudy)
                 ->description('Distinct students who opened a resource in 7d'),
-            Stat::make('Total students', '2309'),
-            Stat::make('New (7d)', (string) $newStudents.$displaySuffix),
-            Stat::make('Active students', (string) $activeStudents.$displaySuffix),
+            Stat::make('Total students', (string) $totalStudents),
+            Stat::make('New (7d)', (string) $newStudents),
+            Stat::make('Active students', (string) $activeStudents),
             Stat::make('Premium users', (string) $premiumUsers),
             Stat::make('Revenue', number_format((float) $revenue, 2).' ETB'),
             Stat::make('Referral points', (string) $referralPoints),
