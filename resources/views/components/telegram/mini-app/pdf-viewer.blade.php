@@ -69,6 +69,7 @@
             try {
                 const pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: true }).promise;
                 const width = Math.max(stage.clientWidth || window.innerWidth || 320, 280);
+                const outputScale = Math.min(window.devicePixelRatio || 1, 3);
 
                 for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
                     const page = await pdfDoc.getPage(pageNumber);
@@ -79,13 +80,24 @@
                     const context = canvas.getContext('2d');
 
                     canvas.className = 'mx-auto block max-w-full bg-white shadow-sm';
-                    canvas.height = viewport.height;
-                    canvas.width = viewport.width;
+                    canvas.width = Math.floor(viewport.width * outputScale);
+                    canvas.height = Math.floor(viewport.height * outputScale);
+                    canvas.style.width = `${Math.floor(viewport.width)}px`;
+                    canvas.style.height = `${Math.floor(viewport.height)}px`;
                     canvas.setAttribute('data-pdf-canvas', String(pageNumber));
 
                     stage.appendChild(canvas);
 
-                    await page.render({ canvasContext: context, viewport }).promise;
+                    const renderContext = {
+                        canvasContext: context,
+                        viewport,
+                    };
+
+                    if (outputScale !== 1) {
+                        renderContext.transform = [outputScale, 0, 0, outputScale, 0, 0];
+                    }
+
+                    await page.render(renderContext).promise;
                 }
             } catch (e) {
                 error?.classList.remove('hidden');
