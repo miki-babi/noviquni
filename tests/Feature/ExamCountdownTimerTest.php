@@ -69,7 +69,45 @@ it('persists exam time limit minutes from the learning edit form', function () {
         ->and($resource->playerPayload()['timeLimitMinutes'])->toBe(45);
 });
 
-it('renders a countdown timer when the exam has a time limit', function () {
+it('persists quiz time limit minutes from the learning edit form', function () {
+    $admin = User::factory()->admin()->create();
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $resource = LearningResource::factory()->quiz()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'title' => 'Timed quiz',
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditLearning::class, ['record' => $resource->getRouteKey()])
+        ->fillForm([
+            'exam_time_limit_minutes' => 20,
+            'quiz_questions' => [
+                [
+                    'question' => StudyRichText::forEditor('Pick one'),
+                    'options' => [
+                        ['body' => StudyRichText::forEditor('A')],
+                        ['body' => StudyRichText::forEditor('B')],
+                    ],
+                    'answerIndex' => 1,
+                    'explanation' => null,
+                ],
+            ],
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    $resource->refresh();
+
+    expect($resource->content['payload']['timeLimitMinutes'])->toBe(20)
+        ->and($resource->playerPayload()['timeLimitMinutes'])->toBe(20);
+});
+
+it('asks timed or untimed before starting an exam and wires the configured countdown', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
     $user = User::factory()->student()->create([
@@ -109,12 +147,18 @@ it('renders a countdown timer when the exam has a time limit', function () {
     $this->actingAs($user)
         ->get(route('tg.play.exam', $resource))
         ->assertOk()
+        ->assertSee('data-assessment-start-modal', false)
+        ->assertSee('data-start-timed', false)
+        ->assertSee('data-start-untimed', false)
+        ->assertSee('Timed (90 min)', false)
+        ->assertSee('configuredTimeLimitSeconds: 5400', false)
         ->assertSee('data-exam-timer', false)
-        ->assertSee('timeLimitSeconds: 5400', false)
-        ->assertSee('role="timer"', false);
+        ->assertSee('startTimed()', false)
+        ->assertSee('startTimer()', false)
+        ->assertSee('finish({ timedOut: true })', false);
 });
 
-it('omits the countdown timer when the exam has no time limit', function () {
+it('still offers a timed start when the exam has no configured time limit', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
     $user = User::factory()->student()->create([
@@ -134,6 +178,48 @@ it('omits the countdown timer when the exam has no time limit', function () {
     $this->actingAs($user)
         ->get(route('tg.play.exam', $resource))
         ->assertOk()
-        ->assertDontSee('data-exam-timer', false)
+        ->assertSee('data-assessment-start-modal', false)
+        ->assertSee('No timer', false)
+        ->assertSee('configuredTimeLimitSeconds: null', false)
+        ->assertSee('defaultTimeLimitSeconds:', false)
         ->assertSee('Which statement best describes anthropology?', false);
+});
+
+it('asks timed or untimed before starting a quiz and wires the timer', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    $resource = LearningResource::factory()->published()->quiz()->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'content' => [
+            'kind' => CollegeResourceKind::Quiz->value,
+            'payload' => [
+                'timeLimitMinutes' => 15,
+                'questions' => [
+                    [
+                        'question' => 'Capital of France?',
+                        'options' => ['Paris', 'Lyon'],
+                        'answerIndex' => 0,
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.play.quiz', $resource))
+        ->assertOk()
+        ->assertSee('data-assessment-start-modal', false)
+        ->assertSee('Start this quiz', false)
+        ->assertSee('Timed (15 min)', false)
+        ->assertSee('configuredTimeLimitSeconds: 900', false)
+        ->assertSee('data-exam-timer', false)
+        ->assertSee('finish({ timedOut: true })', false);
 });

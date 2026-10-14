@@ -103,7 +103,10 @@ class LearningForm
             $data['quiz_questions'] = static::questionsForRepeater($questions);
             $data['exam_title'] = null;
             $data['exam_instructions'] = null;
-            $data['exam_time_limit_minutes'] = null;
+            $rawMinutes = $payload['timeLimitMinutes'] ?? null;
+            $data['exam_time_limit_minutes'] = is_numeric($rawMinutes) && (int) $rawMinutes > 0
+                ? (int) $rawMinutes
+                : null;
         }
 
         return $data;
@@ -146,12 +149,12 @@ class LearningForm
             if (filled($data['exam_instructions'] ?? null)) {
                 $payload['instructions'] = (string) $data['exam_instructions'];
             }
+        }
 
-            $minutes = $data['exam_time_limit_minutes'] ?? null;
+        $minutes = $data['exam_time_limit_minutes'] ?? null;
 
-            if (is_numeric($minutes) && (int) $minutes > 0) {
-                $payload['timeLimitMinutes'] = (int) $minutes;
-            }
+        if (is_numeric($minutes) && (int) $minutes > 0) {
+            $payload['timeLimitMinutes'] = (int) $minutes;
         }
 
         $existing = is_array($data['content'] ?? null) ? $data['content'] : [];
@@ -454,9 +457,9 @@ class LearningForm
                         ->integer()
                         ->minValue(1)
                         ->maxValue(600)
-                        ->helperText('Leave empty for no countdown. When set, the Mini App timer auto-submits when time runs out.')
-                        ->visible(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value)
-                        ->dehydrated(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value),
+                        ->helperText('Suggested duration when the student chooses Timed. Leave empty to use an automatic default from the question count.')
+                        ->visible(fn (Get $get): bool => static::isInteractiveMcqType($get('type')))
+                        ->dehydrated(fn (Get $get): bool => static::isInteractiveMcqType($get('type'))),
                     Repeater::make('quiz_questions')
                         ->label('Questions')
                         ->schema([
