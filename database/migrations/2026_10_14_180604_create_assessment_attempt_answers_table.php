@@ -8,6 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('assessment_attempt_answers');
+
         Schema::create('assessment_attempt_answers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('assessment_attempt_id')->constrained()->cascadeOnDelete();
@@ -21,8 +23,8 @@ return new class extends Migration
             $table->boolean('is_correct');
             $table->timestamps();
 
-            $table->index(['question_key', 'is_correct']);
-            $table->index(['assessment_attempt_id', 'question_index']);
+            $table->index(['question_key', 'is_correct'], 'aaa_question_key_correct_index');
+            $table->index(['assessment_attempt_id', 'question_index'], 'aaa_attempt_question_index');
         });
     }
 

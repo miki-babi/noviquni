@@ -8,6 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Prior failed run may have left a partial table (MySQL index name length).
+        Schema::dropIfExists('assessment_attempts');
+
         Schema::create('assessment_attempts', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
@@ -19,9 +22,9 @@ return new class extends Migration
             $table->timestamp('completed_at');
             $table->timestamps();
 
-            $table->index(['user_id', 'completed_at']);
-            $table->index(['user_id', 'learning_resource_id', 'completed_at']);
-            $table->index(['learning_resource_id', 'kind']);
+            $table->index(['user_id', 'completed_at'], 'aa_user_completed_index');
+            $table->index(['user_id', 'learning_resource_id', 'completed_at'], 'aa_user_resource_completed_index');
+            $table->index(['learning_resource_id', 'kind'], 'aa_resource_kind_index');
         });
     }
 
