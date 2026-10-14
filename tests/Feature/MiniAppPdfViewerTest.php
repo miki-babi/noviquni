@@ -219,7 +219,7 @@ it('keeps non-PDF file resources on the bot deep link', function () {
         ->assertDontSee($resource->miniAppUrl(), false);
 });
 
-it('renders the PDF viewer markup on the notes player', function () {
+it('renders the PDF viewer markup on the notes player with a relative stream URL', function () {
     [$user, $course, $stream] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
@@ -235,13 +235,60 @@ it('renders the PDF viewer markup on the notes player', function () {
         'title' => 'Player PDF notes',
     ]);
 
-    $streamUrl = route('tg.files.show', ['resource' => $resource, 'index' => 0]);
+    $streamUrl = route('tg.files.show', [
+        'resource' => $resource,
+        'index' => 0,
+    ], absolute: false);
 
     $this->actingAs($user)
         ->get(route('tg.play.notes', $resource))
         ->assertOk()
         ->assertSee('data-pdf-viewer', false)
         ->assertSee('data-pdf-url="'.$streamUrl.'"', false)
+        ->assertDontSee('data-pdf-url="https://', false)
         ->assertSee('player.pdf', false)
         ->assertSee('pdf.js', false);
+});
+
+it('opens the PDF notes player for an unenrolled student and enrolls them', function () {
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create([
+        'stream_id' => $stream->id,
+        'name' => 'Physics',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_active' => true,
+    ]);
+
+    $disk = LearningResourceFiles::diskName();
+    Storage::fake($disk);
+
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/unenrolled.pdf';
+    Storage::disk($disk)->put($path, '%PDF-1.4 unenrolled');
+
+    $resource = LearningResource::factory()->published()->withFiles([$path])->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'type' => ResourceType::Notes,
+        'title' => 'Unenrolled PDF notes',
+    ]);
+
+    $streamUrl = route('tg.files.show', [
+        'resource' => $resource,
+        'index' => 0,
+    ], absolute: false);
+
+    expect($user->courses()->where('courses.id', $course->id)->exists())->toBeFalse();
+
+    $this->actingAs($user)
+        ->get(route('tg.play.notes', $resource))
+        ->assertOk()
+        ->assertSee('data-pdf-viewer', false)
+        ->assertSee('data-pdf-url="'.$streamUrl.'"', false)
+        ->assertSee('Unenrolled PDF notes', false);
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
 });

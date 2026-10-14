@@ -979,14 +979,18 @@ it('opens a mini app button when continue exam is tapped', function () {
 it('opens the maths subject reply keyboard when maths is tapped and the course exists', function () {
     $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
 
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '555302',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
+    expect($user->courses()->where('courses.id', $course->id)->exists())->toBeFalse();
+
     $this->postJson('/telegram/webhook', telegramMessagePayload(555302, 'maths', 602))
         ->assertOk();
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
 
     Http::assertSent(function ($request) use ($course) {
         if (! str_contains($request->url(), '/sendMessage')) {

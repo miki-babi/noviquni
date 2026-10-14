@@ -1021,6 +1021,8 @@ class TelegramBotHandler
             return;
         }
 
+        $user->courses()->syncWithoutDetaching([$course->id]);
+
         Cache::put($this->gatSubjectSelectionCacheKey($user), $course->id, now()->addHours(6));
         Cache::forget($this->resourceTypeSelectionCacheKey($user));
 

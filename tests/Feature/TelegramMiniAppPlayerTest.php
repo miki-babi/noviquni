@@ -233,7 +233,7 @@ it('returns 404 for unpublished player resources', function () {
         ->assertNotFound();
 });
 
-it('redirects unenrolled students to browse', function () {
+it('auto-enrolls students when opening a published player resource', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
 
@@ -246,11 +246,17 @@ it('redirects unenrolled students to browse', function () {
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'title' => 'Enrollment quiz',
     ]);
+
+    expect($user->courses()->where('courses.id', $course->id)->exists())->toBeFalse();
 
     $this->actingAs($user)
         ->get(route('tg.play.quiz', $resource))
-        ->assertRedirect(route('tg.browse'));
+        ->assertOk()
+        ->assertSee('Enrollment quiz');
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
 });
 
 it('redirects the resource dispatcher to the matching catalog player', function () {

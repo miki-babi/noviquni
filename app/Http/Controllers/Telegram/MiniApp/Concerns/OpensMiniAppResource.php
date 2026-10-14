@@ -36,8 +36,8 @@ trait OpensMiniAppResource
 
         $resource->loadMissing('course');
 
-        if ($resource->course_id !== null && ! $user->courses()->where('courses.id', $resource->course_id)->exists()) {
-            return redirect()->route('tg.browse');
+        if ($resource->course_id !== null) {
+            $user->courses()->syncWithoutDetaching([$resource->course_id]);
         }
 
         if (! $premium->canAccess($user, $resource)) {
@@ -100,7 +100,10 @@ trait OpensMiniAppResource
         $pdfs = collect($resource->pdfAttachments())
             ->map(fn (array $attachment): array => [
                 'name' => $attachment['name'],
-                'url' => route('tg.files.show', ['resource' => $resource, 'index' => $attachment['index']]),
+                'url' => route('tg.files.show', [
+                    'resource' => $resource,
+                    'index' => $attachment['index'],
+                ], absolute: false),
             ])
             ->values()
             ->all();
