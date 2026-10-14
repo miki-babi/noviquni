@@ -13,7 +13,13 @@
     :title="$copy->get('profile.edit_title')"
     :back-url="route('tg.profile')"
 >
-    <div class="study-page">
+    <div class="study-page space-y-4">
+        <a href="{{ route('tg.progress') }}" class="study-card study-continue block">
+            <p class="study-continue-label">Insights</p>
+            <p class="study-continue-title">Study progress</p>
+            <p class="study-continue-sub">See strengths, weaknesses, and how you improve over time.</p>
+        </a>
+
         <form method="POST" action="{{ route('tg.profile.academic') }}" class="space-y-4">
             @csrf
 

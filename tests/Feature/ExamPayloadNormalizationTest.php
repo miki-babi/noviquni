@@ -64,6 +64,7 @@ it('normalizes nested college api exam payloads into a single mcq questions list
     expect($payload)->not->toBeNull()
         ->and($payload['title'])->toBe('Part A — Multiple Choice')
         ->and($payload['instructions'])->toBe('Attempt all parts.')
+        ->and($payload['timeLimitMinutes'])->toBeNull()
         ->and($payload['questions'])->toHaveCount(1)
         ->and($payload['questions'][0]['question'])->toBe('How many face-to-face study hours are allocated for Unit 1?')
         ->and($payload)->not->toHaveKey('partA')

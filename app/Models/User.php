@@ -178,6 +178,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(ResourceDownload::class);
     }
 
+    public function assessmentAttempts(): HasMany
+    {
+        return $this->hasMany(AssessmentAttempt::class);
+    }
+
     /**
      * @return HasMany<UserEvent, $this>
      */

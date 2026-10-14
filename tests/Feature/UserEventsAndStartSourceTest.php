@@ -115,19 +115,16 @@ it('logs quiz_done when a quiz result is posted', function () {
     ]);
     $user->courses()->attach($course);
 
-    $resource = LearningResource::factory()->create([
+    $resource = LearningResource::factory()->published()->quiz()->create([
         'title' => 'Kinship Quiz',
-        'type' => ResourceType::Quiz,
         'course_id' => $course->id,
         'stream_id' => $stream->id,
-        'is_published' => true,
         'is_premium' => false,
     ]);
 
     $this->actingAs($user)
         ->postJson(route('tg.play.quiz.result', $resource), [
-            'score' => 3,
-            'total' => 5,
+            'answers' => [0 => 1],
         ])
         ->assertOk()
         ->assertJson(['ok' => true]);
@@ -138,9 +135,10 @@ it('logs quiz_done when a quiz result is posted', function () {
         ->first();
 
     expect($event)->not->toBeNull()
-        ->and($event->details['score'])->toBe(3)
-        ->and($event->details['total'])->toBe(5)
-        ->and($event->details['course'])->toBe('Anthropology');
+        ->and($event->details['score'])->toBe(1)
+        ->and($event->details['total'])->toBe(1)
+        ->and($event->details['course'])->toBe('Anthropology')
+        ->and($event->details)->toHaveKey('attempt_id');
 });
 
 it('logs referral_joined when a referral start code attributes a new student', function () {

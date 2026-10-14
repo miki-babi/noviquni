@@ -1057,4 +1057,44 @@
     .dark .flashcard-panel {
         box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
     }
+
+    .study-rich-text {
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+
+    .study-rich-text > :first-child {
+        margin-top: 0;
+    }
+
+    .study-rich-text > :last-child {
+        margin-bottom: 0;
+    }
+
+    .study-rich-text p {
+        margin: 0.35em 0;
+    }
+
+    .study-rich-text ul,
+    .study-rich-text ol {
+        margin: 0.35em 0;
+        padding-inline-start: 1.25rem;
+    }
+
+    .study-rich-text a {
+        color: var(--tg-link);
+        text-decoration: underline;
+    }
+
+    .study-rich-text img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        margin: 0.5rem 0;
+        border-radius: 0.75rem;
+    }
+
+    .study-rich-text strong {
+        font-weight: 700;
+    }
 }

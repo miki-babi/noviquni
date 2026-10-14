@@ -22,9 +22,9 @@ it('creates a learning resource without study files', function () {
 
     Livewire::test(CreateLearning::class)
         ->fillForm([
-            'type' => ResourceType::Quiz->value,
-            'title' => 'Algebra quiz',
-            'slug' => 'algebra-quiz',
+            'type' => ResourceType::ReferenceBooks->value,
+            'title' => 'Algebra notes',
+            'slug' => 'algebra-notes',
             'course_id' => $course->id,
             'sort_order' => 0,
             'is_premium' => false,
@@ -38,7 +38,7 @@ it('creates a learning resource without study files', function () {
         ->assertNotified()
         ->assertRedirect();
 
-    $resource = LearningResource::query()->where('slug', 'algebra-quiz')->first();
+    $resource = LearningResource::query()->where('slug', 'algebra-notes')->first();
 
     expect($resource)->not->toBeNull()
         ->and($resource->course_id)->toBe($course->id)

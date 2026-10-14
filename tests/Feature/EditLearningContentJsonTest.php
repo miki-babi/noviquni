@@ -1,17 +1,19 @@
 <?php
 
 use App\Enums\CollegeResourceKind;
+use App\Enums\ResourceType;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\User;
+use App\Support\StudyRichText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-it('saves edited content json from the learning edit page', function () {
+it('saves edited quiz questions from the learning edit builder', function () {
     $admin = User::factory()->admin()->create();
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
@@ -22,29 +24,27 @@ it('saves edited content json from the learning edit page', function () {
         'title' => 'Editable Exam',
     ]);
 
-    $updatedContent = [
-        'kind' => CollegeResourceKind::Exam->value,
-        'scope_type' => 'section',
-        'scope_id' => 'section-1',
-        'payload' => [
-            'instructions' => 'Answer every question.',
-            'questions' => [
-                [
-                    'question' => 'Edited MCQ about anthropology?',
-                    'options' => ['One', 'Two', 'Three', 'Four'],
-                    'answerIndex' => 2,
-                    'explanation' => 'Because.',
-                    'difficulty' => 'easy',
-                ],
-            ],
-        ],
-    ];
-
     $this->actingAs($admin);
 
     Livewire::test(EditLearning::class, ['record' => $resource->getRouteKey()])
+        ->assertFormSet([
+            'type' => ResourceType::PracticeExams->value,
+        ])
         ->fillForm([
-            'content' => json_encode($updatedContent, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+            'exam_instructions' => 'Answer every question.',
+            'quiz_questions' => [
+                [
+                    'question' => StudyRichText::forEditor('Edited MCQ about anthropology?'),
+                    'options' => [
+                        ['body' => StudyRichText::forEditor('One')],
+                        ['body' => StudyRichText::forEditor('Two')],
+                        ['body' => StudyRichText::forEditor('Three')],
+                        ['body' => StudyRichText::forEditor('Four')],
+                    ],
+                    'answerIndex' => 2,
+                    'explanation' => StudyRichText::forEditor('Because.'),
+                ],
+            ],
         ])
         ->call('save')
         ->assertHasNoFormErrors()
@@ -53,18 +53,27 @@ it('saves edited content json from the learning edit page', function () {
     $resource->refresh();
 
     expect($resource->content['payload']['questions'])->toHaveCount(1)
-        ->and($resource->content['payload']['questions'][0]['question'])->toBe('Edited MCQ about anthropology?')
-        ->and($resource->playerPayload()['questions'][0]['question'])->toBe('Edited MCQ about anthropology?');
+        ->and(StudyRichText::toPlain($resource->content['payload']['questions'][0]['question']))->toContain('Edited MCQ about anthropology?')
+        ->and(StudyRichText::toPlain($resource->playerPayload()['questions'][0]['question']))->toContain('Edited MCQ about anthropology?')
+        ->and($resource->generation_kind)->toBe(CollegeResourceKind::Exam);
 });
 
-it('rejects invalid content json on the learning edit page', function () {
+it('rejects invalid content json on the learning edit page for non-interactive types', function () {
     $admin = User::factory()->admin()->create();
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
 
-    $resource = LearningResource::factory()->exam()->create([
+    $resource = LearningResource::factory()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
+        'type' => ResourceType::ReferenceBooks,
+        'generation_kind' => CollegeResourceKind::Notes,
+        'content' => [
+            'kind' => CollegeResourceKind::Notes->value,
+            'payload' => [
+                'summary' => 'Original notes',
+            ],
+        ],
     ]);
 
     $this->actingAs($admin);

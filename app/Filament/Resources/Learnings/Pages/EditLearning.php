@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Learnings\Pages;
 
 use App\Filament\Resources\Learnings\LearningResource;
+use App\Filament\Resources\Learnings\Schemas\LearningForm;
 use App\Filament\Resources\TelegramFileAssets\TelegramFileAssetResource;
 use App\Models\Course;
 use App\Support\LearningResourceFiles;
@@ -32,6 +33,15 @@ class EditLearning extends EditRecord
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return LearningForm::hydrateInteractiveFields($data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
     protected function mutateFormDataBeforeSave(array $data): array
     {
         if (is_string($data['content'] ?? null)) {
@@ -47,6 +57,6 @@ class EditLearning extends EditRecord
             $data['stream_id'] = Course::query()->whereKey($courseId)->value('stream_id');
         }
 
-        return $data;
+        return LearningForm::dehydrateInteractiveFields($data);
     }
 }

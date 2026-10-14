@@ -4,8 +4,12 @@
 ])
 
 @php
+    use App\Support\StudyRichText;
+
     $options = array_values(is_array($question['options'] ?? null) ? $question['options'] : []);
     $difficulty = $question['difficulty'] ?? null;
+    $questionHtml = StudyRichText::toHtml($question['question'] ?? null);
+    $explanationHtml = StudyRichText::toHtml($question['explanation'] ?? null);
 @endphp
 
 <div class="space-y-4">
@@ -16,7 +20,9 @@
         @endif
     </div>
 
-    <p class="text-lg font-semibold text-text-primary">{{ $question['question'] ?? '' }}</p>
+    <div class="study-rich-text text-lg font-semibold text-text-primary">
+        {!! $questionHtml !!}
+    </div>
 
     <div class="space-y-2" role="group" aria-label="Answer choices">
         @foreach ($options as $optionIndex => $option)
@@ -29,15 +35,19 @@
             >
                 <span class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border-light text-xs font-bold"
                     x-text="String.fromCharCode(65 + {{ $optionIndex }})"></span>
-                <span class="text-text-primary">{{ $option }}</span>
+                <span class="study-rich-text text-text-primary">{!! StudyRichText::toHtml($option) !!}</span>
             </button>
         @endforeach
     </div>
 
-    <template x-if="submitted && explanations[{{ $index }}]">
-        <div class="rounded-card border border-border-light bg-surface-gray p-4 text-sm text-text-secondary">
+    @if ($explanationHtml !== '')
+        <div
+            class="rounded-card border border-border-light bg-surface-gray p-4 text-sm text-text-secondary"
+            x-show="submitted"
+            x-cloak
+        >
             <p class="font-semibold text-text-primary">Explanation</p>
-            <p class="mt-1" x-text="explanations[{{ $index }}]"></p>
+            <div class="study-rich-text mt-1">{!! $explanationHtml !!}</div>
         </div>
-    </template>
+    @endif
 </div>

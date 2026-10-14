@@ -172,9 +172,12 @@ class CreateLearning extends CreateRecord
 
         $data = LearningResourceFiles::normalizeFormFiles($data);
         $data = $this->syncStreamFromCourse($data);
+        $data = LearningForm::dehydrateInteractiveFields($data);
 
-        $data['generation_kind'] = null;
-        $data['content'] = null;
+        if (! LearningForm::isInteractiveMcqType($data['type'] ?? null)) {
+            $data['generation_kind'] = null;
+            $data['content'] = null;
+        }
 
         return $data;
     }

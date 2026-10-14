@@ -3,18 +3,32 @@
     'resource' => null,
     'isBookmarked' => false,
     'copy' => null,
+    'resultUrl' => null,
 ])
 
 @php
+    use App\Support\StudyRichText;
+
     $title = filled($payload['title'] ?? null) ? (string) $payload['title'] : null;
     $instructions = filled($payload['instructions'] ?? null) ? (string) $payload['instructions'] : null;
+    $timeLimitMinutes = is_numeric($payload['timeLimitMinutes'] ?? null) && (int) $payload['timeLimitMinutes'] > 0
+        ? (int) $payload['timeLimitMinutes']
+        : null;
+    $timeLimitSeconds = $timeLimitMinutes !== null ? $timeLimitMinutes * 60 : null;
     $questions = array_values(array_filter(
         is_array($payload['questions'] ?? null) ? $payload['questions'] : [],
         fn ($question): bool => is_array($question)
-            && filled($question['question'] ?? null)
+            && ! StudyRichText::isEmpty($question['question'] ?? null)
             && is_array($question['options'] ?? null)
             && ($question['options'] ?? []) !== [],
     ));
+
+    $scoringQuestions = array_map(
+        fn (array $question): array => [
+            'answerIndex' => (int) ($question['answerIndex'] ?? 0),
+        ],
+        $questions,
+    );
 
     $saveLabel = $copy?->get('saved.save') ?? 'Save';
     $savedLabel = $copy?->get('saved.unsave') ?? 'Saved';
@@ -26,18 +40,69 @@
     <div
         class="flex flex-col gap-6 px-4 pb-2"
         x-data="{
-            questions: @js($questions),
+            questions: @js($scoringQuestions),
             current: 0,
             answers: {},
             submitted: false,
             score: 0,
+            timeLimitSeconds: @js($timeLimitSeconds),
+            remainingSeconds: @js($timeLimitSeconds),
+            timerId: null,
+            resultUrl: @js($resultUrl),
+            timedOut: false,
+            resultPosted: false,
             get total() { return this.questions.length },
             get progress() {
                 if (this.total === 0) return 0
                 return ((this.current + 1) / this.total) * 100
             },
-            get explanations() {
-                return this.questions.map(q => q.explanation || '')
+            get hasTimer() {
+                return typeof this.timeLimitSeconds === 'number' && this.timeLimitSeconds > 0
+            },
+            get formattedTime() {
+                const total = Math.max(0, this.remainingSeconds ?? 0)
+                const hours = Math.floor(total / 3600)
+                const minutes = Math.floor((total % 3600) / 60)
+                const seconds = total % 60
+                const pad = (value) => String(value).padStart(2, '0')
+                if (hours > 0) {
+                    return `${hours}:${pad(minutes)}:${pad(seconds)}`
+                }
+                return `${pad(minutes)}:${pad(seconds)}`
+            },
+            get isUrgent() {
+                return this.hasTimer && ! this.submitted && (this.remainingSeconds ?? 0) <= 60
+            },
+            init() {
+                this.startTimer()
+                this.$watch('submitted', (value) => {
+                    if (value) this.stopTimer()
+                })
+
+                return () => this.stopTimer()
+            },
+            startTimer() {
+                this.stopTimer()
+                if (! this.hasTimer || this.submitted) return
+                this.timerId = setInterval(() => {
+                    if (this.submitted) {
+                        this.stopTimer()
+                        return
+                    }
+                    if ((this.remainingSeconds ?? 0) <= 1) {
+                        this.remainingSeconds = 0
+                        this.stopTimer()
+                        this.finish({ timedOut: true })
+                        return
+                    }
+                    this.remainingSeconds -= 1
+                }, 1000)
+            },
+            stopTimer() {
+                if (this.timerId !== null) {
+                    clearInterval(this.timerId)
+                    this.timerId = null
+                }
             },
             selectAnswer(index, optionIndex) {
                 if (this.submitted) return
@@ -58,18 +123,61 @@
             canSubmit() {
                 return Object.keys(this.answers).length === this.total
             },
-            submit() {
-                if (! this.canSubmit() || this.submitted) return
+            finish(options = {}) {
+                if (this.submitted) return
+                this.timedOut = Boolean(options.timedOut)
                 this.score = this.questions.reduce((sum, question, index) => {
                     return sum + (this.answers[index] === question.answerIndex ? 1 : 0)
                 }, 0)
                 this.submitted = true
+                this.stopTimer()
+                this.postResult()
+            },
+            async postResult() {
+                if (! this.resultUrl || this.resultPosted) return
+                this.resultPosted = true
+
+                try {
+                    const response = await fetch(this.resultUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({
+                            answers: this.answers,
+                            timed_out: this.timedOut,
+                        }),
+                    })
+
+                    if (response.ok) {
+                        const payload = await response.json()
+                        if (typeof payload.score === 'number') this.score = payload.score
+                        if (typeof payload.total === 'number') {
+                            // total is derived from questions length; keep local total for UI
+                        }
+                    }
+                } catch (error) {
+                    // Keep exam UX intact even if analytics logging fails.
+                }
+            },
+            submit() {
+                if (! this.canSubmit() || this.submitted) return
+                this.finish()
             },
             reset() {
                 this.answers = {}
                 this.submitted = false
                 this.score = 0
                 this.current = 0
+                this.timedOut = false
+                this.resultPosted = false
+                if (this.hasTimer) {
+                    this.remainingSeconds = this.timeLimitSeconds
+                    this.startTimer()
+                }
             },
             next() {
                 if (this.current < this.total - 1) this.current++
@@ -93,27 +201,41 @@
                     </template>
                 </div>
 
-                @if ($resource)
-                    <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="shrink-0">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="inline-flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-secondary active:scale-[0.98]"
-                        >
-                            @if ($isBookmarked)
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-primary-200" aria-hidden="true">
-                                    <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clip-rule="evenodd" />
-                                </svg>
-                                <span>{{ $savedLabel }}</span>
-                            @else
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
-                                </svg>
-                                <span>{{ $saveLabel }}</span>
-                            @endif
-                        </button>
-                    </form>
-                @endif
+                <div class="flex shrink-0 items-center gap-3">
+                    @if ($timeLimitSeconds !== null)
+                        <p
+                            class="text-sm font-semibold tabular-nums"
+                            data-exam-timer
+                            :class="isUrgent ? 'text-red-500' : 'text-text-muted'"
+                            x-text="formattedTime"
+                            role="timer"
+                            aria-live="polite"
+                            aria-label="Time remaining"
+                        ></p>
+                    @endif
+
+                    @if ($resource)
+                        <form method="POST" action="{{ route('tg.saved.toggle', $resource) }}" class="shrink-0">
+                            @csrf
+                            <button
+                                type="submit"
+                                class="inline-flex items-center gap-2 text-sm font-medium text-text-muted transition hover:text-text-secondary active:scale-[0.98]"
+                            >
+                                @if ($isBookmarked)
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-4 w-4 text-primary-200" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M6.32 2.577a49.255 49.255 0 0 1 11.36 0c1.497.174 2.57 1.46 2.57 2.93V21a.75.75 0 0 1-1.085.67L12 18.089l-7.165 3.583A.75.75 0 0 1 3.75 21V5.507c0-1.47 1.073-2.756 2.57-2.93Z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>{{ $savedLabel }}</span>
+                                @else
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+                                    </svg>
+                                    <span>{{ $saveLabel }}</span>
+                                @endif
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
 
             <div
@@ -145,6 +267,8 @@
             @php
                 $options = array_values(is_array($question['options'] ?? null) ? $question['options'] : []);
                 $difficulty = $question['difficulty'] ?? null;
+                $questionHtml = StudyRichText::toHtml($question['question'] ?? null);
+                $explanationHtml = StudyRichText::toHtml($question['explanation'] ?? null);
             @endphp
             <div
                 class="flashcard-panel !min-h-0 space-y-5"
@@ -163,9 +287,9 @@
                     @endif
                 </div>
 
-                <p class="text-[1.2rem] font-bold leading-snug tracking-tight text-text-primary sm:text-xl">
-                    {{ $question['question'] ?? '' }}
-                </p>
+                <div class="study-rich-text text-[1.2rem] font-bold leading-snug tracking-tight text-text-primary sm:text-xl">
+                    {!! $questionHtml !!}
+                </div>
 
                 <div class="space-y-2.5" role="group" aria-label="Answer choices">
                     @foreach ($options as $optionIndex => $option)
@@ -180,17 +304,21 @@
                                 class="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-current/20 text-xs font-bold"
                                 x-text="String.fromCharCode(65 + {{ $optionIndex }})"
                             ></span>
-                            <span class="text-[15px] font-medium text-text-primary">{{ $option }}</span>
+                            <span class="study-rich-text text-[15px] font-medium text-text-primary">{!! StudyRichText::toHtml($option) !!}</span>
                         </button>
                     @endforeach
                 </div>
 
-                <template x-if="submitted && explanations[{{ $index }}]">
-                    <div class="rounded-card border border-border-light bg-surface-gray p-4 text-sm text-text-secondary">
+                @if ($explanationHtml !== '')
+                    <div
+                        class="rounded-card border border-border-light bg-surface-gray p-4 text-sm text-text-secondary"
+                        x-show="submitted"
+                        x-cloak
+                    >
                         <p class="font-semibold text-text-primary">Explanation</p>
-                        <p class="mt-1" x-text="explanations[{{ $index }}]"></p>
+                        <div class="study-rich-text mt-1">{!! $explanationHtml !!}</div>
                     </div>
-                </template>
+                @endif
             </div>
         @endforeach
 

@@ -6,6 +6,7 @@ use App\Enums\CollegeResourceKind;
 use App\Enums\ResourceType;
 use App\Models\Concerns\HasSeo;
 use App\Support\LearningResourceFiles;
+use App\Support\StudyRichText;
 use Database\Factories\LearningResourceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -327,7 +328,7 @@ class LearningResource extends Model
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array{title: ?string, instructions: ?string, questions: list<array<string, mixed>>}
+     * @return array{title: ?string, instructions: ?string, timeLimitMinutes: ?int, questions: list<array<string, mixed>>}
      */
     public function normalizeExam(array $payload): array
     {
@@ -338,6 +339,13 @@ class LearningResource extends Model
         $title = filled($payload['title'] ?? null)
             ? (string) $payload['title']
             : null;
+
+        $timeLimitMinutes = null;
+        $rawMinutes = $payload['timeLimitMinutes'] ?? null;
+
+        if (is_numeric($rawMinutes) && (int) $rawMinutes > 0) {
+            $timeLimitMinutes = (int) $rawMinutes;
+        }
 
         $rawQuestions = $payload['questions'] ?? null;
         $partA = $payload['partA'] ?? null;
@@ -359,17 +367,21 @@ class LearningResource extends Model
 
             $options = $question['options'] ?? null;
 
-            if (! is_array($options) || $options === [] || blank($question['question'] ?? null)) {
+            if (! is_array($options) || $options === [] || StudyRichText::isEmpty($question['question'] ?? null)) {
                 continue;
             }
 
+            $explanation = $question['explanation'] ?? null;
+
+            if (StudyRichText::isEmpty($explanation)) {
+                $explanation = $question['rationale'] ?? null;
+            }
+
             $questions[] = [
-                'question' => (string) $question['question'],
+                'question' => $question['question'],
                 'options' => array_values($options),
                 'answerIndex' => (int) ($question['answerIndex'] ?? 0),
-                'explanation' => filled($question['explanation'] ?? null)
-                    ? (string) $question['explanation']
-                    : (filled($question['rationale'] ?? null) ? (string) $question['rationale'] : null),
+                'explanation' => StudyRichText::isEmpty($explanation) ? null : $explanation,
                 'difficulty' => filled($question['difficulty'] ?? null)
                     ? (string) $question['difficulty']
                     : null,
@@ -379,6 +391,7 @@ class LearningResource extends Model
         return [
             'title' => $title,
             'instructions' => $instructions,
+            'timeLimitMinutes' => $timeLimitMinutes,
             'questions' => $questions,
         ];
     }

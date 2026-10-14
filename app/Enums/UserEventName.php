@@ -8,6 +8,7 @@ enum UserEventName: string
     case OnboardingDone = 'onboarding_done';
     case ResourceOpen = 'resource_open';
     case QuizDone = 'quiz_done';
+    case ExamDone = 'exam_done';
     case PremiumView = 'premium_view';
     case PaymentSubmitted = 'payment_submitted';
     case PaymentApproved = 'payment_approved';

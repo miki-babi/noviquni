@@ -4,6 +4,7 @@ namespace App\Services\College;
 
 use App\Enums\CollegeResourceKind;
 use App\Models\LearningResource;
+use App\Support\StudyRichText;
 use Illuminate\Support\Str;
 
 class TelegramResourceFormatter
@@ -119,20 +120,20 @@ class TelegramResourceFormatter
             }
 
             $number = $index + 1;
-            $lines[] = '<b>Q'.$number.'.</b> '.e((string) ($question['question'] ?? ''));
+            $lines[] = '<b>Q'.$number.'.</b> '.e(StudyRichText::toPlain($question['question'] ?? ''));
             $options = $question['options'] ?? [];
             if (is_array($options)) {
                 foreach (array_values($options) as $optionIndex => $option) {
                     $letter = chr(65 + $optionIndex);
-                    $lines[] = $letter.') '.e((string) $option);
+                    $lines[] = $letter.') '.e(StudyRichText::toPlain($option));
                 }
             }
             $answerIndex = $question['answerIndex'] ?? null;
             if (is_int($answerIndex) && is_array($options) && isset($options[$answerIndex])) {
                 $lines[] = '<i>Answer: '.chr(65 + $answerIndex).'</i>';
             }
-            if (filled($question['explanation'] ?? null)) {
-                $lines[] = e((string) $question['explanation']);
+            if (! StudyRichText::isEmpty($question['explanation'] ?? null)) {
+                $lines[] = e(StudyRichText::toPlain($question['explanation']));
             }
             $lines[] = '';
         }
@@ -163,13 +164,13 @@ class TelegramResourceFormatter
 
             $options = $question['options'] ?? [];
 
-            if (! is_array($options) || $options === [] || blank($question['question'] ?? null)) {
+            if (! is_array($options) || $options === [] || StudyRichText::isEmpty($question['question'] ?? null)) {
                 continue;
             }
 
-            $lines[] = '<b>'.($index + 1).'.</b> '.e((string) $question['question']);
+            $lines[] = '<b>'.($index + 1).'.</b> '.e(StudyRichText::toPlain($question['question']));
             foreach (array_values($options) as $optionIndex => $option) {
-                $lines[] = chr(65 + $optionIndex).') '.e((string) $option);
+                $lines[] = chr(65 + $optionIndex).') '.e(StudyRichText::toPlain($option));
             }
             $lines[] = '';
         }

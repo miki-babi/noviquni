@@ -10,12 +10,15 @@ use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\TelegramFileAsset;
 use App\Support\LearningResourceFiles;
+use App\Support\StudyRichText;
 use Closure;
 use Filament\Actions\Action;
 use Filament\Forms\Components\CodeEditor;
 use Filament\Forms\Components\CodeEditor\Enums\Language;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
@@ -29,6 +32,7 @@ use Filament\Schemas\Components\Wizard\Step;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Str;
+use Throwable;
 
 class LearningForm
 {
@@ -48,6 +52,217 @@ class LearningForm
                 $set('module_id', null);
             }
         };
+    }
+
+    public static function isInteractiveMcqType(mixed $type): bool
+    {
+        $resourceType = $type instanceof ResourceType
+            ? $type
+            : ResourceType::tryFrom(is_string($type) ? $type : '');
+
+        return in_array($resourceType, [ResourceType::Quiz, ResourceType::PracticeExams], true);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function hydrateInteractiveFields(array $data): array
+    {
+        if (! static::isInteractiveMcqType($data['type'] ?? null)) {
+            return $data;
+        }
+
+        $content = $data['content'] ?? null;
+
+        if (! is_array($content)) {
+            $data['quiz_questions'] = $data['quiz_questions'] ?? [];
+            $data['exam_title'] = $data['exam_title'] ?? null;
+            $data['exam_instructions'] = $data['exam_instructions'] ?? null;
+            $data['exam_time_limit_minutes'] = $data['exam_time_limit_minutes'] ?? null;
+
+            return $data;
+        }
+
+        $payload = is_array($content['payload'] ?? null) ? $content['payload'] : [];
+        $type = ResourceType::tryFrom((string) ($data['type'] ?? ''));
+
+        if ($type === ResourceType::PracticeExams) {
+            $normalized = (new LearningResource)->normalizeExam($payload);
+            $data['exam_title'] = $normalized['title'];
+            $data['exam_instructions'] = $normalized['instructions'];
+            $data['exam_time_limit_minutes'] = $normalized['timeLimitMinutes'];
+            $data['quiz_questions'] = static::questionsForRepeater($normalized['questions']);
+        } else {
+            $questions = is_array($payload['questions'] ?? null) ? array_values($payload['questions']) : [];
+            $data['quiz_questions'] = static::questionsForRepeater($questions);
+            $data['exam_title'] = null;
+            $data['exam_instructions'] = null;
+            $data['exam_time_limit_minutes'] = null;
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function dehydrateInteractiveFields(array $data): array
+    {
+        $type = ResourceType::tryFrom(is_string($data['type'] ?? null) ? $data['type'] : '');
+
+        if (! static::isInteractiveMcqType($type)) {
+            unset(
+                $data['quiz_questions'],
+                $data['exam_title'],
+                $data['exam_instructions'],
+                $data['exam_time_limit_minutes'],
+            );
+
+            return $data;
+        }
+
+        $kind = $type === ResourceType::PracticeExams
+            ? CollegeResourceKind::Exam
+            : CollegeResourceKind::Quiz;
+
+        $questions = static::questionsFromRepeater($data['quiz_questions'] ?? []);
+
+        $payload = [
+            'questions' => $questions,
+        ];
+
+        if ($type === ResourceType::PracticeExams) {
+            if (filled($data['exam_title'] ?? null)) {
+                $payload['title'] = (string) $data['exam_title'];
+            }
+
+            if (filled($data['exam_instructions'] ?? null)) {
+                $payload['instructions'] = (string) $data['exam_instructions'];
+            }
+
+            $minutes = $data['exam_time_limit_minutes'] ?? null;
+
+            if (is_numeric($minutes) && (int) $minutes > 0) {
+                $payload['timeLimitMinutes'] = (int) $minutes;
+            }
+        }
+
+        $existing = is_array($data['content'] ?? null) ? $data['content'] : [];
+
+        $data['generation_kind'] = $kind;
+        $data['content'] = [
+            ...$existing,
+            'kind' => $kind->value,
+            'payload' => $payload,
+        ];
+
+        unset(
+            $data['quiz_questions'],
+            $data['exam_title'],
+            $data['exam_instructions'],
+            $data['exam_time_limit_minutes'],
+        );
+
+        return $data;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $questions
+     * @return list<array<string, mixed>>
+     */
+    protected static function questionsForRepeater(array $questions): array
+    {
+        $items = [];
+
+        foreach ($questions as $question) {
+            if (! is_array($question)) {
+                continue;
+            }
+
+            $options = is_array($question['options'] ?? null)
+                ? array_values($question['options'])
+                : [];
+
+            $items[] = [
+                'question' => StudyRichText::forEditor($question['question'] ?? ''),
+                'options' => array_map(
+                    function (mixed $option): array {
+                        $body = is_array($option) && array_key_exists('body', $option)
+                            ? $option['body']
+                            : $option;
+
+                        return ['body' => StudyRichText::forEditor($body)];
+                    },
+                    $options,
+                ),
+                'answerIndex' => (int) ($question['answerIndex'] ?? 0),
+                'explanation' => StudyRichText::forEditor($question['explanation'] ?? null),
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected static function questionsFromRepeater(mixed $rawQuestions): array
+    {
+        if (! is_array($rawQuestions)) {
+            return [];
+        }
+
+        $questions = [];
+
+        foreach (array_values($rawQuestions) as $question) {
+            if (! is_array($question)) {
+                continue;
+            }
+
+            $rawOptions = is_array($question['options'] ?? null)
+                ? array_values($question['options'])
+                : [];
+
+            $options = [];
+
+            foreach ($rawOptions as $option) {
+                $body = is_array($option) && array_key_exists('body', $option)
+                    ? $option['body']
+                    : $option;
+
+                if (StudyRichText::isEmpty($body)) {
+                    continue;
+                }
+
+                $options[] = $body;
+            }
+
+            if (StudyRichText::isEmpty($question['question'] ?? null) || count($options) < 2) {
+                continue;
+            }
+
+            $answerIndex = (int) ($question['answerIndex'] ?? 0);
+
+            if ($answerIndex < 0 || $answerIndex >= count($options)) {
+                $answerIndex = 0;
+            }
+
+            $item = [
+                'question' => $question['question'],
+                'options' => $options,
+                'answerIndex' => $answerIndex,
+            ];
+
+            if (! StudyRichText::isEmpty($question['explanation'] ?? null)) {
+                $item['explanation'] = $question['explanation'];
+            }
+
+            $questions[] = $item;
+        }
+
+        return $questions;
     }
 
     public static function configure(Schema $schema): Schema
@@ -122,6 +337,7 @@ class LearningForm
                     ->helperText('Free students can open any published resource that is not premium.'),
                 Toggle::make('is_published')->default(false),
                 ...static::fileFields(required: false),
+                ...static::quizExamFields(),
                 static::contentJsonField(required: false),
                 ...SeoFields::make(),
             ]);
@@ -196,19 +412,149 @@ class LearningForm
                         ->helperText('Free students can open any published resource that is not premium.'),
                     Toggle::make('is_published')->default(false),
                     ...static::fileFields(required: false),
+                    ...static::quizExamFields(),
                     ...SeoFields::make(),
                 ]),
         ];
     }
 
-    protected static function contentJsonField(bool $required = false): CodeEditor
+    /**
+     * @return list<Component|Section>
+     */
+    protected static function quizExamFields(): array
+    {
+        return [
+            Section::make('Questions')
+                ->description('Multiple-choice questions with rich text, images, and an optional explanation for the correct answer.')
+                ->visible(fn (Get $get): bool => static::isInteractiveMcqType($get('type')))
+                ->schema([
+                    TextInput::make('exam_title')
+                        ->label('Exam title')
+                        ->maxLength(255)
+                        ->visible(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value)
+                        ->dehydrated(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value),
+                    Textarea::make('exam_instructions')
+                        ->label('Instructions')
+                        ->rows(2)
+                        ->visible(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value)
+                        ->dehydrated(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value),
+                    TextInput::make('exam_time_limit_minutes')
+                        ->label('Time limit (minutes)')
+                        ->numeric()
+                        ->integer()
+                        ->minValue(1)
+                        ->maxValue(600)
+                        ->helperText('Leave empty for no countdown. When set, the Mini App timer auto-submits when time runs out.')
+                        ->visible(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value)
+                        ->dehydrated(fn (Get $get): bool => ($get('type') ?? null) === ResourceType::PracticeExams->value),
+                    Repeater::make('quiz_questions')
+                        ->label('Questions')
+                        ->schema([
+                            static::quizRichEditor('question')
+                                ->label('Question')
+                                ->required(),
+                            Repeater::make('options')
+                                ->label('Choices')
+                                ->schema([
+                                    static::quizRichEditor('body')
+                                        ->label('Choice')
+                                        ->required(),
+                                ])
+                                ->minItems(2)
+                                ->maxItems(6)
+                                ->defaultItems(4)
+                                ->required()
+                                ->live()
+                                ->addActionLabel('Add choice')
+                                ->reorderable()
+                                ->columnSpanFull(),
+                            Select::make('answerIndex')
+                                ->label('Correct answer')
+                                ->options(function (Get $get): array {
+                                    $options = is_array($get('options') ?? null)
+                                        ? array_values($get('options'))
+                                        : [];
+
+                                    $choices = [];
+
+                                    foreach ($options as $index => $option) {
+                                        $letter = chr(65 + $index);
+                                        $body = is_array($option) ? ($option['body'] ?? null) : $option;
+
+                                        try {
+                                            $plain = StudyRichText::toPlain($body);
+                                        } catch (Throwable) {
+                                            $plain = is_string($body) ? strip_tags($body) : '';
+                                        }
+
+                                        $choices[$index] = filled($plain)
+                                            ? $letter.' — '.Str::limit($plain, 48)
+                                            : $letter;
+                                    }
+
+                                    return $choices !== [] ? $choices : [
+                                        0 => 'A',
+                                        1 => 'B',
+                                    ];
+                                })
+                                ->required()
+                                ->native(false),
+                            static::quizRichEditor('explanation')
+                                ->label('Explanation')
+                                ->helperText('Optional rationale shown after the student submits.'),
+                        ])
+                        ->minItems(0)
+                        ->defaultItems(0)
+                        ->collapsible()
+                        ->addActionLabel('Add question')
+                        ->reorderable()
+                        ->columnSpanFull(),
+                ])
+                ->columnSpanFull(),
+        ];
+    }
+
+    protected static function quizRichEditor(string $name): RichEditor
+    {
+        return RichEditor::make($name)
+            ->json()
+            ->toolbarButtons([
+                ['bold', 'italic', 'underline', 'link'],
+                ['bulletList', 'orderedList'],
+                ['attachFiles'],
+                ['undo', 'redo'],
+            ])
+            ->fileAttachmentsDisk(StudyRichText::AttachmentsDisk)
+            ->fileAttachmentsDirectory(fn (Get $get): string => StudyRichText::attachmentsDirectory(
+                $get('../../course_id') ?? $get('../course_id') ?? $get('course_id'),
+            ))
+            ->fileAttachmentsVisibility('public')
+            ->preventFileAttachmentPathTampering(fn (?LearningResource $record): bool => $record !== null)
+            ->afterStateHydrated(function (RichEditor $component, mixed $state): void {
+                if (is_array($state) && ($state['type'] ?? null) === 'doc') {
+                    return;
+                }
+
+                $component->state(StudyRichText::forEditor($state));
+            })
+            ->columnSpanFull();
+    }
+
+    protected static function contentJsonField(bool $required = false): CodeEditor|Section
     {
         $field = CodeEditor::make('content')
             ->label('Content JSON')
             ->language(Language::Json)
-            ->helperText('Optional interactive payload (quiz, notes, flashcards, etc.). Leave empty for file-only resources.')
+            ->helperText('Optional interactive payload (notes, flashcards, etc.). For quizzes and practice exams, prefer the Questions builder above.')
             ->columnSpanFull()
-            ->visible(fn (?LearningResource $record): bool => filled($record?->content) || filled($record?->generation_kind))
+            ->dehydrated(fn (Get $get): bool => ! static::isInteractiveMcqType($get('type')))
+            ->visible(function (Get $get, ?LearningResource $record): bool {
+                if (static::isInteractiveMcqType($get('type'))) {
+                    return filled($record?->content) || filled($record?->generation_kind);
+                }
+
+                return filled($record?->content) || filled($record?->generation_kind);
+            })
             ->formatStateUsing(function (mixed $state): string {
                 if (is_array($state)) {
                     return json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) ?: '';
@@ -247,7 +593,12 @@ class LearningForm
             $field->required();
         }
 
-        return $field;
+        return Section::make('Advanced')
+            ->description('Raw content JSON for College-generated or legacy payloads. Quizzes and practice exams are saved from the Questions builder.')
+            ->collapsed()
+            ->visible(fn (?LearningResource $record): bool => filled($record?->content) || filled($record?->generation_kind))
+            ->schema([$field])
+            ->columnSpanFull();
     }
 
     /**

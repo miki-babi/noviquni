@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers\Telegram\MiniApp\Players;
 
+use App\Enums\AssessmentKind;
 use App\Enums\ResourceType;
-use App\Enums\UserEventName;
 use App\Http\Controllers\Controller;
 use App\Models\LearningResource;
 use App\Models\User;
-use App\Services\UserEventService;
+use App\Services\AssessmentAttemptRecorder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use InvalidArgumentException;
 
 class QuizResultController extends Controller
 {
     public function __invoke(
         Request $request,
         LearningResource $resource,
-        UserEventService $userEvents,
+        AssessmentAttemptRecorder $recorder,
     ): JsonResponse {
         abort_unless($resource->type === ResourceType::Quiz && $resource->is_published, 404);
 
@@ -25,17 +26,31 @@ class QuizResultController extends Controller
         $user = Auth::user();
 
         $validated = $request->validate([
-            'score' => ['required', 'integer', 'min:0'],
-            'total' => ['required', 'integer', 'min:1'],
+            'answers' => ['required', 'array'],
+            'answers.*' => ['nullable', 'integer', 'min:0'],
+            'timed_out' => ['sometimes', 'boolean'],
+            // Legacy clients may still send aggregate score/total; ignored for scoring.
+            'score' => ['sometimes', 'integer', 'min:0'],
+            'total' => ['sometimes', 'integer', 'min:1'],
         ]);
 
-        $score = min((int) $validated['score'], (int) $validated['total']);
+        try {
+            $attempt = $recorder->record(
+                $user,
+                $resource,
+                AssessmentKind::Quiz,
+                $validated['answers'],
+                (bool) ($validated['timed_out'] ?? false),
+            );
+        } catch (InvalidArgumentException) {
+            abort(422, 'This quiz has no scorable questions.');
+        }
 
-        $userEvents->log($user, UserEventName::QuizDone, $userEvents->resourceStudyDetails($resource, [
-            'score' => $score,
-            'total' => (int) $validated['total'],
-        ]));
-
-        return response()->json(['ok' => true]);
+        return response()->json([
+            'ok' => true,
+            'score' => $attempt->score,
+            'total' => $attempt->total,
+            'attempt_id' => $attempt->id,
+        ]);
     }
 }

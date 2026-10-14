@@ -16,6 +16,7 @@
             :resource="$resource"
             :is-bookmarked="$isBookmarked ?? false"
             :copy="$copy"
+            :result-url="route('tg.play.exam.result', $resource)"
         />
     @else
         <div class="space-y-5 px-4">

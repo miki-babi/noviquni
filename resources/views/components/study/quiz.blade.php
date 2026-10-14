@@ -8,6 +8,13 @@
         is_array($payload['questions'] ?? null) ? $payload['questions'] : [],
         fn ($question): bool => is_array($question),
     ));
+
+    $scoringQuestions = array_map(
+        fn (array $question): array => [
+            'answerIndex' => (int) ($question['answerIndex'] ?? 0),
+        ],
+        $questions,
+    );
 @endphp
 
 @if ($questions === [])
@@ -16,16 +23,13 @@
     <div
         class="space-y-6"
         x-data="{
-            questions: @js($questions),
+            questions: @js($scoringQuestions),
             current: 0,
             answers: {},
             submitted: false,
             score: 0,
             resultUrl: @js($resultUrl),
             get total() { return this.questions.length },
-            get explanations() {
-                return this.questions.map(q => q.explanation || '')
-            },
             selectAnswer(index, optionIndex) {
                 if (this.submitted) return
                 this.answers[index] = optionIndex
@@ -56,7 +60,7 @@
                 if (! this.resultUrl) return
 
                 try {
-                    await fetch(this.resultUrl, {
+                    const response = await fetch(this.resultUrl, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -65,10 +69,16 @@
                             'X-Requested-With': 'XMLHttpRequest',
                         },
                         body: JSON.stringify({
+                            answers: this.answers,
                             score: this.score,
                             total: this.total,
                         }),
                     })
+
+                    if (response.ok) {
+                        const payload = await response.json()
+                        if (typeof payload.score === 'number') this.score = payload.score
+                    }
                 } catch (error) {
                     // Keep quiz UX intact even if analytics logging fails.
                 }
