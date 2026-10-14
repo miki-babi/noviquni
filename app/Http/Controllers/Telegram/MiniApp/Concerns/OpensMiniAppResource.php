@@ -97,16 +97,19 @@ trait OpensMiniAppResource
             $payload = $playerPayload;
         }
 
-        $pdfs = collect($resource->pdfAttachments())
-            ->map(fn (array $attachment): array => [
-                'name' => $attachment['name'],
-                'url' => route('tg.files.show', [
-                    'resource' => $resource,
-                    'index' => $attachment['index'],
-                ], absolute: false),
-            ])
-            ->values()
-            ->all();
+        // Interactive quiz/exam takes precedence over misplaced PDF attachments.
+        $pdfs = $payload !== null
+            ? []
+            : collect($resource->pdfAttachments())
+                ->map(fn (array $attachment): array => [
+                    'name' => $attachment['name'],
+                    'url' => route('tg.files.show', [
+                        'resource' => $resource,
+                        'index' => $attachment['index'],
+                    ], absolute: false),
+                ])
+                ->values()
+                ->all();
 
         return view($view, [
             'copy' => $access['copy'],
