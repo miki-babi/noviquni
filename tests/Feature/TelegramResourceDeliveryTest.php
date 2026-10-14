@@ -163,13 +163,14 @@ it('opens a non-file resource deep link with a mini app title button', function 
         $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
 
         return str_contains((string) ($data['text'] ?? ''), 'Deep Link Quiz')
-            && ($button['text'] ?? null) === 'Deep Link Quiz'
+            && ($button['text'] ?? null) === 'Open in study app'
             && ($button['style'] ?? null) === 'success'
-            && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource);
+            && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource)
+            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'save:resource:'.$resource->id;
     });
 });
 
-it('sends uploaded resource files as telegram documents', function () {
+it('opens pdf resources with a mini app player button instead of sending the document', function () {
     $disk = config('filesystems.default');
     Storage::fake($disk);
 
@@ -178,7 +179,7 @@ it('sends uploaded resource files as telegram documents', function () {
 
     Http::preventStrayRequests();
     Http::fake([
-        'api.telegram.org/bot*/sendDocument' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
@@ -222,53 +223,31 @@ it('sends uploaded resource files as telegram documents', function () {
     ])->assertOk();
 
     Http::assertSent(function ($request) use ($resource) {
-        if (! str_contains($request->url(), '/sendDocument')) {
-            return false;
-        }
-
-        $data = $request->data();
-        $markup = $data['reply_markup'] ?? null;
-
-        // Multipart uploads expose fields as [{name, contents}, ...]
-        if ($markup === null && array_is_list($data)) {
-            foreach ($data as $field) {
-                if (($field['name'] ?? null) === 'reply_markup') {
-                    $markup = $field['contents'] ?? null;
-                    break;
-                }
-            }
-        }
-
-        if (is_string($markup)) {
-            $markup = json_decode($markup, true);
-        }
-
-        $buttons = data_get($markup, 'inline_keyboard.0', []);
-        $shareUrl = (string) ($buttons[1]['url'] ?? '');
-
-        return ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
-            && ($buttons[0]['text'] ?? null) === 'Quick save'
-            && ! array_key_exists('style', $buttons[0])
-            && str_contains($shareUrl, 't.me/share/url')
-            && str_contains(urldecode($shareUrl), 'start=resource_'.$resource->id)
-            && str_contains(urldecode($shareUrl), 'Week 1 Lecture Notes');
-    });
-
-    Http::assertNotSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $button = data_get($request->data(), 'reply_markup.inline_keyboard.0.0', []);
+        $data = $request->data();
+        $openButton = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
+        $saveShare = data_get($data, 'reply_markup.inline_keyboard.1', []);
+        $shareUrl = (string) ($saveShare[1]['url'] ?? '');
 
-        return array_key_exists('web_app', $button);
+        return str_contains((string) ($data['text'] ?? ''), 'Week 1 Lecture Notes')
+            && ($openButton['text'] ?? null) === 'Open PDF player'
+            && ($openButton['web_app']['url'] ?? null) === route('tg.play.notes', $resource)
+            && ($saveShare[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
+            && ($saveShare[0]['text'] ?? null) === 'Quick save'
+            && str_contains($shareUrl, 't.me/share/url')
+            && str_contains(urldecode($shareUrl), 'start=resource_'.$resource->id);
     });
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
 });
 
-it('shows a green Saved button when the resource is already bookmarked', function () {
+it('shows a green Saved button when a pdf resource is already bookmarked', function () {
     Http::preventStrayRequests();
     Http::fake([
-        'api.telegram.org/bot*/sendDocument' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
@@ -320,18 +299,19 @@ it('shows a green Saved button when the resource is already bookmarked', functio
     ])->assertOk();
 
     Http::assertSent(function ($request) use ($resource) {
-        if (! str_contains($request->url(), '/sendDocument')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $buttons = data_get($request->data(), 'reply_markup.inline_keyboard.0', []);
+        $buttons = data_get($request->data(), 'reply_markup.inline_keyboard.1', []);
         $shareUrl = (string) ($buttons[1]['url'] ?? '');
         parse_str(parse_url($shareUrl, PHP_URL_QUERY) ?: '', $query);
         $shareText = (string) ($query['text'] ?? '');
         $deepLink = 'https://t.me/noviquni_bot?start=resource_'.$resource->id;
         $expectedShareText = "📚 Already Saved Notes\n\nLecture summary for week 2\n\nGet it here 👇\n{$deepLink}\n\n🎓 More freshman resources, exams, assignments, short notes & reference books are available on NOViQ Uni.";
 
-        return ($buttons[0]['text'] ?? null) === 'Saved'
+        return data_get($request->data(), 'reply_markup.inline_keyboard.0.0.text') === 'Open PDF player'
+            && ($buttons[0]['text'] ?? null) === 'Saved'
             && ($buttons[0]['style'] ?? null) === 'success'
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && str_contains($shareUrl, 't.me/share/url')

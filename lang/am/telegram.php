@@ -237,6 +237,7 @@ return [
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'በጥናት መተግበሪያ ክፈት',
+        'open_pdf_player' => 'PDF ማጫወቻ ክፈት',
         'quick_save' => 'በፍጥነት አስቀምጥ',
         'share' => 'አጋራ',
         'share_message' => '📚 :title

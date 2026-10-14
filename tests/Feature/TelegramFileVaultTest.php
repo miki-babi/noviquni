@@ -445,10 +445,10 @@ it('does not store documents from non-admin users', function () {
     expect(TelegramFileAsset::query()->count())->toBe(0);
 });
 
-it('sends telegram_files by file_id without uploading from disk', function () {
+it('opens telegram vault pdfs with a mini app player button', function () {
     Http::preventStrayRequests();
     Http::fake([
-        'api.telegram.org/bot*/sendDocument' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 100]], 200),
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
@@ -462,8 +462,6 @@ it('sends telegram_files by file_id without uploading from disk', function () {
     ]);
     $user->courses()->attach($course->id);
 
-    $fileId = 'BQACAgQAAxkBAAI-resource-delivery';
-
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Telegram Vault Notes',
         'stream_id' => $stream->id,
@@ -474,7 +472,7 @@ it('sends telegram_files by file_id without uploading from disk', function () {
         'is_premium' => false,
         'files' => null,
         'telegram_files' => [
-            ['file_id' => $fileId, 'file_name' => 'vault-notes.pdf'],
+            ['file_id' => 'BQACAgQAAxkBAAI-resource-delivery', 'file_name' => 'vault-notes.pdf'],
         ],
     ]);
 
@@ -496,32 +494,33 @@ it('sends telegram_files by file_id without uploading from disk', function () {
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) use ($fileId, $resource) {
-        if (! str_contains($request->url(), '/sendDocument')) {
+    Http::assertSent(function ($request) use ($resource) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = data_get($data, 'reply_markup.inline_keyboard.0', []);
-
+        $openButton = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
+        $buttons = data_get($data, 'reply_markup.inline_keyboard.1', []);
         $shareUrl = (string) ($buttons[1]['url'] ?? '');
 
-        return ($data['document'] ?? null) === $fileId
-            && ($data['caption'] ?? null) === 'Telegram Vault Notes'
+        return ($openButton['text'] ?? null) === 'Open PDF player'
+            && ($openButton['web_app']['url'] ?? null) === route('tg.play.notes', $resource)
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && ($buttons[0]['text'] ?? null) === 'Quick save'
-            && ! array_key_exists('style', $buttons[0])
             && str_contains($shareUrl, 't.me/share/url')
             && str_contains(urldecode($shareUrl), 'start=resource_'.$resource->id);
     });
+
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
 });
 
-it('still sends disk files when telegram_files is empty', function () {
+it('still sends non-pdf disk files as telegram documents', function () {
     $disk = config('filesystems.default');
     Storage::fake($disk);
 
-    $relativePath = 'learnings/fallback-notes.pdf';
-    Storage::disk($disk)->put($relativePath, 'fake-pdf-bytes');
+    $relativePath = 'learnings/fallback-notes.docx';
+    Storage::disk($disk)->put($relativePath, 'fake-docx-bytes');
 
     Http::preventStrayRequests();
     Http::fake([

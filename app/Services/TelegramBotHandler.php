@@ -1630,22 +1630,22 @@ class TelegramBotHandler
         $showLock = $resource->is_premium;
         $text = $label ?? (($showLock ? '🔒 ' : '').$resource->title);
 
-        if ($resource->hasFiles()) {
+        if ($resource->opensInMiniApp()) {
             return [
                 'text' => $text,
-                'callback_data' => "open_resource:{$resource->id}",
-                'style' => TelegramButtonStyle::Primary->value,
+                'web_app' => [
+                    'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
+                        'resource' => $resource,
+                    ]),
+                ],
+                'style' => TelegramButtonStyle::Success->value,
             ];
         }
 
         return [
             'text' => $text,
-            'web_app' => [
-                'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
-                    'resource' => $resource,
-                ]),
-            ],
-            'style' => TelegramButtonStyle::Success->value,
+            'callback_data' => "open_resource:{$resource->id}",
+            'style' => TelegramButtonStyle::Primary->value,
         ];
     }
 
@@ -1656,16 +1656,6 @@ class TelegramBotHandler
 
         if ($resource === null) {
             $this->telegram->sendMessage($chatId, $copy->get('resource.not_found'));
-
-            return;
-        }
-
-        if (! $resource->hasFiles()) {
-            $this->telegram->sendMessage($chatId, '<b>'.e($resource->title).'</b>', [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    [$this->resourceInlineButton($resource)],
-                ]),
-            ]);
 
             return;
         }
@@ -1681,7 +1671,48 @@ class TelegramBotHandler
 
         $user->downloads()->create(['learning_resource_id' => $resource->id]);
         $this->userEvents->logResourceOpen($user, $resource);
+
+        if ($resource->opensInMiniApp()) {
+            $this->sendResourceMiniAppOpen($user, $chatId, $resource);
+
+            return;
+        }
+
         $this->sendResourceFiles($user, $chatId, $resource);
+    }
+
+    protected function sendResourceMiniAppOpen(User $user, int|string $chatId, LearningResource $resource): void
+    {
+        $copy = TelegramCopy::for($user);
+
+        $this->telegram->sendMessage($chatId, '<b>'.e($resource->title).'</b>', [
+            'reply_markup' => $this->resourceMiniAppKeyboard($user, $resource, $copy),
+        ]);
+    }
+
+    /**
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    protected function resourceMiniAppKeyboard(User $user, LearningResource $resource, TelegramCopy $copy): array
+    {
+        $rows = [
+            [[
+                'text' => $resource->hasPdfAttachments()
+                    ? $copy->get('resource.open_pdf_player')
+                    : $copy->get('resource.open_in_app'),
+                'web_app' => [
+                    'url' => $this->telegram->miniAppUrl($resource->miniAppRouteName(), [
+                        'resource' => $resource,
+                    ]),
+                ],
+                'style' => TelegramButtonStyle::Success->value,
+            ]],
+        ];
+
+        return $this->telegram->inlineKeyboard([
+            ...$rows,
+            ...$this->resourceSaveShareRows($user, $resource, $copy),
+        ]);
     }
 
     /**
@@ -1689,7 +1720,16 @@ class TelegramBotHandler
      */
     protected function resourceFileKeyboard(User $user, LearningResource $resource): array
     {
-        $copy = TelegramCopy::for($user);
+        return $this->telegram->inlineKeyboard(
+            $this->resourceSaveShareRows($user, $resource, TelegramCopy::for($user)),
+        );
+    }
+
+    /**
+     * @return list<list<array<string, mixed>>>
+     */
+    protected function resourceSaveShareRows(User $user, LearningResource $resource, TelegramCopy $copy): array
+    {
         $isSaved = $user->bookmarks()
             ->whereMorphedTo('bookmarkable', $resource)
             ->exists();
@@ -1712,13 +1752,13 @@ class TelegramBotHandler
         $shareText = trim(preg_replace("/\n{3,}/", "\n\n", $shareText) ?? $shareText);
         $shareUrl = 'https://t.me/share/url?url='.rawurlencode($deepLink).'&text='.rawurlencode($shareText);
 
-        return $this->telegram->inlineKeyboard([[
+        return [[
             $saveButton,
             [
                 'text' => $copy->get('resource.share'),
                 'url' => $shareUrl,
             ],
-        ]]);
+        ]];
     }
 
     protected function sendResourceFiles(User $user, int|string $chatId, LearningResource $resource): void
@@ -1735,8 +1775,13 @@ class TelegramBotHandler
             }
 
             $fileId = $telegramFile['file_id'] ?? null;
+            $fileName = $telegramFile['file_name'] ?? null;
 
             if (! is_string($fileId) || blank($fileId)) {
+                continue;
+            }
+
+            if (LearningResourceFiles::isPdfFileName(is_string($fileName) ? $fileName : null)) {
                 continue;
             }
 
@@ -1757,6 +1802,10 @@ class TelegramBotHandler
 
         foreach ($resource->files ?? [] as $path) {
             if (! is_string($path) || blank($path)) {
+                continue;
+            }
+
+            if (LearningResourceFiles::isPdfPath($path)) {
                 continue;
             }
 
@@ -1790,11 +1839,7 @@ class TelegramBotHandler
         }
 
         if (! $sent) {
-            $this->telegram->sendMessage(
-                $chatId,
-                '<b>'.e($resource->title).'</b>',
-                $markup,
-            );
+            $this->sendResourceMiniAppOpen($user, $chatId, $resource);
         }
     }
 
