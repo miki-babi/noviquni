@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable([
     'name',
@@ -49,7 +50,7 @@ use Illuminate\Support\Str;
 class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * @var array<string, mixed>
@@ -76,7 +77,7 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->role === UserRole::Admin && $this->is_active;
+        return $this->is_active && $this->roles()->exists();
     }
 
     public function isAdmin(): bool

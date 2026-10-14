@@ -9,6 +9,7 @@ use App\Models\Year;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * @extends Factory<User>
@@ -50,7 +51,14 @@ class UserFactory extends Factory
             'telegram_id' => null,
             'email' => fake()->unique()->safeEmail(),
             'password' => static::$password ??= Hash::make('password'),
-        ]);
+        ])->afterCreating(function (User $user): void {
+            $role = Role::findOrCreate(
+                (string) config('filament-shield.super_admin.name'),
+                config('auth.defaults.guard') ?? 'web',
+            );
+
+            $user->assignRole($role);
+        });
     }
 
     public function student(): static

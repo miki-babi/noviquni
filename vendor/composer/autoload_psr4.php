@@ -49,6 +49,7 @@ return array(
     'Symfony\\Component\\Console\\' => array($vendorDir . '/symfony/console'),
     'Symfony\\Component\\Clock\\' => array($vendorDir . '/symfony/clock'),
     'Spatie\\ShikiPhp\\' => array($vendorDir . '/spatie/shiki-php/src'),
+    'Spatie\\Permission\\' => array($vendorDir . '/spatie/laravel-permission/src'),
     'Spatie\\LaravelPackageTools\\' => array($vendorDir . '/spatie/laravel-package-tools/src'),
     'Spatie\\Invade\\' => array($vendorDir . '/spatie/invade/src'),
     'RyanChandler\\BladeCaptureDirective\\Database\\Factories\\' => array($vendorDir . '/ryangjchandler/blade-capture-directive/database/factories'),
@@ -141,6 +142,9 @@ return array(
     'Brick\\Math\\' => array($vendorDir . '/brick/math/src'),
     'BladeUI\\Icons\\' => array($vendorDir . '/blade-ui-kit/blade-icons/src'),
     'BladeUI\\Heroicons\\' => array($vendorDir . '/blade-ui-kit/blade-heroicons/src'),
+    'BezhanSalleh\\PluginEssentials\\' => array($vendorDir . '/bezhansalleh/filament-plugin-essentials/src'),
+    'BezhanSalleh\\FilamentShield\\Database\\Factories\\' => array($vendorDir . '/bezhansalleh/filament-shield/database/factories'),
+    'BezhanSalleh\\FilamentShield\\' => array($vendorDir . '/bezhansalleh/filament-shield/src'),
     'App\\' => array($baseDir . '/app', $vendorDir . '/laravel/pint/app'),
     'AnourValar\\EloquentSerialize\\' => array($vendorDir . '/anourvalar/eloquent-serialize/src'),
 );
