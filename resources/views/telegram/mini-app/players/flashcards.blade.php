@@ -8,7 +8,7 @@
     :show-bot-footer="true"
     :show-menu="false"
 >
-    <x-telegram.mini-app.pdf-viewer :pdfs="$pdfs ?? []" class="px-4" />
+    <x-telegram.mini-app.pdf-viewer :pdfs="$pdfs ?? []" class="-my-3" />
 
     @if ($payload)
         <x-study.flashcards

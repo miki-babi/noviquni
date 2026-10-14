@@ -3,25 +3,26 @@
 ])
 
 @if ($pdfs !== [])
-    <div {{ $attributes->class('space-y-4') }} data-pdf-viewer-root>
+    <div {{ $attributes->class('') }} data-pdf-viewer-root>
         @foreach ($pdfs as $pdf)
             <div
-                class="overflow-hidden rounded-2xl border border-border-light bg-surface-gray/40"
+                class="flex h-[calc(100dvh-3.75rem)] flex-col bg-surface-gray/30"
                 data-pdf-viewer
                 data-pdf-url="{{ $pdf['url'] }}"
                 data-pdf-name="{{ $pdf['name'] }}"
             >
-                <div class="flex items-center justify-between gap-3 border-b border-border-light px-4 py-3">
-                    <p class="min-w-0 truncate text-sm font-medium text-text-primary">{{ $pdf['name'] }}</p>
-                    <div class="flex shrink-0 items-center gap-2">
-                        <button type="button" class="tg-btn tg-btn--ghost text-xs" data-pdf-prev disabled>Prev</button>
-                        <span class="text-xs text-text-secondary tabular-nums" data-pdf-page>1 / 1</span>
-                        <button type="button" class="tg-btn tg-btn--ghost text-xs" data-pdf-next disabled>Next</button>
-                    </div>
-                </div>
-                <div class="max-h-[70vh] overflow-auto bg-black/5 p-2">
+                <div class="min-h-0 flex-1 overflow-auto bg-black/5">
                     <canvas class="mx-auto block max-w-full" data-pdf-canvas></canvas>
-                    <p class="hidden px-2 py-6 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this PDF.</p>
+                    <p class="hidden px-4 py-10 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this PDF.</p>
+                </div>
+
+                <div class="shrink-0 border-t border-border-light bg-[var(--tg-header-bg)] px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                    <p class="mb-2 truncate text-center text-xs text-text-secondary">{{ $pdf['name'] }}</p>
+                    <div class="flex items-center justify-between gap-3">
+                        <button type="button" class="tg-btn tg-btn--ghost min-w-20 text-sm" data-pdf-prev disabled>Prev</button>
+                        <span class="text-sm text-text-secondary tabular-nums" data-pdf-page>1 / 1</span>
+                        <button type="button" class="tg-btn tg-btn--ghost min-w-20 text-sm" data-pdf-next disabled>Next</button>
+                    </div>
                 </div>
             </div>
         @endforeach
@@ -39,6 +40,7 @@
             const prev = root.querySelector('[data-pdf-prev]');
             const next = root.querySelector('[data-pdf-next]');
             const error = root.querySelector('[data-pdf-error]');
+            const stage = canvas?.parentElement;
 
             if (!url || !canvas) {
                 return;
@@ -58,7 +60,7 @@
                 try {
                     const page = await pdfDoc.getPage(num);
                     const viewportBase = page.getViewport({ scale: 1 });
-                    const width = Math.max(canvas.parentElement?.clientWidth || 320, 280);
+                    const width = Math.max(stage?.clientWidth || canvas.parentElement?.clientWidth || 320, 280);
                     const scale = width / viewportBase.width;
                     const viewport = page.getViewport({ scale });
                     const context = canvas.getContext('2d');
