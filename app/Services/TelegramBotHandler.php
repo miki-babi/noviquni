@@ -128,30 +128,8 @@ class TelegramBotHandler
                     Cache::put($this->pendingStartCacheKey($user), $payload, now()->addDay());
                 }
 
-                if ($this->canAutoCompleteOnboarding($user)) {
-                    $this->onboarding->complete($user);
-                    $user->refresh();
-
-                    if ($this->resumeStartPayload($user, $chatId, $payload)) {
-                        return;
-                    }
-
-                    $this->sendHome($user, $chatId);
-
-                    return;
-                }
-
-                if ($isOpportunityShare && $this->resumeStartPayload($user, $chatId, $payload)) {
-                    return;
-                }
-
-                if ($this->settings->hasCustomTelegramStartMessage()) {
-                    $this->sendCustomStartMessage($user, $chatId);
-                }
-
-                $this->promptCurrentOnboardingStep($user, $chatId);
-
-                return;
+                $this->onboarding->complete($user);
+                $user->refresh();
             }
 
             if ($this->resumeStartPayload($user, $chatId, $payload)) {
@@ -163,14 +141,10 @@ class TelegramBotHandler
             return;
         }
 
-        if ($user->onboarding_step === OnboardingStep::Department) {
-            $this->handleDepartmentReply($user, $chatId, $text);
-
-            return;
-        }
-
         if ($user->onboarding_step !== OnboardingStep::Complete && $user->onboarding_step !== null) {
-            $this->repromptOnboarding($user, $chatId);
+            $this->onboarding->complete($user);
+            $user->refresh();
+            $this->sendHome($user, $chatId);
 
             return;
         }
@@ -3557,15 +3531,17 @@ class TelegramBotHandler
             return false;
         }
 
-        if ($user->stream_id !== null) {
+        $year = $user->year();
+
+        if ($year === null) {
+            return false;
+        }
+
+        if ($year->slug === YearSlug::Freshman->value) {
             return true;
         }
 
-        $year = $user->year();
-
-        return $year !== null
-            && $year->slug !== YearSlug::Freshman->value
-            && filled($user->department_name);
+        return filled($user->department_name);
     }
 
     protected function promptCurrentOnboardingStep(User $user, int|string $chatId, ?int $messageId = null): void
@@ -3578,13 +3554,6 @@ class TelegramBotHandler
         ) {
             $user->update(['onboarding_step' => OnboardingStep::Year]);
             $this->askYear($user, $chatId, $messageId);
-
-            return;
-        }
-
-        if ($year->slug === YearSlug::Freshman->value && $user->stream_id === null) {
-            $user->update(['onboarding_step' => OnboardingStep::Stream]);
-            $this->askStream($user, $chatId, $messageId);
 
             return;
         }
@@ -3728,13 +3697,12 @@ class TelegramBotHandler
 
         if ($year->slug === YearSlug::Freshman->value) {
             $user->update([
-                'onboarding_step' => OnboardingStep::Stream,
                 'stream_id' => null,
                 'university_id' => null,
                 'semester_id' => null,
             ]);
             cache()->forget("onboarding.courses.{$user->id}");
-            $this->askStream($user->fresh() ?? $user, $chatId, $messageId);
+            $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
 
             return null;
         }

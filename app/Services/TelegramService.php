@@ -7,11 +7,9 @@ use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserEventName;
 use App\Enums\UserRole;
-use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\User;
-use App\Models\Year;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Http;
@@ -602,6 +600,7 @@ class TelegramService
             $user->update([
                 'name' => $name,
                 'telegram_username' => $username,
+                'is_gat' => true,
             ]);
 
             return $user->refresh();
@@ -612,15 +611,10 @@ class TelegramService
             'telegram_id' => (string) $telegramId,
             'telegram_username' => $username,
             'role' => UserRole::Student,
-            'onboarding_step' => OnboardingStep::Start,
+            'onboarding_step' => OnboardingStep::Complete,
             'is_active' => true,
+            'is_gat' => true,
         ]);
-
-        $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->first();
-
-        if ($freshman !== null) {
-            $user->syncYear($freshman);
-        }
 
         $this->newStudentAdminNotifier->notify($user, $this);
 

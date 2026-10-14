@@ -187,13 +187,11 @@ it('logs blocked when telegram refuses a message because the user blocked the bo
         ->exists())->toBeTrue();
 });
 
-it('logs onboarding_done with stream details', function () {
+it('logs onboarding_done when Freshman year completes without stream', function () {
     $freshman = Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail();
-    $stream = Stream::factory()->create(['name' => 'Natural']);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(700006, '/start'))->assertOk();
     $this->postJson('/telegram/webhook', telegramCallbackPayload(700006, "ob:year:{$freshman->id}"))->assertOk();
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(700006, "ob:stream:{$stream->id}", 2, 3))->assertOk();
 
     $user = User::query()->where('telegram_id', '700006')->firstOrFail();
 
@@ -203,6 +201,8 @@ it('logs onboarding_done with stream details', function () {
         ->first();
 
     expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
+        ->and($user->is_gat)->toBeTrue()
+        ->and($user->stream_id)->toBeNull()
         ->and($event)->not->toBeNull()
-        ->and($event->details['stream'])->toBe('Natural');
+        ->and($event->details)->not->toHaveKey('stream');
 });
