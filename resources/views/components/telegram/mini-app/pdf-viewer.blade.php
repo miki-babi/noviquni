@@ -12,19 +12,10 @@
                 data-pdf-name="{{ $pdf['name'] }}"
             >
                 <div
-                    class="min-h-0 w-full flex-1 touch-pan-x touch-pan-y space-y-2 overflow-auto pt-[env(safe-area-inset-top,0px)] pb-[4.5rem]"
+                    class="min-h-0 w-full flex-1 touch-pan-x touch-pan-y space-y-2 overflow-auto pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
                     data-pdf-pages
                 >
                     <p class="hidden px-4 py-10 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this PDF.</p>
-                </div>
-
-                <div
-                    class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-3 border-t border-border-light bg-[var(--tg-header-bg)] px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-                    data-pdf-zoom-bar
-                >
-                    <button type="button" class="tg-btn tg-btn--ghost min-w-11 text-lg leading-none" data-pdf-zoom-out aria-label="Zoom out">−</button>
-                    <button type="button" class="min-w-14 text-center text-sm tabular-nums text-text-secondary" data-pdf-zoom-label aria-label="Reset zoom">100%</button>
-                    <button type="button" class="tg-btn tg-btn--ghost min-w-11 text-lg leading-none" data-pdf-zoom-in aria-label="Zoom in">+</button>
                 </div>
             </div>
         @endforeach
@@ -37,7 +28,6 @@
 
         const MIN_ZOOM = 0.5;
         const MAX_ZOOM = 3;
-        const ZOOM_STEP = 0.25;
         const SHARP_RENDER_DELAY_MS = 180;
         const LAYOUT_REFLOW_DELAY_MS = 120;
 
@@ -93,9 +83,6 @@
             const url = root.dataset.pdfUrl;
             const stage = root.querySelector('[data-pdf-pages]');
             const error = root.querySelector('[data-pdf-error]');
-            const zoomIn = root.querySelector('[data-pdf-zoom-in]');
-            const zoomOut = root.querySelector('[data-pdf-zoom-out]');
-            const zoomLabel = root.querySelector('[data-pdf-zoom-label]');
 
             if (! url || ! stage) {
                 return;
@@ -113,20 +100,6 @@
 
             function measureLayoutWidth() {
                 return Math.max(stage.clientWidth || window.innerWidth || 320, 280);
-            }
-
-            function updateZoomUi() {
-                if (zoomLabel) {
-                    zoomLabel.textContent = `${Math.round(zoom * 100)}%`;
-                }
-
-                if (zoomOut) {
-                    zoomOut.disabled = zoom <= MIN_ZOOM;
-                }
-
-                if (zoomIn) {
-                    zoomIn.disabled = zoom >= MAX_ZOOM;
-                }
             }
 
             function applyLiveZoom() {
@@ -244,8 +217,6 @@
                     if (zoom !== renderedZoom) {
                         applyLiveZoom();
                         scheduleSharpRender();
-                    } else {
-                        updateZoomUi();
                     }
                 } catch (e) {
                     if (token === renderToken) {
@@ -255,10 +226,7 @@
             }
 
             function setZoom(nextZoom, { sharp = true } = {}) {
-                const clamped = clampZoom(nextZoom);
-
-                zoom = clamped;
-                updateZoomUi();
+                zoom = clampZoom(nextZoom);
                 applyLiveZoom();
 
                 if (sharp) {
@@ -268,25 +236,12 @@
 
             try {
                 pdfDoc = await pdfjsLib.getDocument({ url, withCredentials: true }).promise;
-                updateZoomUi();
                 await renderPages(1);
             } catch (e) {
                 error?.classList.remove('hidden');
 
                 return;
             }
-
-            zoomIn?.addEventListener('click', () => {
-                setZoom(zoom + ZOOM_STEP);
-            });
-
-            zoomOut?.addEventListener('click', () => {
-                setZoom(zoom - ZOOM_STEP);
-            });
-
-            zoomLabel?.addEventListener('click', () => {
-                setZoom(1);
-            });
 
             stage.addEventListener('touchstart', (event) => {
                 if (event.touches.length !== 2) {

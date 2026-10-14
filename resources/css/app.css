@@ -184,18 +184,6 @@
         width: 100%;
     }
 
-    @media (orientation: landscape) {
-        body.tg-pdf-fullscreen [data-pdf-zoom-bar] {
-            gap: 0.75rem;
-            padding-top: 0.35rem;
-            padding-bottom: max(0.35rem, env(safe-area-inset-bottom));
-        }
-
-        body.tg-pdf-fullscreen [data-pdf-pages] {
-            padding-bottom: 3.75rem;
-        }
-    }
-
     .tg-page-title {
         font-size: 1.375rem;
         font-weight: 700;
