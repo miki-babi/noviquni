@@ -1019,6 +1019,35 @@ it('tells the student when reading/writing is tapped without a matching course',
     });
 });
 
+it('opens reading/writing when the course uses Reading and writing naming', function () {
+    $course = Course::factory()->create([
+        'name' => 'Reading and writing',
+        'slug' => 'reading-and-writing',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '5553031',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(5553031, 'reading/writing', 6031))
+        ->assertOk();
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), $course->name)
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+    });
+});
+
 it('lists quiz resources for the selected gat subject course', function () {
     $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
     $user = User::factory()->student()->create([

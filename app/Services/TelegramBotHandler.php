@@ -24,6 +24,7 @@ use App\Models\Year;
 use App\Support\LearningResourceFiles;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
@@ -1011,7 +1012,7 @@ class TelegramBotHandler
     protected function openGatSubject(User $user, int|string $chatId, string $courseSlug): void
     {
         $copy = TelegramCopy::for($user);
-        $course = Course::query()->where('slug', $courseSlug)->first();
+        $course = $this->findGatSubjectCourse($courseSlug);
 
         if ($course === null) {
             $this->telegram->sendMessage($chatId, $copy->get('keyboard.subject.missing_course'), [
@@ -1031,6 +1032,75 @@ class TelegramBotHandler
         ]), [
             'reply_markup' => $this->telegram->gatSubjectKeyboard($user),
         ]);
+    }
+
+    /**
+     * Resolve a GAT subject course, treating separator variants as the same key
+     * (e.g. reading/writing ≈ Reading and writing ≈ reading-and-writing).
+     */
+    protected function findGatSubjectCourse(string $courseSlug): ?Course
+    {
+        $target = $this->normalizeGatSubjectKey($courseSlug);
+        $slugAliases = $this->gatSubjectSlugAliases($courseSlug);
+
+        $course = Course::query()
+            ->whereIn('slug', $slugAliases)
+            ->orderBy('id')
+            ->first();
+
+        if ($course !== null) {
+            return $course;
+        }
+
+        if ($target === '') {
+            return null;
+        }
+
+        $token = match ($target) {
+            'readingwriting' => 'reading',
+            default => $target,
+        };
+
+        return Course::query()
+            ->where(function (Builder $query) use ($token): void {
+                $query->where('slug', 'like', '%'.$token.'%')
+                    ->orWhere('name', 'like', '%'.$token.'%');
+            })
+            ->orderBy('id')
+            ->get()
+            ->first(function (Course $candidate) use ($target): bool {
+                return $this->normalizeGatSubjectKey($candidate->slug) === $target
+                    || $this->normalizeGatSubjectKey($candidate->name) === $target;
+            });
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function gatSubjectSlugAliases(string $courseSlug): array
+    {
+        $aliases = match ($this->normalizeGatSubjectKey($courseSlug)) {
+            'readingwriting' => [
+                'reading-writing',
+                'reading-and-writing',
+                'readingwriting',
+            ],
+            default => [$courseSlug],
+        };
+
+        return array_values(array_unique($aliases));
+    }
+
+    /**
+     * Collapse subject labels to a comparable token (punctuation / "and" / spaces ignored).
+     */
+    protected function normalizeGatSubjectKey(string $value): string
+    {
+        $value = Str::lower(trim($value));
+        $value = str_replace(['/', '\\', '_', '-', '&'], ' ', $value);
+        $value = preg_replace('/\band\b/u', ' ', $value) ?? $value;
+
+        return preg_replace('/\s+/u', '', $value) ?? $value;
     }
 
     protected function gatSubjectSelectionCacheKey(User $user): string
