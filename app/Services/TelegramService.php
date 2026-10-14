@@ -198,6 +198,12 @@ class TelegramService
                 ],
                 [
                     [
+                        'text' => $copy->get('keyboard.saved'),
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ],
+                [
+                    [
                         'text' => $copy->get('keyboard.premium'),
                         'style' => TelegramButtonStyle::Success->value,
                     ],

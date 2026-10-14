@@ -9,19 +9,17 @@ use App\Http\Controllers\Public\ResourceHubController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
-use App\Http\Controllers\Telegram\MiniApp\BrowseController;
-use App\Http\Controllers\Telegram\MiniApp\LibraryController;
 use App\Http\Controllers\Telegram\MiniApp\OpportunityController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ReferenceBooksPlayerController;
-use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
 use App\Http\Controllers\Telegram\MiniApp\ResourceFileController;
 use App\Http\Controllers\Telegram\MiniApp\SavedController;
 use App\Http\Controllers\Telegram\MiniApp\SessionController;
+use App\Http\Controllers\Telegram\MiniApp\UseBotController;
 use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -51,19 +49,20 @@ Route::prefix('tg')->name('tg.')->group(function () {
         ->name('session.diagnose');
 
     Route::middleware(['telegram.miniapp', 'throttle:60,1'])->group(function () {
-        Route::get('/', App\Http\Controllers\Telegram\MiniApp\HomeController::class)->name('home');
-        Route::get('browse', [BrowseController::class, 'show'])->name('browse');
-        Route::get('library', [LibraryController::class, 'show'])->name('library');
-        Route::get('library/{hub}', [LibraryController::class, 'hub'])
+        // Mini App is player-only; hub/profile/home pages send students back to the bot menu.
+        Route::get('/', UseBotController::class)->name('home');
+        Route::get('browse', UseBotController::class)->name('browse');
+        Route::get('library', UseBotController::class)->name('library');
+        Route::get('library/{hub}', UseBotController::class)
             ->whereIn('hub', ResourceHub::miniAppRouteSlugs())
             ->name('library.hub');
-        Route::get('saved', [SavedController::class, 'show'])->name('saved');
+        Route::get('saved', UseBotController::class)->name('saved');
         Route::post('saved/{resource:slug}', [SavedController::class, 'toggle'])->name('saved.toggle');
-        Route::get('opportunities/{opportunity:slug}', [OpportunityController::class, 'show'])->name('opportunities.show');
+        Route::get('opportunities/{opportunity:slug}', UseBotController::class)->name('opportunities.show');
         Route::post('opportunities/{opportunity:slug}/save', [OpportunityController::class, 'toggle'])->name('saved.opportunities.toggle');
         Route::post('opportunities/{opportunity:slug}/guidance', [OpportunityController::class, 'requestGuidance'])->name('opportunities.guidance');
-        Route::get('courses/{course:slug}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'show'])->name('courses.show');
-        Route::get('courses/{course:slug}/{hub}', [App\Http\Controllers\Telegram\MiniApp\CourseController::class, 'hub'])
+        Route::get('courses/{course:slug}', UseBotController::class)->name('courses.show');
+        Route::get('courses/{course:slug}/{hub}', UseBotController::class)
             ->whereIn('hub', ResourceHub::miniAppRouteSlugs())
             ->name('courses.hub');
         Route::get('resources/{resource:slug}', [App\Http\Controllers\Telegram\MiniApp\ResourceController::class, 'show'])->name('resources.show');
@@ -74,7 +73,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('play/quiz/{resource:slug}', QuizPlayerController::class)->name('play.quiz');
         Route::post('play/quiz/{resource:slug}/result', QuizResultController::class)->name('play.quiz.result');
         Route::get('play/reference-books/{resource:slug}', ReferenceBooksPlayerController::class)->name('play.reference-books');
-        Route::get('profile', [ProfileController::class, 'show'])->name('profile');
+        Route::get('profile', UseBotController::class)->name('profile');
         Route::get('profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::post('profile/academic', [ProfileController::class, 'updateAcademic'])->name('profile.academic');
         Route::post('profile/notifications', [ProfileController::class, 'toggleNotifications'])->name('profile.notifications');
@@ -82,7 +81,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('profile/locale', [ProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::post('profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
         Route::post('profile/referral-share', ReferralShareController::class)->name('profile.referral-share');
-        Route::get('premium', [PremiumController::class, 'show'])->name('premium');
+        Route::get('premium', UseBotController::class)->name('premium');
     });
 });
 

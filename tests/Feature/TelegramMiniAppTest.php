@@ -41,13 +41,15 @@ it('builds the GAT main keyboard for all students', function () {
         ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('maths')
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('reading/writing')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('unlock premium')
-        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('contact us')
-        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.3.1.text'))->toBe('share and reward')
-        ->and(data_get($keyboard, 'keyboard.3.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.3.1.style'))->toBeNull();
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('🔖 Quick saved')
+        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('unlock premium')
+        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('contact us')
+        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('share and reward')
+        ->and(data_get($keyboard, 'keyboard.4.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.4.1.style'))->toBeNull();
 });
 
 it('builds the GAT subject reply keyboard', function () {
@@ -102,35 +104,14 @@ it('shows browse courses for an authenticated student', function () {
     $this->actingAs($user)
         ->get(route('tg.browse'))
         ->assertOk()
-        ->assertSee('Hello Abebe')
-        ->assertSee('Welcome back!')
-        ->assertSee('Physics')
-        ->assertSee('My courses')
-        ->assertSee('1 resources')
-        ->assertSee('+ Add another course')
-        ->assertDontSee('Continue')
-        ->assertDontSee('Resume →')
-        ->assertDontSee('Week-1 notes')
-        ->assertSee('data-tg-tabbar', false)
-        ->assertSee('Courses')
-        ->assertSee('Resources')
-        ->assertSee('Profile')
+        ->assertSee('Use the Telegram menu to continue')
+        ->assertDontSee('data-tg-tabbar', false)
         ->assertDontSee('data-tg-menu-button', false)
-        ->assertDontSee('>Study<', false)
-        ->assertDontSee('>Account<', false)
-        ->assertDontSee('>Other<', false)
-        ->assertDontSee('0/1')
-        ->assertDontSee('1/2')
-        ->assertDontSee('Next: Week-1 notes')
-        ->assertDontSee('grid-cols-4', false);
-
-    $html = $this->actingAs($user)->get(route('tg.browse'))->getContent();
-    expect($html)->not->toMatch('/tg-page-title[^>]*>[^<]*<\/h1>\s*<p[^>]*tg-hint/')
-        ->and($html)->toContain('class="dark"')
-        ->and($html)->toContain('study-card--lime');
+        ->assertDontSee('Physics')
+        ->assertDontSee('My courses');
 });
 
-it('persists theme preference and renders light class', function () {
+it('persists theme preference and renders light class on profile edit', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -144,14 +125,13 @@ it('persists theme preference and renders light class', function () {
     expect($user->fresh()->theme)->toBe('light');
 
     $this->actingAs($user)
-        ->get(route('tg.profile'))
+        ->get(route('tg.profile.edit'))
         ->assertOk()
         ->assertSee('class="light"', false)
-        ->assertSee('data-tg-tabbar', false)
-        ->assertSee('Theme');
+        ->assertDontSee('data-tg-tabbar', false);
 });
 
-it('shows saved link on resources page', function () {
+it('sends hub routes to the bot-only mini app page', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -160,115 +140,37 @@ it('shows saved link on resources page', function () {
     $this->actingAs($user)
         ->get(route('tg.library'))
         ->assertOk()
-        ->assertSee('Quick saved')
-        ->assertSee(route('tg.saved'), false);
-});
-
-it('shows course hubs for enrolled students', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create([
-        'stream_id' => $stream->id,
-        'name' => 'Mathematics',
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
-        'is_active' => true,
-    ]);
-    $user->courses()->sync([$course->id]);
-
-    LearningResource::factory()->published()->notes()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Chapter notes',
-    ]);
-
-    $this->actingAs($user)
-        ->get(route('tg.browse'))
-        ->assertOk()
-        ->assertSee('Mathematics')
-        ->assertSee('1 resources');
+        ->assertSee('Use the Telegram menu to continue');
 
     $this->actingAs($user)
         ->get(route('tg.home'))
-        ->assertRedirect(route('tg.browse'));
-});
-
-it('shows profile course and saved-file bot deep links', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    $course = Course::factory()->create([
-        'stream_id' => $stream->id,
-        'name' => 'Physics',
-        'slug' => 'physics',
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
-        'is_active' => true,
-        'name' => 'Abebe Kebede',
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
-    $user->courses()->sync([$course->id]);
-
-    $resource = LearningResource::factory()->published()->notes()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Week-1 notes',
-    ]);
-
-    Bookmark::query()->create([
-        'user_id' => $user->id,
-        'bookmarkable_type' => $resource->getMorphClass(),
-        'bookmarkable_id' => $resource->id,
-    ]);
-
-    $deepLinks = app(TelegramDeepLink::class);
+        ->assertOk()
+        ->assertSee('Use the Telegram menu to continue');
 
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('Physics')
-        ->assertSee($deepLinks->forCourse('physics'), false)
-        ->assertSee('Week-1 notes')
-        ->assertSee($resource->miniAppUrl(), false)
-        ->assertSee('?start=course_physics', false)
-        ->assertDontSee('?start=resource_'.$resource->id, false)
-        ->assertSee('data-tg-bot-link', false)
-        ->assertSee('data-tg-bot-confirm', false)
-        ->assertSee('Open in bot?', false)
-        ->assertSee('Open Physics in Telegram?', false)
-        ->assertSee('study-card--lime', false)
-        ->assertSee('tgOpenBotLink', false)
-        ->assertSee('x-data', false)
-        ->assertSee('$store.botConfirm.ask', false);
+        ->assertSee('Use the Telegram menu to continue');
 });
 
-it('shows profile and premium screens', function () {
+it('routes profile and premium hub pages to the bot-only screen', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'name' => 'Abebe Kebede',
         'telegram_username' => 'abebe',
-        'telegram_photo_url' => 'https://t.me/i/userpic/320/abebe.jpg',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('ABEBE KEBEDE')
-        ->assertSee('@abebe')
-        ->assertSee('https://t.me/i/userpic/320/abebe.jpg', false)
-        ->assertSee('Edit study profile')
-        ->assertSee(route('tg.profile.edit'), false)
-        ->assertSee('Premium')
-        ->assertSee(route('tg.premium'), false);
+        ->assertSee('Use the Telegram menu to continue')
+        ->assertDontSee('ABEBE KEBEDE');
 
     $this->actingAs($user)
         ->get(route('tg.premium'))
         ->assertOk()
-        ->assertSee('Premium');
+        ->assertSee('Use the Telegram menu to continue');
 });
 
 it('shows the study profile edit form', function () {

@@ -8,7 +8,7 @@
     'isBookmarked' => false,
     'showBookmark' => true,
     'showBotFooter' => false,
-    'showMenu' => true,
+    'showMenu' => false,
     'menuIcon' => 'hamburger',
     'activeNav' => null,
     'user' => null,

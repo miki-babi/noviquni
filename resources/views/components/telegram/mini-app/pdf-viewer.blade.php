@@ -19,7 +19,7 @@
                         class="h-9 w-9 animate-spin rounded-full border-2 border-border-light border-t-text-primary"
                         aria-hidden="true"
                     ></div>
-                    <p class="text-sm text-text-secondary" data-pdf-loader-label>Loading PDF…</p>
+                    <p class="text-sm text-text-secondary" data-pdf-loader-label>Loading content…</p>
                     <p class="hidden text-xs tabular-nums text-text-secondary" data-pdf-loader-progress></p>
                 </div>
 
@@ -27,7 +27,7 @@
                     class="min-h-0 w-full flex-1 touch-pan-x touch-pan-y space-y-2 overflow-auto pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
                     data-pdf-pages
                 >
-                    <p class="hidden px-4 py-10 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this PDF.</p>
+                    <p class="hidden px-4 py-10 text-center text-sm text-text-secondary" data-pdf-error>Unable to load this content.</p>
                 </div>
             </div>
         @endforeach
@@ -40,8 +40,9 @@
 
         const MIN_ZOOM = 0.5;
         const MAX_ZOOM = 3;
-        const SHARP_RENDER_DELAY_MS = 180;
+        const SHARP_RENDER_DELAY_MS = 80;
         const LAYOUT_REFLOW_DELAY_MS = 120;
+        const MAX_CANVAS_EDGE = 4096;
 
         function launchPdfFullscreen() {
             document.documentElement.classList.add('tg-pdf-fullscreen');
@@ -207,8 +208,8 @@
                 }
 
                 try {
-                    const width = baseWidth * zoomAtRender;
-                    const outputScale = Math.min(window.devicePixelRatio || 1, 3);
+                    const cssWidthTarget = baseWidth * zoomAtRender;
+                    const deviceRatio = Math.min(window.devicePixelRatio || 1, 3);
                     const nextCanvases = [];
                     const totalPages = pdfDoc.numPages;
 
@@ -226,32 +227,41 @@
 
                         const page = await pdfDoc.getPage(pageNumber);
                         const viewportBase = page.getViewport({ scale: 1 });
-                        const scale = width / viewportBase.width;
-                        const viewport = page.getViewport({ scale });
+                        const cssScale = cssWidthTarget / viewportBase.width;
+                        let pixelRatio = deviceRatio;
+                        let viewport = page.getViewport({ scale: cssScale * pixelRatio });
+
+                        // Keep zoomed pages sharp without blowing past GPU canvas limits.
+                        const longestEdge = Math.max(viewport.width, viewport.height);
+
+                        if (longestEdge > MAX_CANVAS_EDGE) {
+                            pixelRatio = Math.max(1, pixelRatio * (MAX_CANVAS_EDGE / longestEdge));
+                            viewport = page.getViewport({ scale: cssScale * pixelRatio });
+                        }
+
                         const canvas = document.createElement('canvas');
-                        const context = canvas.getContext('2d');
-                        const cssWidth = Math.floor(viewport.width);
-                        const cssHeight = Math.floor(viewport.height);
+                        const context = canvas.getContext('2d', { alpha: false });
+                        const cssWidth = Math.floor(viewport.width / pixelRatio);
+                        const cssHeight = Math.floor(viewport.height / pixelRatio);
 
                         canvas.className = 'mx-auto block bg-white shadow-sm';
-                        canvas.width = Math.floor(viewport.width * outputScale);
-                        canvas.height = Math.floor(viewport.height * outputScale);
+                        canvas.width = Math.floor(viewport.width);
+                        canvas.height = Math.floor(viewport.height);
                         canvas.style.width = `${cssWidth}px`;
                         canvas.style.height = `${cssHeight}px`;
                         canvas.dataset.baseWidth = String(cssWidth);
                         canvas.dataset.baseHeight = String(cssHeight);
                         canvas.setAttribute('data-pdf-canvas', String(pageNumber));
 
-                        const renderContext = {
-                            canvasContext: context,
-                            viewport,
-                        };
-
-                        if (outputScale !== 1) {
-                            renderContext.transform = [outputScale, 0, 0, outputScale, 0, 0];
+                        if (context) {
+                            context.imageSmoothingEnabled = false;
                         }
 
-                        await page.render(renderContext).promise;
+                        await page.render({
+                            canvasContext: context,
+                            viewport,
+                            intent: 'display',
+                        }).promise;
 
                         if (token !== renderToken) {
                             return;
@@ -293,7 +303,7 @@
             }
 
             setLoaderVisible(true);
-            setLoaderStatus('Loading PDF…');
+            setLoaderStatus('Loading content…');
 
             try {
                 const loadingTask = pdfjsLib.getDocument({ url, withCredentials: true });
@@ -304,7 +314,7 @@
                     }
 
                     const percent = Math.min(100, Math.round((loaded / total) * 100));
-                    setLoaderStatus('Downloading PDF…', `${percent}%`);
+                    setLoaderStatus('Loading content…', `${percent}%`);
                 };
 
                 pdfDoc = await loadingTask.promise;
@@ -342,7 +352,16 @@
                 }
 
                 pinchStartDistance = 0;
-                scheduleSharpRender();
+
+                // Re-render at the final zoom immediately so text stays crisp.
+                if (Math.abs(zoom - renderedZoom) >= 0.02) {
+                    if (sharpTimer !== null) {
+                        window.clearTimeout(sharpTimer);
+                        sharpTimer = null;
+                    }
+
+                    renderPages(zoom, { blocking: false });
+                }
             };
 
             stage.addEventListener('touchend', endPinch, { passive: true });

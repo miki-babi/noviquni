@@ -36,6 +36,7 @@ return [
         'premium_legacy' => '⭐ Premium',
     ],
     'mini_app' => [
+        'use_bot' => 'Use the Telegram menu to continue. Opening study content only opens the player.',
         'open_prompt' => [
             'courses' => 'Open Courses in the study app:',
             'resources' => 'Open Resources in the study app:',
@@ -62,7 +63,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · unlock premium · contact us · share and reward",
+        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · Quick saved · unlock premium · contact us · share and reward",
     ],
     'refer' => [
         'start_cta' => 'Start now',

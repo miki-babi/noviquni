@@ -885,14 +885,14 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
-            'continue_exam' => $this->sendMiniAppOpen($user, $chatId, 'continue_exam', 'tg.browse'),
+            'continue_exam' => $this->showContinue($user, $chatId),
             'maths' => $this->openGatSubject($user, $chatId, 'maths'),
             'reading_writing' => $this->openGatSubject($user, $chatId, 'reading-writing'),
             'contact' => $this->showContactUs($user, $chatId),
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
             'saved' => $this->showSaved($user, $chatId),
-            'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile', 'tg.profile'),
+            'profile' => $this->sendMiniAppOpen($user, $chatId, 'profile_edit', 'tg.profile.edit'),
             'continue' => $this->showContinue($user, $chatId),
             'premium' => $this->showPremium($user, $chatId),
             'refer' => $this->showReferrals($user, $chatId),

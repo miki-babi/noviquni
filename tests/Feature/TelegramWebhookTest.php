@@ -197,9 +197,10 @@ it('restores the main reply keyboard when Back is tapped from courses', function
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
             && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'unlock premium'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'contact us'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'unlock premium'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'contact us'
+            && data_get($data, 'reply_markup.keyboard.4.1.text') === 'share and reward';
     });
 });
 
@@ -601,9 +602,10 @@ it('switches language and refreshes keyboard labels', function () {
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ፈተና ቀጥል'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === 'ሂሳብ'
             && data_get($data, 'reply_markup.keyboard.1.1.text') === 'ንባብ/ጽሁፍ'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'ፕሪሚየም ክፈት'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'ያግኙን'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'አጋራ እና ሽልማት';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'ፕሪሚየም ክፈት'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'ያግኙን'
+            && data_get($data, 'reply_markup.keyboard.4.1.text') === 'አጋራ እና ሽልማት';
     });
 });
 
