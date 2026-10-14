@@ -160,12 +160,11 @@ it('publishes a learning resource through the telegram wizard', function () {
     $asset = TelegramFileAsset::query()->where('file_unique_id', 'AgADpublish-unique-1')->firstOrFail();
 
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9202, $telegramId, 'admin:publish:'.$asset->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9203, $telegramId, 'admin:pub:stream:'.$stream->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9204, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9205, $telegramId, 'admin:pub:type:notes'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9206, $telegramId, 'admin:pub:title:filename'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9207, $telegramId, 'admin:pub:premium:0'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9208, $telegramId, 'admin:pub:confirm'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9203, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9204, $telegramId, 'admin:pub:type:notes'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9205, $telegramId, 'admin:pub:title:filename'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9206, $telegramId, 'admin:pub:premium:0'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9207, $telegramId, 'admin:pub:confirm'))->assertOk();
 
     $resource = LearningResource::query()->where('title', 'calc-notes')->first();
 
@@ -277,11 +276,10 @@ it('bulk publishes multiple vault files through one shared wizard', function () 
     ))->assertOk();
 
     $this->postJson('/telegram/webhook', adminCallbackWebhook(9313, $telegramId, 'admin:publish:bulk'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9314, $telegramId, 'admin:pub:stream:'.$stream->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9315, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9316, $telegramId, 'admin:pub:type:module'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9317, $telegramId, 'admin:pub:premium:1'))->assertOk();
-    $this->postJson('/telegram/webhook', adminCallbackWebhook(9318, $telegramId, 'admin:pub:confirm'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9314, $telegramId, 'admin:pub:course:'.$course->id))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9315, $telegramId, 'admin:pub:type:module'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9316, $telegramId, 'admin:pub:premium:1'))->assertOk();
+    $this->postJson('/telegram/webhook', adminCallbackWebhook(9317, $telegramId, 'admin:pub:confirm'))->assertOk();
 
     $resources = LearningResource::query()->orderBy('title')->get();
 

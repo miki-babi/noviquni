@@ -33,29 +33,8 @@ use Illuminate\Support\Str;
 class LearningForm
 {
     /**
-     * Clear dependent fields only when the stream actually changes, so query-param
-     * prefill of course / study files is not wiped on first hydration.
-     */
-    protected static function onStreamUpdated(): Closure
-    {
-        return function (Set $set, mixed $state, mixed $old): void {
-            if ((string) ($state ?? '') === (string) ($old ?? '')) {
-                return;
-            }
-
-            if (! filled($old)) {
-                return;
-            }
-
-            $set('course_id', null);
-            $set('existing_files', null);
-            $set('module_id', null);
-        };
-    }
-
-    /**
-     * Sync stream from the course, but only clear library files when the course
-     * changes from a previously selected value (not on initial prefill).
+     * Clear library files when the course changes from a previously selected
+     * value (not on initial prefill).
      */
     protected static function onCourseUpdated(): Closure
     {
@@ -67,16 +46,6 @@ class LearningForm
             if (filled($old)) {
                 $set('existing_files', null);
                 $set('module_id', null);
-            }
-
-            if (! filled($state)) {
-                return;
-            }
-
-            $streamId = Course::query()->whereKey($state)->value('stream_id');
-
-            if ($streamId !== null) {
-                $set('stream_id', $streamId);
             }
         };
     }
@@ -116,17 +85,9 @@ class LearningForm
                     ->disabled()
                     ->dehydrated()
                     ->visible(fn (?LearningResource $record): bool => filled($record?->generation_kind)),
-                Select::make('stream_id')
-                    ->relationship('stream', 'name')
-                    ->live()
-                    ->afterStateUpdated(static::onStreamUpdated())
-                    ->searchable()
-                    ->preload()
-                    ->helperText('Optional. Leave blank to browse all courses; stream is set from the selected course.'),
                 Select::make('course_id')
                     ->label('Course')
-                    ->options(fn (Get $get): array => Course::query()
-                        ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
+                    ->options(fn (): array => Course::query()
                         ->orderBy('name')
                         ->pluck('name', 'id')
                         ->all())
@@ -206,17 +167,9 @@ class LearningForm
                         ->columnSpanFull(),
                     Textarea::make('description')->rows(3)->columnSpanFull(),
                     TagsInput::make('topics')->columnSpanFull(),
-                    Select::make('stream_id')
-                        ->relationship('stream', 'name')
-                        ->live()
-                        ->afterStateUpdated(static::onStreamUpdated())
-                        ->searchable()
-                        ->preload()
-                        ->helperText('Optional. Leave blank to browse all local courses.'),
                     Select::make('course_id')
-                        ->label('Local course')
-                        ->options(fn (Get $get): array => Course::query()
-                            ->when($get('stream_id'), fn ($q, $streamId) => $q->where('stream_id', $streamId))
+                        ->label('Course')
+                        ->options(fn (): array => Course::query()
                             ->orderBy('name')
                             ->pluck('name', 'id')
                             ->all())

@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Learnings\Pages;
 use App\Filament\Resources\Learnings\LearningResource;
 use App\Filament\Resources\Learnings\Schemas\LearningForm;
 use App\Models\Course;
-use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Support\LearningResourceFiles;
 use Filament\Resources\Pages\CreateRecord;
@@ -21,7 +20,6 @@ class CreateLearning extends CreateRecord
     /**
      * @param  array{
      *     course_id?: int|string|null,
-     *     stream_id?: int|string|null,
      *     telegram_file_ids?: list<string>|string|null,
      *     existing_files?: list<string>|string|null,
      *     title?: string|null,
@@ -33,10 +31,6 @@ class CreateLearning extends CreateRecord
 
         if (filled($parameters['course_id'] ?? null)) {
             $query['course_id'] = $parameters['course_id'];
-        }
-
-        if (filled($parameters['stream_id'] ?? null)) {
-            $query['stream_id'] = $parameters['stream_id'];
         }
 
         $fileIds = $parameters['telegram_file_ids'] ?? null;
@@ -91,22 +85,12 @@ class CreateLearning extends CreateRecord
         $data = [];
 
         $courseId = request()->query('course_id');
-        $course = null;
 
         if (filled($courseId) && is_numeric($courseId)) {
             $course = Course::query()->find((int) $courseId);
 
             if ($course !== null) {
                 $data['course_id'] = $course->id;
-                $data['stream_id'] = $course->stream_id;
-            }
-        }
-
-        if ($course === null) {
-            $streamId = request()->query('stream_id');
-
-            if (filled($streamId) && is_numeric($streamId) && Stream::query()->whereKey((int) $streamId)->exists()) {
-                $data['stream_id'] = (int) $streamId;
             }
         }
 
@@ -187,9 +171,31 @@ class CreateLearning extends CreateRecord
         }
 
         $data = LearningResourceFiles::normalizeFormFiles($data);
+        $data = $this->syncStreamFromCourse($data);
 
         $data['generation_kind'] = null;
         $data['content'] = null;
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function syncStreamFromCourse(array $data): array
+    {
+        $courseId = $data['course_id'] ?? null;
+
+        if (! filled($courseId)) {
+            return $data;
+        }
+
+        $streamId = Course::query()->whereKey($courseId)->value('stream_id');
+
+        if ($streamId !== null) {
+            $data['stream_id'] = $streamId;
+        }
 
         return $data;
     }

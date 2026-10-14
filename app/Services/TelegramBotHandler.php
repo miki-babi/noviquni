@@ -1887,7 +1887,7 @@ class TelegramBotHandler
 
         $text = '<b>Stored '.$assets->count().' files</b>'."\n"
             .$lines."\n\n"
-            .'Bulk publish with the same stream, course, type, and premium setting?';
+            .'Bulk publish with the same course, type, and premium setting?';
 
         $payload = [
             'reply_markup' => $this->telegram->inlineKeyboard([
@@ -2080,24 +2080,6 @@ class TelegramBotHandler
             return 'Publish session expired. Send the file again.';
         }
 
-        if (str_starts_with($data, 'admin:pub:stream:')) {
-            $streamId = (int) Str::after($data, 'admin:pub:stream:');
-            $stream = Stream::query()->active()->find($streamId);
-
-            if ($stream === null) {
-                return 'That stream is unavailable.';
-            }
-
-            $session['stream_id'] = $stream->id;
-            $session['course_id'] = null;
-            $session['course_page'] = 1;
-            $session['step'] = 'course';
-            $this->putAdminPublishSession($telegramId, $session);
-            $this->askPublishCourse($chatId, $session, $messageId);
-
-            return null;
-        }
-
         if (str_starts_with($data, 'admin:pub:page:')) {
             $page = max(1, (int) Str::after($data, 'admin:pub:page:'));
             $session['course_page'] = $page;
@@ -2109,10 +2091,7 @@ class TelegramBotHandler
 
         if (str_starts_with($data, 'admin:pub:course:')) {
             $courseId = (int) Str::after($data, 'admin:pub:course:');
-            $course = Course::query()
-                ->active()
-                ->where('stream_id', $session['stream_id'] ?? 0)
-                ->find($courseId);
+            $course = Course::query()->active()->find($courseId);
 
             if ($course === null) {
                 return 'That course is unavailable.';
@@ -2203,8 +2182,7 @@ class TelegramBotHandler
             'asset_id' => $asset->id,
             'asset_ids' => [$asset->id],
             'bulk' => false,
-            'step' => 'stream',
-            'stream_id' => null,
+            'step' => 'course',
             'course_id' => null,
             'course_page' => 1,
             'type' => null,
@@ -2213,7 +2191,7 @@ class TelegramBotHandler
         ];
 
         $this->putAdminPublishSession($telegramId, $session);
-        $this->askPublishStream($chatId, $messageId);
+        $this->askPublishCourse($chatId, $session, $messageId);
 
         return null;
     }
@@ -2244,8 +2222,7 @@ class TelegramBotHandler
             'asset_id' => $assetIds[0],
             'asset_ids' => $assetIds,
             'bulk' => true,
-            'step' => 'stream',
-            'stream_id' => null,
+            'step' => 'course',
             'course_id' => null,
             'course_page' => 1,
             'type' => null,
@@ -2254,7 +2231,7 @@ class TelegramBotHandler
         ];
 
         $this->putAdminPublishSession($telegramId, $session);
-        $this->askPublishStream($chatId, $messageId);
+        $this->askPublishCourse($chatId, $session, $messageId);
 
         return null;
     }
@@ -2287,33 +2264,6 @@ class TelegramBotHandler
         return null;
     }
 
-    protected function askPublishStream(int|string $chatId, ?int $messageId = null): void
-    {
-        $streams = Stream::query()->active()->orderBy('name')->get();
-
-        if ($streams->isEmpty()) {
-            $this->telegram->replyOrEdit($chatId, 'No streams are available.', [
-                'reply_markup' => $this->telegram->inlineKeyboard([
-                    [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
-                ]),
-            ], $messageId);
-
-            return;
-        }
-
-        $rows = $streams->map(fn (Stream $stream) => [[
-            'text' => $stream->name,
-            'callback_data' => 'admin:pub:stream:'.$stream->id,
-            'style' => TelegramButtonStyle::Primary->value,
-        ]])->values()->all();
-
-        $rows[] = [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']];
-
-        $this->telegram->replyOrEdit($chatId, 'Pick a stream for this resource:', [
-            'reply_markup' => $this->telegram->inlineKeyboard($rows),
-        ], $messageId);
-    }
-
     /**
      * @param  array<string, mixed>  $session
      */
@@ -2321,13 +2271,12 @@ class TelegramBotHandler
     {
         $perPage = 8;
         $page = max(1, (int) ($session['course_page'] ?? 1));
-        $streamId = (int) ($session['stream_id'] ?? 0);
 
-        $query = Course::query()->active()->where('stream_id', $streamId)->orderBy('name');
+        $query = Course::query()->active()->orderBy('name');
         $total = (clone $query)->count();
 
         if ($total === 0) {
-            $this->telegram->replyOrEdit($chatId, 'No courses in that stream.', [
+            $this->telegram->replyOrEdit($chatId, 'No courses are available.', [
                 'reply_markup' => $this->telegram->inlineKeyboard([
                     [['text' => 'Cancel', 'callback_data' => 'admin:pub:cancel']],
                 ]),
@@ -2427,7 +2376,6 @@ class TelegramBotHandler
     protected function askPublishConfirm(int|string $chatId, array $session, ?int $messageId = null): void
     {
         $course = Course::query()->find($session['course_id'] ?? 0);
-        $stream = Stream::query()->find($session['stream_id'] ?? 0);
         $type = ResourceType::tryFrom((string) ($session['type'] ?? ''));
         $assetIds = $this->adminPublishAssetIds($session);
         $assets = TelegramFileAsset::query()
@@ -2450,7 +2398,6 @@ class TelegramBotHandler
 
             $summary = '<b>Publish '.$assets->count().' resources?</b>'."\n"
                 .'Type: '.e($type?->label() ?? '-')."\n"
-                .'Stream: '.e($stream?->name ?? '-')."\n"
                 .'Course: '.e($course?->name ?? '-')."\n"
                 .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
                 .'Titles (from filenames):'."\n"
@@ -2461,7 +2408,6 @@ class TelegramBotHandler
             $summary = '<b>Publish resource?</b>'."\n"
                 .'Title: '.e((string) ($session['title'] ?? ''))."\n"
                 .'Type: '.e($type?->label() ?? '-')."\n"
-                .'Stream: '.e($stream?->name ?? '-')."\n"
                 .'Course: '.e($course?->name ?? '-')."\n"
                 .'Premium: '.(($session['is_premium'] ?? false) ? 'Yes' : 'No')."\n"
                 .'File: '.e($asset?->file_name ?? $asset?->file_id ?? '-');

@@ -13,7 +13,7 @@ use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
 
-it('prefills course and stream from course_id query', function () {
+it('prefills course from course_id query', function () {
     $admin = User::factory()->admin()->create();
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
@@ -27,7 +27,6 @@ it('prefills course and stream from course_id query', function () {
         ->assertOk()
         ->assertSchemaStateSet([
             'course_id' => $course->id,
-            'stream_id' => $stream->id,
         ]);
 });
 
@@ -76,7 +75,6 @@ it('prefills course library files from existing_files query', function () {
         ->assertOk()
         ->assertSchemaStateSet([
             'course_id' => $course->id,
-            'stream_id' => $stream->id,
             'file_source' => 'existing',
             'file_mode' => 'single',
             'existing_files' => [$path],
@@ -100,12 +98,10 @@ it('keeps prefilled study files when course is re-hydrated to the same value', f
 
     Livewire::withQueryParams([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
         'existing_files' => $path,
     ])
         ->test(CreateLearning::class)
         ->set('data.course_id', $course->id)
-        ->set('data.stream_id', $stream->id)
         ->assertSchemaStateSet([
             'course_id' => $course->id,
             'file_source' => 'existing',

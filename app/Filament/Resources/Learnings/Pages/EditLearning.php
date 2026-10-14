@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Learnings\Pages;
 
 use App\Filament\Resources\Learnings\LearningResource;
 use App\Filament\Resources\TelegramFileAssets\TelegramFileAssetResource;
+use App\Models\Course;
 use App\Support\LearningResourceFiles;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -38,6 +39,18 @@ class EditLearning extends EditRecord
             $data['content'] = is_array($decoded) ? $decoded : null;
         }
 
-        return LearningResourceFiles::normalizeFormFiles($data);
+        $data = LearningResourceFiles::normalizeFormFiles($data);
+
+        $courseId = $data['course_id'] ?? null;
+
+        if (filled($courseId)) {
+            $streamId = Course::query()->whereKey($courseId)->value('stream_id');
+
+            if ($streamId !== null) {
+                $data['stream_id'] = $streamId;
+            }
+        }
+
+        return $data;
     }
 }

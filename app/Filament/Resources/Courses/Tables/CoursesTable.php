@@ -33,7 +33,6 @@ class CoursesTable
                     ->icon(Heroicon::OutlinedDocumentPlus)
                     ->url(fn (Course $record): string => CreateLearning::getCreateUrl([
                         'course_id' => $record->id,
-                        'stream_id' => $record->stream_id,
                     ])),
                 EditAction::make(),
             ])

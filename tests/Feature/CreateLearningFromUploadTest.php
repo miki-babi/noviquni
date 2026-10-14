@@ -36,7 +36,6 @@ it('creates a learning resource from a single uploaded file', function () {
             'slug' => 'week-1-lecture-notes',
             'description' => 'Uploaded short notes for week 1.',
             'topics' => ['anthropology', 'week-1'],
-            'stream_id' => $stream->id,
             'course_id' => $course->id,
             'sort_order' => 1,
             'is_premium' => false,
@@ -58,6 +57,7 @@ it('creates a learning resource from a single uploaded file', function () {
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->content)->toBeNull()
         ->and($resource->course_id)->toBe($course->id)
+        ->and($resource->stream_id)->toBe($stream->id)
         ->and($resource->is_premium)->toBeFalse()
         ->and($resource->files)->toBeArray()
         ->and($resource->files)->toHaveCount(1)
@@ -91,7 +91,6 @@ it('creates a learning resource from multiple uploaded files', function () {
             'slug' => 'past-exam-pack',
             'description' => 'Midterm and final samples.',
             'topics' => ['exams'],
-            'stream_id' => $stream->id,
             'course_id' => $course->id,
             'sort_order' => 0,
             'is_premium' => true,
@@ -144,7 +143,6 @@ it('creates a learning resource from an existing course library file', function 
             'slug' => 'shared-notes-resource',
             'description' => 'Attached from the course library.',
             'topics' => ['shared'],
-            'stream_id' => $stream->id,
             'course_id' => $course->id,
             'sort_order' => 0,
             'is_premium' => false,
