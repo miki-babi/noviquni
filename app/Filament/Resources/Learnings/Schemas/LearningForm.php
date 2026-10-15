@@ -725,7 +725,21 @@ class LearningForm
                 'image/gif',
             ])
             ->resizableImages()
-            ->preventFileAttachmentPathTampering(fn (?LearningResource $record): bool => $record !== null)
+            ->preventFileAttachmentPathTampering(
+                fn (?LearningResource $record): bool => $record !== null,
+                allowFilePathUsing: function (string $file, ?LearningResource $record): bool {
+                    if ($record === null) {
+                        return false;
+                    }
+
+                    $originalIds = StudyRichText::attachmentIdsInContent(
+                        $record->getOriginal('content') ?? $record->content,
+                    );
+
+                    return in_array($file, $originalIds, true)
+                        || StudyRichText::isStoredAttachmentPath($file, $record->course_id);
+                },
+            )
             ->afterStateHydrated(function (RichEditor $component, mixed $state): void {
                 if (is_array($state) && ($state['type'] ?? null) === 'doc') {
                     return;

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
+use Illuminate\Support\Facades\Storage;
 use Throwable;
 
 class StudyRichText
@@ -14,6 +15,105 @@ class StudyRichText
         $courseSegment = filled($courseId) ? (string) $courseId : 'general';
 
         return LearningResourceFiles::DirectoryPrefix.'/quiz-content/'.$courseSegment;
+    }
+
+    /**
+     * Collect TipTap image attachment ids nested under learning resource content JSON.
+     *
+     * @return list<string>
+     */
+    public static function attachmentIdsInContent(mixed $content): array
+    {
+        if (! is_array($content)) {
+            return [];
+        }
+
+        $payload = is_array($content['payload'] ?? null) ? $content['payload'] : $content;
+        $questions = is_array($payload['questions'] ?? null) ? $payload['questions'] : [];
+        $ids = [];
+
+        foreach ($questions as $question) {
+            if (! is_array($question)) {
+                continue;
+            }
+
+            static::collectAttachmentIds($question['question'] ?? null, $ids);
+
+            $options = is_array($question['options'] ?? null) ? $question['options'] : [];
+
+            foreach ($options as $option) {
+                if (is_array($option) && array_key_exists('body', $option)) {
+                    static::collectAttachmentIds($option['body'], $ids);
+
+                    continue;
+                }
+
+                static::collectAttachmentIds($option, $ids);
+            }
+
+            static::collectAttachmentIds($question['explanation'] ?? null, $ids);
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Whether a path is a stored quiz-content attachment for the given course (or general).
+     */
+    public static function isStoredAttachmentPath(string $path, int|string|null $courseId): bool
+    {
+        if ($path === '' || str_contains($path, '..') || str_starts_with($path, '/') || str_contains($path, '\\')) {
+            return false;
+        }
+
+        $prefix = LearningResourceFiles::DirectoryPrefix.'/quiz-content/';
+
+        if (! str_starts_with($path, $prefix)) {
+            return false;
+        }
+
+        $remainder = substr($path, strlen($prefix));
+        $segment = strstr($remainder, '/', true);
+
+        if ($segment === false || $segment === '') {
+            return false;
+        }
+
+        $allowedSegments = ['general'];
+
+        if (filled($courseId)) {
+            $allowedSegments[] = (string) $courseId;
+        }
+
+        if (! in_array($segment, $allowedSegments, true)) {
+            return false;
+        }
+
+        return Storage::disk(self::AttachmentsDisk)->exists($path);
+    }
+
+    /**
+     * @param  list<string>  $ids
+     */
+    protected static function collectAttachmentIds(mixed $value, array &$ids): void
+    {
+        if (! is_array($value)) {
+            return;
+        }
+
+        if (($value['type'] ?? null) === 'image') {
+            $id = $value['attrs']['id'] ?? null;
+
+            if (is_string($id) && $id !== '') {
+                $ids[] = $id;
+            }
+        }
+
+        foreach ($value as $child) {
+            if (is_array($child)) {
+                static::collectAttachmentIds($child, $ids);
+            }
+        }
     }
 
     /**

@@ -335,3 +335,85 @@ it('converts legacy plain strings and html through StudyRichText', function () {
         ->and(StudyRichText::isEmpty('<p>Hi</p>'))->toBeFalse()
         ->and(StudyRichText::isEmpty('<p><img src="/storage/diagram.png" alt="diagram"></p>'))->toBeFalse();
 });
+
+it('allows editing a quiz that already has tip tap images without tampered path errors', function () {
+    Storage::fake('public');
+
+    $admin = User::factory()->admin()->create();
+    $course = Course::factory()->create(['stream_id' => null]);
+
+    $questionPath = StudyRichText::attachmentsDirectory($course->id).'/question.png';
+    $choicePath = StudyRichText::attachmentsDirectory($course->id).'/choice.png';
+
+    Storage::disk('public')->put($questionPath, 'question-bytes');
+    Storage::disk('public')->put($choicePath, 'choice-bytes');
+
+    $resource = LearningResource::factory()->quiz()->create([
+        'course_id' => $course->id,
+        'stream_id' => null,
+        'title' => 'Quiz with diagrams',
+        'slug' => 'quiz-with-diagrams',
+        'content' => [
+            'kind' => CollegeResourceKind::Quiz->value,
+            'payload' => [
+                'questions' => [
+                    [
+                        'question' => tipTapImageDocument($questionPath, 'question diagram'),
+                        'options' => [
+                            tipTapImageDocument($choicePath, 'choice diagram'),
+                            StudyRichText::forEditor('Text only'),
+                        ],
+                        'answerIndex' => 0,
+                        'explanation' => StudyRichText::forEditor('See the diagram.'),
+                    ],
+                ],
+            ],
+        ],
+    ]);
+
+    $this->actingAs($admin);
+
+    Livewire::test(EditLearning::class, ['record' => $resource->getRouteKey()])
+        ->fillForm([
+            'title' => 'Quiz with diagrams (renamed)',
+        ])
+        ->call('save')
+        ->assertHasNoFormErrors()
+        ->assertNotified();
+
+    expect($resource->fresh()->title)->toBe('Quiz with diagrams (renamed)');
+});
+
+it('rejects quiz rich editor attachment paths outside quiz-content', function () {
+    Storage::fake('public');
+
+    $courseId = 12;
+    $allowed = StudyRichText::attachmentsDirectory($courseId).'/ok.png';
+    $outside = 'learning-resources/'.$courseId.'/other.png';
+    $traversal = StudyRichText::attachmentsDirectory($courseId).'/../secret.png';
+
+    Storage::disk('public')->put($allowed, 'ok');
+    Storage::disk('public')->put($outside, 'nope');
+
+    expect(StudyRichText::isStoredAttachmentPath($allowed, $courseId))->toBeTrue()
+        ->and(StudyRichText::isStoredAttachmentPath($outside, $courseId))->toBeFalse()
+        ->and(StudyRichText::isStoredAttachmentPath($traversal, $courseId))->toBeFalse()
+        ->and(StudyRichText::isStoredAttachmentPath('learning-resources/quiz-content/99/other.png', $courseId))->toBeFalse();
+
+    $content = [
+        'kind' => CollegeResourceKind::Quiz->value,
+        'payload' => [
+            'questions' => [
+                [
+                    'question' => tipTapImageDocument($allowed, 'ok'),
+                    'options' => [
+                        tipTapImageDocument($outside, 'bad'),
+                    ],
+                    'answerIndex' => 0,
+                ],
+            ],
+        ],
+    ];
+
+    expect(StudyRichText::attachmentIdsInContent($content))->toBe([$allowed, $outside]);
+});
