@@ -1,7 +1,6 @@
 @props([
     'copy',
     'price',
-    'seasonPrice',
     'paymentBotUrl' => null,
     'required' => 0,
     'progress' => 0,
@@ -13,21 +12,17 @@
 @php
     /** @var \App\Support\TelegramCopy $copy */
     $features = [
-        ['icon' => 'question', 'title' => 'feature_questions_title', 'body' => 'feature_questions_body'],
-        ['icon' => 'list', 'title' => 'feature_quizzes_title', 'body' => 'feature_quizzes_body'],
-        ['icon' => 'bolt', 'title' => 'feature_short_title', 'body' => 'feature_short_body'],
-        ['icon' => 'timer', 'title' => 'feature_exams_title', 'body' => 'feature_exams_body'],
-        ['icon' => 'shield', 'title' => 'feature_checked_title', 'body' => 'feature_checked_body'],
-        ['icon' => 'calendar', 'title' => 'feature_fresh_title', 'body' => 'feature_fresh_body'],
+        ['icon' => 'question', 'title' => 'feature_questions_title', 'body' => 'feature_questions_body', 'app' => true, 'bot' => true],
+        ['icon' => 'list', 'title' => 'feature_quizzes_title', 'body' => 'feature_quizzes_body', 'app' => true, 'bot' => true],
+        ['icon' => 'bolt', 'title' => 'feature_short_title', 'body' => 'feature_short_body', 'app' => true, 'bot' => true],
+        ['icon' => 'timer', 'title' => 'feature_exams_title', 'body' => 'feature_exams_body', 'app' => true, 'bot' => true],
+        ['icon' => 'shield', 'title' => 'feature_checked_title', 'body' => 'feature_checked_body', 'app' => true, 'bot' => true],
+        ['icon' => 'calendar', 'title' => 'feature_fresh_title', 'body' => 'feature_fresh_body', 'app' => true, 'bot' => true],
     ];
-    $reasons = [
-        ['icon' => 'layers', 'body' => 'why_one'],
-        ['icon' => 'target', 'body' => 'why_two'],
-        ['icon' => 'bolt', 'body' => 'why_three'],
-    ];
+    $formattedPrice = 'ETB '.number_format((float) $price, 0);
 @endphp
 
-<div class="premium-landing space-y-6 pb-2">
+<div @class(['premium-landing', 'premium-landing--with-bar' => ! $isPremium])>
     @if ($resource)
         <div class="premium-landing__locked-chip">
             <span class="premium-landing__locked-label">{{ $copy->get('premium_landing.locked_label') }}</span>
@@ -44,104 +39,76 @@
             <p class="mt-1 text-sm leading-relaxed text-text-secondary">{{ $copy->get('premium_landing.active_body') }}</p>
         </div>
     @else
-        <section class="premium-landing__hero">
-            <div class="flex flex-wrap items-center gap-2">
+        <header class="premium-landing__header">
+            <div class="premium-landing__header-top">
                 <span class="premium-landing__brand">{{ config('app.name') }}</span>
                 <span class="premium-landing__badge">{{ $copy->get('premium_landing.badge') }}</span>
             </div>
-            <h2 class="premium-landing__headline">{{ $copy->get('premium_landing.headline') }}</h2>
-            <p class="mt-3 text-sm leading-relaxed text-text-secondary">{{ $copy->get('premium_landing.intro') }}</p>
-            <p class="premium-landing__hero-note mt-4">{{ $copy->get('premium_landing.hero_note') }}</p>
-            <div class="premium-landing__uni-row mt-4">
-                <span>AAU</span>
-                <span>Hawassa</span>
-                <span>Wollega</span>
-                <span>MTU</span>
-            </div>
-        </section>
+            <h2 class="premium-landing__title">{{ $copy->get('premium_landing.title') }}</h2>
+            <p class="premium-landing__subtitle">{{ $copy->get('premium_landing.subtitle') }}</p>
+        </header>
 
-        <section>
-            <h3 class="premium-landing__section-title">{{ $copy->get('premium_landing.what_you_get') }}</h3>
-            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                @foreach ($features as $feature)
-                    <article class="premium-landing__feature">
-                        <div class="premium-landing__icon" aria-hidden="true">
-                            <x-telegram.mini-app.premium-icon :name="$feature['icon']" />
-                        </div>
-                        <h4 class="mt-2 text-sm font-bold text-text-primary">{{ $copy->get('premium_landing.'.$feature['title']) }}</h4>
-                        <p class="mt-1 text-xs leading-relaxed text-text-secondary">{{ $copy->get('premium_landing.'.$feature['body']) }}</p>
-                    </article>
-                @endforeach
-            </div>
-        </section>
-
-        <section>
-            <h3 class="premium-landing__section-title">{{ $copy->get('premium_landing.why_premium') }}</h3>
-            <div class="mt-3 grid grid-cols-1 gap-3">
-                @foreach ($reasons as $reason)
-                    <div class="premium-landing__why-item">
-                        <div class="premium-landing__icon premium-landing__icon--sm" aria-hidden="true">
-                            <x-telegram.mini-app.premium-icon :name="$reason['icon']" />
-                        </div>
-                        <p class="text-sm leading-relaxed text-text-secondary">{{ $copy->get('premium_landing.'.$reason['body']) }}</p>
+        <ul class="premium-landing__list" role="list">
+            @foreach ($features as $feature)
+                <li class="premium-landing__row">
+                    <div class="premium-landing__icon" aria-hidden="true">
+                        <x-telegram.mini-app.premium-icon :name="$feature['icon']" />
                     </div>
-                @endforeach
+                    <div class="premium-landing__row-body min-w-0 flex-1">
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            <h3 class="premium-landing__row-title">{{ $copy->get('premium_landing.'.$feature['title']) }}</h3>
+                            @if ($feature['app'])
+                                <span class="premium-landing__pill premium-landing__pill--app">{{ $copy->get('premium_landing.badge_app') }}</span>
+                            @endif
+                            @if ($feature['bot'])
+                                <span class="premium-landing__pill premium-landing__pill--bot">{{ $copy->get('premium_landing.badge_bot') }}</span>
+                            @endif
+                        </div>
+                        <p class="premium-landing__row-desc">{{ $copy->get('premium_landing.'.$feature['body']) }}</p>
+                    </div>
+                    <span class="premium-landing__check" aria-hidden="true">
+                        <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 0 1 .143 1.052l-8 10.5a.75.75 0 0 1-1.127.075l-4.5-4.5a.75.75 0 0 1 1.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 0 1 1.05-.143z" clip-rule="evenodd" />
+                        </svg>
+                    </span>
+                </li>
+            @endforeach
+        </ul>
+
+        <div class="premium-landing__plan">
+            <div class="premium-landing__plan-card premium-landing__plan-card--selected" aria-current="true">
+                <p class="premium-landing__plan-label">{{ $copy->get('premium_landing.one_time') }}</p>
+                <p class="premium-landing__plan-amount">{{ $formattedPrice }}</p>
             </div>
-        </section>
+        </div>
 
-        <section class="premium-landing__pricing">
-            <div class="flex items-center gap-2">
-                <span class="premium-landing__crown" aria-hidden="true">♛</span>
-                <h3 class="text-base font-bold text-white">{{ $copy->get('premium_landing.pricing_title') }}</h3>
+        @if (filled($urgency))
+            <p class="premium-landing__note">{{ $urgency }}</p>
+        @endif
+
+        @if ($required > 0)
+            <p class="premium-landing__note">
+                {{ $copy->get('premium_landing.referral_progress', ['progress' => $progress, 'required' => $required]) }}
+            </p>
+        @endif
+
+        <div class="premium-landing__bar">
+            <div class="min-w-0">
+                <p class="premium-landing__bar-price">{{ $formattedPrice }}</p>
+                <p class="premium-landing__bar-meta">{{ $copy->get('premium_landing.plan_summary') }}</p>
             </div>
-
-            <div class="mt-4 grid grid-cols-2 gap-3">
-                <div class="premium-landing__price-card">
-                    <p class="text-xs font-semibold text-text-secondary">{{ $copy->get('premium_landing.monthly') }}</p>
-                    <p class="mt-2 text-xl font-extrabold tracking-tight text-text-primary">ETB {{ number_format($price, 0) }}</p>
-                    <p class="mt-1 text-xs text-text-secondary">{{ $copy->get('premium_landing.per_month') }}</p>
-                </div>
-                <div class="premium-landing__price-card">
-                    <p class="text-xs font-semibold text-text-secondary">{{ $copy->get('premium_landing.exam_season') }}</p>
-                    <p class="mt-2 text-xl font-extrabold tracking-tight text-text-primary">ETB {{ number_format($seasonPrice, 0) }}</p>
-                    <p class="mt-1 text-xs text-text-secondary">{{ $copy->get('premium_landing.whole_season') }}</p>
-                </div>
-            </div>
-
-            @if (filled($urgency))
-                <p class="mt-3 text-xs font-medium leading-relaxed text-white/85">{{ $urgency }}</p>
-            @endif
-
-            @if ($required > 0)
-                <p class="mt-2 text-xs text-white/80">
-                    {{ $copy->get('premium_landing.referral_progress', ['progress' => $progress, 'required' => $required]) }}
-                </p>
-            @endif
-
             @if ($paymentBotUrl)
                 <a
                     href="{{ $paymentBotUrl }}"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="premium-landing__cta mt-4"
+                    class="premium-landing__bar-cta"
                 >
-                    <span class="block text-base font-bold">{{ $copy->get('premium_landing.cta') }} →</span>
-                    <span class="mt-0.5 block text-xs font-medium opacity-90">{{ $copy->get('premium_landing.cta_sub') }}</span>
+                    {{ $copy->get('premium_landing.cta') }}
                 </a>
             @else
-                <p class="mt-4 text-sm font-semibold text-white">{{ $copy->get('premium_landing.unavailable') }}</p>
+                <p class="premium-landing__bar-unavailable">{{ $copy->get('premium_landing.unavailable') }}</p>
             @endif
-        </section>
-
-        <footer class="premium-landing__footer">
-            <span class="text-xs font-bold text-text-primary">{{ config('app.name') }}</span>
-            <div class="flex items-center gap-2 text-[11px] font-semibold text-text-secondary">
-                <span>{{ $copy->get('premium_landing.footer_study') }}</span>
-                <span aria-hidden="true">·</span>
-                <span>{{ $copy->get('premium_landing.footer_practice') }}</span>
-                <span aria-hidden="true">·</span>
-                <span>{{ $copy->get('premium_landing.footer_succeed') }}</span>
-            </div>
-        </footer>
+        </div>
     @endif
 </div>

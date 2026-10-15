@@ -122,9 +122,9 @@ it('shows a paywall for premium quiz instead of player content for free students
         ->assertSee('Premium resource', false)
         ->assertSee('Anthropology Premium Quiz', false)
         ->assertSee('Practice Greek roots and core anthropology definitions.', false)
-        ->assertSee('Walk into the GAT ready.', false)
-        ->assertSee('What you get', false)
-        ->assertSee('Start practicing today.', false)
+        ->assertSee('Included with Premium', false)
+        ->assertSee('One-time', false)
+        ->assertSee('Get Premium', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false)
         ->assertDontSee('What are the Greek roots of anthropology?', false)
         ->assertDontSee(route('tg.premium'), false);

@@ -25,7 +25,6 @@ class PremiumController extends Controller
             'copy' => $copy,
             'user' => $user,
             'price' => $settings->premiumPrice(),
-            'seasonPrice' => $settings->premiumExamSeasonPrice(),
             'required' => $settings->requiredReferrals(),
             'progress' => $referrals->qualifiedCount($user),
             'urgency' => $settings->cohortUrgencyCopy(),

@@ -8,7 +8,6 @@
         <x-telegram.mini-app.premium-landing
             :copy="$copy"
             :price="$price"
-            :season-price="$seasonPrice"
             :payment-bot-url="$paymentBotUrl"
             :required="$required"
             :progress="$progress"

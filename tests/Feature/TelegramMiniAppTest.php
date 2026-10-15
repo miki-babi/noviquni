@@ -193,11 +193,10 @@ it('shows the premium landing page with gat marketing copy', function () {
     $this->actingAs($user)
         ->get(route('tg.premium'))
         ->assertOk()
-        ->assertSee('Walk into the GAT ready.', false)
-        ->assertSee('What you get', false)
-        ->assertSee('2,100+ interactive practice questions', false)
-        ->assertSee('Premium Pricing', false)
-        ->assertSee('Start practicing today.', false)
+        ->assertSee('Included with Premium', false)
+        ->assertSee('2,100+ practice questions', false)
+        ->assertSee('One-time', false)
+        ->assertSee('Get Premium', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false);
 });
 
