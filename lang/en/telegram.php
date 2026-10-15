@@ -287,8 +287,7 @@ return [
     'premium_landing' => [
         'badge' => 'Premium',
         'title' => 'Included with Premium',
-        'subtitle' => 'Everything unlocked with your NOViQUni Premium plan on the Mini App and Telegram bot.',
-        'badge_app' => 'App',
+        'subtitle' => 'Everything unlocked with your NOViQUni Premium plan in Telegram.',
         'badge_bot' => 'Bot',
         'feature_questions_title' => '2,100+ practice questions',
         'feature_questions_body' => 'Correct answers and clear explanations so you learn why — not just memorize.',
@@ -303,7 +302,7 @@ return [
         'feature_fresh_title' => 'New questions every weekday',
         'feature_fresh_body' => 'About 100 new questions each weekday — always something fresh.',
         'one_time' => 'One-time',
-        'plan_summary' => 'One-time • App + Bot',
+        'plan_summary' => 'One-time • Bot',
         'cta' => 'Get Premium',
         'active_title' => 'Premium is active',
         'active_body' => 'You already have full access to quizzes, practice exams, and premium resources.',

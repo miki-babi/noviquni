@@ -12,12 +12,12 @@
 @php
     /** @var \App\Support\TelegramCopy $copy */
     $features = [
-        ['icon' => 'question', 'title' => 'feature_questions_title', 'body' => 'feature_questions_body', 'app' => true, 'bot' => true],
-        ['icon' => 'list', 'title' => 'feature_quizzes_title', 'body' => 'feature_quizzes_body', 'app' => true, 'bot' => true],
-        ['icon' => 'bolt', 'title' => 'feature_short_title', 'body' => 'feature_short_body', 'app' => true, 'bot' => true],
-        ['icon' => 'timer', 'title' => 'feature_exams_title', 'body' => 'feature_exams_body', 'app' => true, 'bot' => true],
-        ['icon' => 'shield', 'title' => 'feature_checked_title', 'body' => 'feature_checked_body', 'app' => true, 'bot' => true],
-        ['icon' => 'calendar', 'title' => 'feature_fresh_title', 'body' => 'feature_fresh_body', 'app' => true, 'bot' => true],
+        ['icon' => 'question', 'title' => 'feature_questions_title', 'body' => 'feature_questions_body'],
+        ['icon' => 'list', 'title' => 'feature_quizzes_title', 'body' => 'feature_quizzes_body'],
+        ['icon' => 'bolt', 'title' => 'feature_short_title', 'body' => 'feature_short_body'],
+        ['icon' => 'timer', 'title' => 'feature_exams_title', 'body' => 'feature_exams_body'],
+        ['icon' => 'shield', 'title' => 'feature_checked_title', 'body' => 'feature_checked_body'],
+        ['icon' => 'calendar', 'title' => 'feature_fresh_title', 'body' => 'feature_fresh_body'],
     ];
     $formattedPrice = 'ETB '.number_format((float) $price, 0);
 @endphp
@@ -27,9 +27,6 @@
         <div class="premium-landing__locked-chip">
             <span class="premium-landing__locked-label">{{ $copy->get('premium_landing.locked_label') }}</span>
             <p class="mt-1 text-sm font-semibold text-text-primary">{{ $resource->title }}</p>
-            @if (filled($resource->description))
-                <p class="mt-1 text-xs leading-relaxed text-text-secondary">{{ \Illuminate\Support\Str::limit($resource->description, 140) }}</p>
-            @endif
         </div>
     @endif
 
@@ -57,12 +54,7 @@
                     <div class="premium-landing__row-body min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-1.5">
                             <h3 class="premium-landing__row-title">{{ $copy->get('premium_landing.'.$feature['title']) }}</h3>
-                            @if ($feature['app'])
-                                <span class="premium-landing__pill premium-landing__pill--app">{{ $copy->get('premium_landing.badge_app') }}</span>
-                            @endif
-                            @if ($feature['bot'])
-                                <span class="premium-landing__pill premium-landing__pill--bot">{{ $copy->get('premium_landing.badge_bot') }}</span>
-                            @endif
+                            <span class="premium-landing__pill premium-landing__pill--bot">{{ $copy->get('premium_landing.badge_bot') }}</span>
                         </div>
                         <p class="premium-landing__row-desc">{{ $copy->get('premium_landing.'.$feature['body']) }}</p>
                     </div>

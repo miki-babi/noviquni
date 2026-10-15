@@ -317,8 +317,7 @@ return [
     'premium_landing' => [
         'badge' => 'ፕሪሚየም',
         'title' => 'በፕሪሚየም የሚገኙ',
-        'subtitle' => 'በ NOViQUni ፕሪሚየም ዕቅድዎ በሚኒ አፕ እና በቴሌግራም ቦት ሁሉም ይከፈታል።',
-        'badge_app' => 'አፕ',
+        'subtitle' => 'በ NOViQUni ፕሪሚየም ዕቅድዎ በቴሌግራም ሁሉም ይከፈታል።',
         'badge_bot' => 'ቦት',
         'feature_questions_title' => '2,100+ የልምምድ ጥያቄዎች',
         'feature_questions_body' => 'ትክክለኛ መልሶች እና ግልጽ ማብራሪያዎች — ለምን እንደሆነ ይማራሉ።',
@@ -333,7 +332,7 @@ return [
         'feature_fresh_title' => 'በየስራ ቀኑ አዲስ ጥያቄዎች',
         'feature_fresh_body' => 'በየስራ ቀኑ ወደ 100 አዲስ ጥያቄዎች — ሁልጊዜ አዲስ።',
         'one_time' => 'አንድ ጊዜ',
-        'plan_summary' => 'አንድ ጊዜ • አፕ + ቦት',
+        'plan_summary' => 'አንድ ጊዜ • ቦት',
         'cta' => 'ፕሪሚየም ያግኙ',
         'active_title' => 'ፕሪሚየም ንቁ ነው',
         'active_body' => 'ለኩዊዞች፣ የልምምድ ፈተናዎች እና ፕሪሚየም መርጃዎች ሙሉ መዳረሻ አለዎት።',
