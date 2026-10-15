@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureImportToken;
 use App\Http\Middleware\EnsurePaymentBotSecret;
 use App\Http\Middleware\EnsureTelegramMiniAppAuthenticated;
 use Illuminate\Foundation\Application;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'telegram.miniapp' => EnsureTelegramMiniAppAuthenticated::class,
             'payment-bot.secret' => EnsurePaymentBotSecret::class,
+            'import.token' => EnsureImportToken::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {

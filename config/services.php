@@ -57,4 +57,8 @@ return [
         'api_secret' => env('PAYMENT_BOT_API_SECRET'),
     ],
 
+    'import' => [
+        'api_token' => env('API_IMPORT_TOKEN'),
+    ],
+
 ];

@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable([
     'title',
     'slug',
+    'external_id',
     'description',
     'topics',
     'type',
