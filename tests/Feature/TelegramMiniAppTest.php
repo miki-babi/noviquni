@@ -197,6 +197,7 @@ it('shows the premium landing page with gat marketing copy', function () {
         ->assertSee('2,100+ practice questions', false)
         ->assertSee('One-time', false)
         ->assertSee('Get Premium', false)
+        ->assertSee('data-tg-request-fullscreen="0"', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false);
 });
 

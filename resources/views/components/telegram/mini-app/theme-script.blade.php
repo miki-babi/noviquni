@@ -1,8 +1,13 @@
-<script>
+@props([
+    'requestFullscreen' => true,
+])
+
+<script data-tg-request-fullscreen="{{ $requestFullscreen ? '1' : '0' }}">
     (function () {
         const root = document.documentElement;
         const tg = window.Telegram?.WebApp;
         const isDark = root.classList.contains('dark');
+        const shouldRequestFullscreen = @json((bool) $requestFullscreen);
 
         root.style.colorScheme = isDark ? 'dark' : 'light';
 
@@ -35,9 +40,15 @@
         tg.ready();
         tg.expand();
 
-        if (typeof tg.requestFullscreen === 'function') {
+        if (shouldRequestFullscreen) {
+            if (typeof tg.requestFullscreen === 'function') {
+                try {
+                    tg.requestFullscreen();
+                } catch (e) {}
+            }
+        } else if (typeof tg.exitFullscreen === 'function') {
             try {
-                tg.requestFullscreen();
+                tg.exitFullscreen();
             } catch (e) {}
         }
 

@@ -3,6 +3,7 @@
     :active-nav="$activeNav"
     :title="$resource->title"
     :back-url="$resource->course ? route('tg.courses.show', $resource->course) : route('tg.browse')"
+    :request-fullscreen="false"
 >
     <div class="study-page">
         <x-telegram.mini-app.premium-landing

@@ -125,6 +125,7 @@ it('shows a paywall for premium quiz instead of player content for free students
         ->assertSee('Included with Premium', false)
         ->assertSee('One-time', false)
         ->assertSee('Get Premium', false)
+        ->assertSee('data-tg-request-fullscreen="0"', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false)
         ->assertDontSee('What are the Greek roots of anthropology?', false)
         ->assertDontSee(route('tg.premium'), false);
