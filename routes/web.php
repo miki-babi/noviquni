@@ -9,6 +9,7 @@ use App\Http\Controllers\Public\ResourceHubController;
 use App\Http\Controllers\Public\SitemapController;
 use App\Http\Controllers\Public\StreamController;
 use App\Http\Controllers\Public\UniversityController;
+use App\Http\Controllers\Telegram\MiniApp\HomeScreenController;
 use App\Http\Controllers\Telegram\MiniApp\OpportunityController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamResultController;
@@ -85,6 +86,8 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('profile/locale', [ProfileController::class, 'updateLocale'])->name('profile.locale');
         Route::post('profile/theme', [ProfileController::class, 'updateTheme'])->name('profile.theme');
         Route::post('profile/referral-share', ReferralShareController::class)->name('profile.referral-share');
+        Route::post('home-screen/prompted', [HomeScreenController::class, 'prompted'])->name('home-screen.prompted');
+        Route::post('home-screen/added', [HomeScreenController::class, 'added'])->name('home-screen.added');
         Route::get('premium', UseBotController::class)->name('premium');
     });
 });

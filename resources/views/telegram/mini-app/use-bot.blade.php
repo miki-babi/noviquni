@@ -1,6 +1,6 @@
 @php
     /** @var \App\Support\TelegramCopy $copy */
-    $themeClass = (auth()->user()?->theme ?? 'dark') === 'light' ? 'light' : 'dark';
+    $themeClass = (auth()->user()?->theme ?? 'light') === 'dark' ? 'dark' : 'light';
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $copy->locale }}" class="{{ $themeClass }}">

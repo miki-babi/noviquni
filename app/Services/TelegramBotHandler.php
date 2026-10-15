@@ -1740,6 +1740,12 @@ class TelegramBotHandler
         }
 
         if (! $this->premium->canAccess($user, $resource)) {
+            if ($resource->opensInMiniApp()) {
+                $this->sendResourceMiniAppOpen($user, $chatId, $resource);
+
+                return;
+            }
+
             $required = $this->settings->requiredReferrals();
             $progress = $this->referrals->qualifiedCount($user);
             $price = $this->settings->premiumPrice();

@@ -48,6 +48,9 @@ trait OpensMiniAppResource
                 'price' => $settings->premiumPrice(),
                 'required' => $settings->requiredReferrals(),
                 'progress' => $referrals->qualifiedCount($user),
+                'pitchTitle' => $settings->premiumPitchTitle(),
+                'pitchBody' => $settings->premiumPitchBody(),
+                'paymentBotUrl' => $settings->paymentBotUrl($user),
                 'activeNav' => 'courses',
             ]);
         }

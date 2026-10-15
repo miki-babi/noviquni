@@ -111,6 +111,20 @@ it('shows browse courses for an authenticated student', function () {
         ->assertDontSee('My courses');
 });
 
+it('defaults the mini app to light mode', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    expect($user->theme)->toBe('light');
+
+    $this->actingAs($user)
+        ->get(route('tg.profile.edit'))
+        ->assertOk()
+        ->assertSee('class="light"', false);
+});
+
 it('persists theme preference and renders light class on profile edit', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,

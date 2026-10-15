@@ -278,4 +278,10 @@ return [
         'choice_prompt' => 'Choose an option:',
         'choice_back' => '‹ Back',
     ],
+    'home_screen' => [
+        'title' => 'Add to Home Screen',
+        'message' => 'Add Noviq Uni to your phone home screen for one-tap access to study.',
+        'add' => 'Add to home screen',
+        'not_now' => 'Not now',
+    ],
 ];

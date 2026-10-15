@@ -94,6 +94,14 @@ class LearningsTable
                         ->action(fn (Collection $records) => $records->each->update(['is_published' => true])),
                     BulkAction::make('unpublish')
                         ->action(fn (Collection $records) => $records->each->update(['is_published' => false])),
+                    BulkAction::make('makePremium')
+                        ->label('Make premium')
+                        ->successNotificationTitle('Marked as premium')
+                        ->action(fn (Collection $records) => $records->each->update(['is_premium' => true])),
+                    BulkAction::make('makeFree')
+                        ->label('Make free')
+                        ->successNotificationTitle('Marked as free')
+                        ->action(fn (Collection $records) => $records->each->update(['is_premium' => false])),
                     DeleteBulkAction::make(),
                 ]),
             ]);

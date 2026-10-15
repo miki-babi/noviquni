@@ -170,6 +170,63 @@ it('opens a non-file resource deep link with a mini app title button', function 
     });
 });
 
+it('opens premium mini app resources for free students so they can see the paywall', function () {
+    Http::preventStrayRequests();
+    Http::fake([
+        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 101]], 200),
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555780',
+        'onboarding_step' => OnboardingStep::Complete,
+        'stream_id' => $stream->id,
+        'is_premium' => false,
+    ]);
+    $user->courses()->attach($course->id);
+
+    $resource = LearningResource::factory()->published()->quiz()->premium()->create([
+        'title' => 'Premium Deep Link Quiz',
+        'stream_id' => $stream->id,
+        'course_id' => $course->id,
+        'files' => null,
+    ]);
+
+    $this->postJson('/telegram/webhook', [
+        'update_id' => 9004,
+        'callback_query' => [
+            'id' => 'cb-9004',
+            'data' => 'open_resource:'.$resource->id,
+            'from' => [
+                'id' => 555780,
+                'first_name' => 'Abebe',
+                'username' => 'abebe',
+            ],
+            'message' => [
+                'message_id' => 45,
+                'chat' => ['id' => 555780],
+                'text' => 'Resources',
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) use ($resource) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
+
+        return str_contains((string) ($data['text'] ?? ''), 'Premium Deep Link Quiz')
+            && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource)
+            && ! str_contains((string) ($data['text'] ?? ''), 'Premium Resource');
+    });
+});
+
 it('opens pdf resources with a mini app player button instead of sending the document', function () {
     $disk = config('filesystems.default');
     Storage::fake($disk);

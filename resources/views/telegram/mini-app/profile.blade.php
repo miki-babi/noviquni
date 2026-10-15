@@ -2,7 +2,7 @@
     use App\Enums\TelegramLocale;
 
     $deepLinks = app(\App\Services\TelegramDeepLink::class);
-    $theme = $user->theme ?? 'dark';
+    $theme = $user->theme ?? 'light';
     $initial = mb_strtoupper(mb_substr($user->name ?: 'S', 0, 1));
     $photoUrl = $user->telegram_photo_url;
     $username = $user->telegram_username;

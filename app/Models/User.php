@@ -31,6 +31,8 @@ use Spatie\Permission\Traits\HasRoles;
     'telegram_photo_url',
     'telegram_locale',
     'theme',
+    'home_screen_prompt_count',
+    'home_screen_added_at',
     'referral_code',
     'referred_by_user_id',
     'referral_points',
@@ -60,7 +62,8 @@ class User extends Authenticatable implements FilamentUser
         'is_active' => true,
         'notifications_enabled' => true,
         'telegram_locale' => 'en',
-        'theme' => 'dark',
+        'theme' => 'light',
+        'home_screen_prompt_count' => 0,
         'referral_points' => 0,
         'is_premium' => false,
         'is_gat' => false,
@@ -273,6 +276,8 @@ class User extends Authenticatable implements FilamentUser
             'is_gat' => 'boolean',
             'premium_until' => 'datetime',
             'referral_points' => 'integer',
+            'home_screen_prompt_count' => 'integer',
+            'home_screen_added_at' => 'datetime',
         ];
     }
 

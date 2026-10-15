@@ -18,7 +18,7 @@
     /** @var \App\Support\TelegramCopy $copy */
     /** @var \App\Models\User|null $resolvedUser */
     $resolvedUser = $user ?? auth()->user();
-    $themeClass = ($resolvedUser?->theme ?? 'dark') === 'light' ? 'light' : 'dark';
+    $themeClass = ($resolvedUser?->theme ?? 'light') === 'dark' ? 'dark' : 'light';
     $botUsername = config('services.telegram.bot_username', 'noviquni_bot');
 @endphp
 
@@ -32,9 +32,10 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <x-telegram.mini-app.theme-script />
+    <x-telegram.mini-app.home-screen-prompt :user="$resolvedUser" />
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.8/dist/cdn.min.js"></script>
 </head>
-<body class="tg-page antialiased">
+<body x-data class="tg-page antialiased">
     <div class="mx-auto flex min-h-screen max-w-lg flex-col">
         <header @class([
             'tg-header sticky top-0 z-20 px-4',
@@ -82,6 +83,7 @@
         </main>
     </div>
 
+    <x-telegram.mini-app.home-screen-modal :copy="$copy" />
     <x-telegram.mini-app.back-button-script :back-url="$backUrl" />
 </body>
 </html>

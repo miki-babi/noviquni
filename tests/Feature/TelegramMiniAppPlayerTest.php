@@ -105,20 +105,29 @@ it('renders the premium quiz player for premium students', function () {
         ->assertSee('What are the Greek roots of anthropology?', false);
 });
 
-it('locks premium quiz for free students', function () {
+it('shows a paywall for premium quiz instead of player content for free students', function () {
     [$user, $course, $stream] = miniAppPlayerContext();
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_USERNAME, 'noviquni_pay_bot');
 
     $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'course_id' => $course->id,
         'stream_id' => $stream->id,
         'title' => 'Anthropology Premium Quiz',
+        'description' => 'Practice Greek roots and core anthropology definitions.',
     ]);
 
     $this->actingAs($user)
         ->get(route('tg.play.quiz', $resource))
         ->assertOk()
         ->assertSee('Premium resource', false)
-        ->assertDontSee('What are the Greek roots of anthropology?', false);
+        ->assertSee('Anthropology Premium Quiz', false)
+        ->assertSee('Practice Greek roots and core anthropology definitions.', false)
+        ->assertSee('Premium unlocks 1:1 guidance', false)
+        ->assertSee('full access to premium modules', false)
+        ->assertSee('Become Premium', false)
+        ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false)
+        ->assertDontSee('What are the Greek roots of anthropology?', false)
+        ->assertDontSee(route('tg.premium'), false);
 });
 
 it('renders reader shells for every catalog type without interactive payload', function (ResourceType $type, string $routeName) {
