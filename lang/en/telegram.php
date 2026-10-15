@@ -5,6 +5,7 @@ return [
         'continue_exam' => 'continue exam',
         'maths' => 'maths',
         'reading_writing' => 'reading/writing',
+        'analytical_reasoning' => 'Analytical reasoning',
         'premium' => 'unlock premium',
         'contact' => 'contact us',
         'refer' => 'share and reward',
@@ -46,6 +47,7 @@ return [
             'continue_exam' => 'Continue your exam in the study app:',
             'maths' => 'Open Maths in the study app:',
             'reading_writing' => 'Open Reading/Writing in the study app:',
+            'analytical_reasoning' => 'Open Analytical reasoning in the study app:',
         ],
         'open_button' => [
             'courses' => '📚 Open Courses',
@@ -56,6 +58,7 @@ return [
             'continue_exam' => '📝 Continue exam',
             'maths' => '🧮 Open Maths',
             'reading_writing' => '📖 Open Reading/Writing',
+            'analytical_reasoning' => '🧠 Open Analytical reasoning',
         ],
     ],
     'start' => [
@@ -63,7 +66,7 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · Quick saved · unlock premium · contact us · share and reward",
+        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · Analytical reasoning · Quick saved · unlock premium · contact us · share and reward",
     ],
     'refer' => [
         'start_cta' => 'Start now',

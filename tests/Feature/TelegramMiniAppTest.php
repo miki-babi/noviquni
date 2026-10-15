@@ -2,7 +2,6 @@
 
 use App\Enums\OnboardingStep;
 use App\Enums\YearSlug;
-use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Semester;
@@ -41,15 +40,16 @@ it('builds the GAT main keyboard for all students', function () {
         ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('maths')
         ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('reading/writing')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('unlock premium')
-        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('contact us')
-        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('share and reward')
-        ->and(data_get($keyboard, 'keyboard.4.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.4.1.style'))->toBeNull();
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Analytical reasoning')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🔖 Quick saved')
+        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('unlock premium')
+        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('contact us')
+        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('share and reward')
+        ->and(data_get($keyboard, 'keyboard.5.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.5.1.style'))->toBeNull();
 });
 
 it('builds the GAT subject reply keyboard', function () {

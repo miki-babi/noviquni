@@ -197,10 +197,11 @@ it('restores the main reply keyboard when Back is tapped from courses', function
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
             && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'unlock premium'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'contact us'
-            && data_get($data, 'reply_markup.keyboard.4.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Analytical reasoning'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'unlock premium'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'contact us'
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'share and reward';
     });
 });
 
@@ -602,10 +603,11 @@ it('switches language and refreshes keyboard labels', function () {
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ፈተና ቀጥል'
             && data_get($data, 'reply_markup.keyboard.1.0.text') === 'ሂሳብ'
             && data_get($data, 'reply_markup.keyboard.1.1.text') === 'ንባብ/ጽሁፍ'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'ፕሪሚየም ክፈት'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'ያግኙን'
-            && data_get($data, 'reply_markup.keyboard.4.1.text') === 'አጋራ እና ሽልማት';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'አመክንዮአዊ ትንተና'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'ፕሪሚየም ክፈት'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ያግኙን'
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'አጋራ እና ሽልማት';
     });
 });
 
@@ -1032,6 +1034,35 @@ it('opens reading/writing when the course uses Reading and writing naming', func
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(5553031, 'reading/writing', 6031))
+        ->assertOk();
+
+    expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), $course->name)
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+    });
+});
+
+it('opens Analytical reasoning when the matching course exists', function () {
+    $course = Course::factory()->create([
+        'name' => 'Analytical reasoning',
+        'slug' => 'analytical-reasoning',
+    ]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '5553032',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(5553032, 'Analytical reasoning', 6032))
         ->assertOk();
 
     expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();

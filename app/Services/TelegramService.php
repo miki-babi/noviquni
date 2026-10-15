@@ -198,6 +198,11 @@ class TelegramService
                 ],
                 [
                     [
+                        'text' => $copy->get('keyboard.analytical_reasoning'),
+                    ],
+                ],
+                [
+                    [
                         'text' => $copy->get('keyboard.saved'),
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
@@ -222,7 +227,7 @@ class TelegramService
     }
 
     /**
-     * Subject hub reply keyboard after tapping maths or reading/writing.
+     * Subject hub reply keyboard after tapping maths, reading/writing, or Analytical reasoning.
      *
      * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
      */

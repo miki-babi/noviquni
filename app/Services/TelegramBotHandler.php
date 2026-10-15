@@ -849,6 +849,7 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.continue_exam')] = 'continue_exam';
             $map[$copy->get('keyboard.maths')] = 'maths';
             $map[$copy->get('keyboard.reading_writing')] = 'reading_writing';
+            $map[$copy->get('keyboard.analytical_reasoning')] = 'analytical_reasoning';
             $map[$copy->get('keyboard.premium')] = 'premium';
             $map[$copy->get('keyboard.contact')] = 'contact';
             $map[$copy->get('keyboard.refer')] = 'refer';
@@ -889,6 +890,7 @@ class TelegramBotHandler
             'continue_exam' => $this->showContinue($user, $chatId),
             'maths' => $this->openGatSubject($user, $chatId, 'maths'),
             'reading_writing' => $this->openGatSubject($user, $chatId, 'reading-writing'),
+            'analytical_reasoning' => $this->openGatSubject($user, $chatId, 'analytical-reasoning'),
             'contact' => $this->showContactUs($user, $chatId),
             'courses', 'browse' => $this->showCourseKeyboard($user, $chatId),
             'resources' => $this->showResourceKeyboard($user, $chatId),
@@ -1058,6 +1060,7 @@ class TelegramBotHandler
 
         $token = match ($target) {
             'readingwriting' => 'reading',
+            'analyticalreasoning' => 'analytical',
             default => $target,
         };
 
@@ -1084,6 +1087,10 @@ class TelegramBotHandler
                 'reading-writing',
                 'reading-and-writing',
                 'readingwriting',
+            ],
+            'analyticalreasoning' => [
+                'analytical-reasoning',
+                'analyticalreasoning',
             ],
             default => [$courseSlug],
         };

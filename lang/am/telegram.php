@@ -5,6 +5,7 @@ return [
         'continue_exam' => 'ፈተና ቀጥል',
         'maths' => 'ሂሳብ',
         'reading_writing' => 'ንባብ/ጽሁፍ',
+        'analytical_reasoning' => 'አመክንዮአዊ ትንተና',
         'premium' => 'ፕሪሚየም ክፈት',
         'contact' => 'ያግኙን',
         'refer' => 'አጋራ እና ሽልማት',
@@ -45,6 +46,7 @@ return [
             'continue_exam' => 'ፈተናዎን በጥናት መተግበሪያ ይቀጥሉ፦',
             'maths' => 'ሂሳብን በጥናት መተግበሪያ ይክፈቱ፦',
             'reading_writing' => 'ንባብ/ጽሁፍን በጥናት መተግበሪያ ይክፈቱ፦',
+            'analytical_reasoning' => 'አመክንዮአዊ ትንተናን በጥናት መተግበሪያ ይክፈቱ፦',
         ],
         'open_button' => [
             'courses' => '📚 ኮርሶች ክፈት',
@@ -55,6 +57,7 @@ return [
             'continue_exam' => '📝 ፈተና ቀጥል',
             'maths' => '🧮 ሂሳብ ክፈት',
             'reading_writing' => '📖 ንባብ/ጽሁፍ ክፈት',
+            'analytical_reasoning' => '🧠 አመክንዮአዊ ትንተና ክፈት',
         ],
     ],
     'start' => [
@@ -62,7 +65,7 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን በመገለጫ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 በመገለጫ አዋቅር',
-        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\nፈተና ቀጥል · ሂሳብ · ንባብ/ጽሁፍ · በፍጥነት የተቀመጡ · ፕሪሚየም ክፈት · ያግኙን · አጋራ እና ሽልማት",
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\nፈተና ቀጥል · ሂሳብ · ንባብ/ጽሁፍ · አመክንዮአዊ ትንተና · በፍጥነት የተቀመጡ · ፕሪሚየም ክፈት · ያግኙን · አጋራ እና ሽልማት",
     ],
     'refer' => [
         'start_cta' => 'አሁን ጀምር',
