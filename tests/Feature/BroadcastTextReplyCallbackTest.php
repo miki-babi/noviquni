@@ -54,13 +54,14 @@ it('handles text reply inline callbacks like typed menu text', function () {
         $data = $request->data();
         $text = (string) ($data['text'] ?? '');
         $payButton = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
-        $referButton = data_get($data, 'reply_markup.inline_keyboard.1.0', []);
+        $keyboard = data_get($data, 'reply_markup.inline_keyboard', []);
 
-        return str_contains($text, 'Premium unlocks 1:1 guidance')
+        return str_contains($text, 'Walk into the GAT ready.')
+            && ! str_contains($text, 'Referrals:')
             && ($payButton['url'] ?? null) === 'https://t.me/noviquni_pay_bot?start=u'.$user->id
             && ($payButton['text'] ?? null) === 'Become Premium'
             && ! array_key_exists('web_app', $payButton)
-            && str_contains((string) data_get($referButton, 'web_app.url', ''), '/tg/profile')
+            && count($keyboard) === 1
             && ! str_contains(json_encode($data['reply_markup'] ?? []), 'tg.premium');
     });
 

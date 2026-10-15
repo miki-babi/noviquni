@@ -8,7 +8,6 @@ use App\Models\Opportunity;
 use App\Models\User;
 use App\Services\OpportunityGuidanceService;
 use App\Services\PremiumService;
-use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
 use App\Support\TelegramCopy;
@@ -24,7 +23,6 @@ class OpportunityController extends Controller
         TelegramDeepLink $deepLinks,
         OpportunityGuidanceService $guidance,
         SettingsService $settings,
-        ReferralService $referrals,
     ): View {
         /** @var User $user */
         $user = Auth::user();
@@ -54,8 +52,6 @@ class OpportunityController extends Controller
             'premiumPitchBody' => $settings->premiumPitchBody(),
             'paymentBotUrl' => $settings->paymentBotUrl($user),
             'premiumPrice' => $settings->premiumPrice(),
-            'referralProgress' => $referrals->qualifiedCount($user),
-            'requiredReferrals' => $settings->requiredReferrals(),
             'shareUrl' => $shareUrl,
             'onboardingComplete' => $user->onboarding_step === OnboardingStep::Complete,
             'botOnboardingUrl' => $deepLinks->url(),

@@ -10,9 +10,6 @@
             :copy="$copy"
             :price="$price"
             :payment-bot-url="$paymentBotUrl"
-            :required="$required"
-            :progress="$progress"
-            :urgency="$urgency"
             :resource="$resource"
             :is-premium="false"
         />

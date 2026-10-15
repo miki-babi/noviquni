@@ -8,7 +8,6 @@ use App\Http\Controllers\Telegram\MiniApp\Concerns\OpensMiniAppResource;
 use App\Models\LearningResource;
 use App\Services\College\TelegramResourceFormatter;
 use App\Services\PremiumService;
-use App\Services\ReferralService;
 use App\Services\SettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -21,7 +20,6 @@ class ReferenceBooksPlayerController extends Controller
         LearningResource $resource,
         PremiumService $premium,
         SettingsService $settings,
-        ReferralService $referrals,
         TelegramResourceFormatter $formatter,
     ): View|RedirectResponse {
         return $this->openCatalogPlayer(
@@ -30,7 +28,6 @@ class ReferenceBooksPlayerController extends Controller
             'telegram.mini-app.players.reference-books',
             $premium,
             $settings,
-            $referrals,
             $formatter,
         );
     }

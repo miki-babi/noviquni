@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\ReferralStatus;
-use App\Enums\SubscriptionSource;
 use App\Enums\UserEventName;
 use App\Models\Referral;
 use App\Models\User;
@@ -12,8 +11,6 @@ use Illuminate\Support\Facades\DB;
 class ReferralService
 {
     public function __construct(
-        public SettingsService $settings,
-        public PremiumService $premium,
         public ReferralPointService $points,
         public ChallengeService $challenges,
         public UserEventService $userEvents,
@@ -60,26 +57,7 @@ class ReferralService
 
     public function maybeUnlockPremium(User $referrer): void
     {
-        $qualifiedCount = Referral::query()
-            ->where('referrer_id', $referrer->id)
-            ->whereIn('status', [ReferralStatus::Qualified, ReferralStatus::Completed])
-            ->count();
-
-        if ($qualifiedCount < $this->settings->requiredReferrals()) {
-            return;
-        }
-
-        if ($referrer->hasActivePremium()) {
-            return;
-        }
-
-        $this->premium->grant($referrer, SubscriptionSource::Referral);
-
-        Referral::query()
-            ->where('referrer_id', $referrer->id)
-            ->where('status', ReferralStatus::Qualified)
-            ->limit($this->settings->requiredReferrals())
-            ->update(['status' => ReferralStatus::Completed]);
+        // Referral unlock of Premium is disabled; payment is the only path.
     }
 
     public function referralLink(User $user): string

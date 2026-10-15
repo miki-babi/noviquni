@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Telegram\MiniApp\Concerns\OpensMiniAppResource;
 use App\Models\LearningResource;
 use App\Services\PremiumService;
-use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\TelegramService;
 use App\Support\LearningResourceFiles;
@@ -25,10 +24,9 @@ class ResourceFileController extends Controller
         int $index,
         PremiumService $premium,
         SettingsService $settings,
-        ReferralService $referrals,
         TelegramService $telegram,
     ): StreamedResponse|Response|RedirectResponse|View {
-        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals, recordOpen: false);
+        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, recordOpen: false);
 
         if ($access instanceof RedirectResponse || $access instanceof View) {
             return $access;

@@ -2,9 +2,6 @@
     'copy',
     'price',
     'paymentBotUrl' => null,
-    'required' => 0,
-    'progress' => 0,
-    'urgency' => null,
     'isPremium' => false,
     'resource' => null,
 ])
@@ -73,16 +70,6 @@
                 <p class="premium-landing__plan-amount">{{ $formattedPrice }}</p>
             </div>
         </div>
-
-        @if (filled($urgency))
-            <p class="premium-landing__note">{{ $urgency }}</p>
-        @endif
-
-        @if ($required > 0)
-            <p class="premium-landing__note">
-                {{ $copy->get('premium_landing.referral_progress', ['progress' => $progress, 'required' => $required]) }}
-            </p>
-        @endif
 
         <div class="premium-landing__bar">
             <div class="min-w-0">

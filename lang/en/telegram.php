@@ -272,7 +272,6 @@ return [
         'open_bot_to_onboard' => 'Open bot to finish setup',
         'guidance_premium_required' => 'Guidance is for Premium members.',
         'guidance_unlock_premium' => 'Become Premium',
-        'guidance_referral_progress' => 'Or invite friends: :progress/:required',
     ],
     'broadcast' => [
         'choice_prompt' => 'Choose an option:',
@@ -307,7 +306,6 @@ return [
         'active_title' => 'Premium is active',
         'active_body' => 'You already have full access to quizzes, practice exams, and premium resources.',
         'unavailable' => 'Payment is temporarily unavailable. Please try again later.',
-        'referral_progress' => 'Or unlock free: :progress/:required referrals',
         'locked_label' => 'Premium resource',
     ],
 ];

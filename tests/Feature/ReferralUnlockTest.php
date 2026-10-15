@@ -15,7 +15,7 @@ it('defaults required referrals to 3', function () {
     expect(app(SettingsService::class)->requiredReferrals())->toBe(3);
 });
 
-it('attributes a referral and unlocks premium after required referrals', function () {
+it('attributes referrals without unlocking premium', function () {
     $referrer = User::factory()->student()->create();
 
     foreach (range(1, 3) as $i) {
@@ -26,7 +26,7 @@ it('attributes a referral and unlocks premium after required referrals', functio
         app(ReferralService::class)->attributeReferral($referred, $referrer->referral_code);
     }
 
-    expect($referrer->fresh()->hasActivePremium())->toBeTrue()
+    expect($referrer->fresh()->hasActivePremium())->toBeFalse()
         ->and(app(ReferralService::class)->qualifiedCount($referrer->fresh()))->toBeGreaterThanOrEqual(3);
 });
 

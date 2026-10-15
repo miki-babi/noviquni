@@ -17,7 +17,6 @@ class OpportunityGuidanceService
     public function __construct(
         public SettingsService $settings,
         public PremiumService $premium,
-        public ReferralService $referrals,
         public TelegramService $telegram,
         public FileAdminRecipients $fileAdmins,
     ) {}
@@ -42,12 +41,6 @@ class OpportunityGuidanceService
         $copy = TelegramCopy::for($user);
         $title = $this->settings->premiumPitchTitle();
         $body = $this->settings->premiumPitchBody();
-        $required = $this->settings->requiredReferrals();
-        $progress = $this->referrals->qualifiedCount($user);
-        $referralLine = $copy->get('opportunities.guidance_referral_progress', [
-            'progress' => $progress,
-            'required' => $required,
-        ]);
         $price = $this->settings->premiumPrice();
 
         $becomePremium = [
@@ -67,15 +60,10 @@ class OpportunityGuidanceService
             $user->telegram_id,
             $copy->get('opportunities.guidance_premium_required')."\n\n<b>".TelegramHtml::escape($title).'</b>'."\n"
             .TelegramHtml::escape($body)
-            ."\n\nPrice: {$price} ETB\n"
-            .TelegramHtml::escape($referralLine),
+            ."\n\nPrice: {$price} ETB",
             [
                 'reply_markup' => $this->telegram->inlineKeyboard([
                     [$becomePremium],
-                    [[
-                        'text' => $copy->get('menu.refer'),
-                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
-                    ]],
                 ]),
             ],
         );

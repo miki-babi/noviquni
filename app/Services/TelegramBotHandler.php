@@ -1746,10 +1746,8 @@ class TelegramBotHandler
                 return;
             }
 
-            $required = $this->settings->requiredReferrals();
-            $progress = $this->referrals->qualifiedCount($user);
             $price = $this->settings->premiumPrice();
-            $this->telegram->sendMessage($chatId, "🔒 <b>Premium Resource</b>\n\nUnlock for <b>{$price} ETB</b>\nOR refer <b>{$required}</b> students.\nProgress: <b>{$progress} / {$required}</b>");
+            $this->telegram->sendMessage($chatId, "🔒 <b>Premium Resource</b>\n\nUnlock for <b>{$price} ETB</b>.");
 
             return;
         }
@@ -2853,15 +2851,13 @@ class TelegramBotHandler
 
         $copy = TelegramCopy::for($user);
         $price = $this->settings->premiumPrice();
-        $required = $this->settings->requiredReferrals();
-        $progress = $this->referrals->qualifiedCount($user);
         $title = $this->settings->premiumPitchTitle();
         $body = $this->settings->premiumPitchBody();
 
         $rows = [];
         $pitchText = '<b>'.TelegramHtml::escape($title)."</b>\n"
             .TelegramHtml::escape($body)
-            ."\n\nPrice: {$price} ETB\nReferrals: {$progress}/{$required}";
+            ."\n\nPrice: {$price} ETB";
 
         $paymentBotUrl = $this->settings->paymentBotUrl($user);
 
@@ -2875,15 +2871,10 @@ class TelegramBotHandler
             $pitchText .= "\n\nPayment is temporarily unavailable. Please try again later.";
         }
 
-        $rows[] = [[
-            'text' => $copy->get('menu.refer'),
-            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.profile')],
-        ]];
-
         $this->telegram->sendMessage(
             $chatId,
             $pitchText,
-            [
+            $rows === [] ? [] : [
                 'reply_markup' => $this->telegram->inlineKeyboard($rows),
             ],
         );

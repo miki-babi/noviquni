@@ -68,7 +68,6 @@ class ManageSettings extends Page
             'telegram_start_image' => $settings->telegramStartImage(),
             'telegram_start_caption' => $settings->telegramStartCaption(),
             'telegram_start_buttons' => $settings->telegramStartButtons(),
-            'cohort_urgency_copy' => $settings->cohortUrgencyCopy(),
             'premium_pitch_title' => $settings->premiumPitchTitle(),
             'premium_pitch_body' => $settings->premiumPitchBody(),
             'opportunity_guidance_opening_message' => $settings->opportunityGuidanceOpeningMessage(),
@@ -115,12 +114,12 @@ class ManageSettings extends Page
                             ->suffix('ETB')
                             ->helperText('Shown next to the monthly price on the Premium landing page.'),
                         TextInput::make('required_referrals')
-                            ->label('Referrals to unlock Premium')
+                            ->label('Referrals display target')
                             ->numeric()
                             ->required()
                             ->integer()
                             ->minValue(1)
-                            ->helperText('Qualified friends needed before Premium is granted automatically (no payment).'),
+                            ->helperText('Shown on the profile refer stats line (e.g. progress toward a social target). Does not grant Premium.'),
                         TextInput::make('points_per_referral')
                             ->label('Points per referral')
                             ->numeric()
@@ -135,11 +134,6 @@ class ManageSettings extends Page
                             ->label('Payment bot username')
                             ->helperText('Telegram username without @. Students are sent to t.me/{username} to pay. Falls back to TELEGRAM_PAYMENT_BOT_USERNAME.')
                             ->maxLength(64)
-                            ->columnSpanFull(),
-                        Textarea::make('cohort_urgency_copy')
-                            ->label('Cohort urgency copy')
-                            ->rows(2)
-                            ->helperText('Shown on the Mini App premium screen.')
                             ->columnSpanFull(),
                         TextInput::make('premium_pitch_title')
                             ->label('Premium pitch title')
@@ -302,7 +296,6 @@ class ManageSettings extends Page
         $settings->set(SettingsService::PAYMENT_BOT_CONTACT_US, (string) ($data['payment_bot_contact_us'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_REGISTER_PROMPT, (string) ($data['payment_bot_register_prompt'] ?? ''));
         $settings->set(SettingsService::TELEGRAM_CONTACT_US, (string) ($data['telegram_contact_us'] ?? ''));
-        $settings->set(SettingsService::COHORT_URGENCY_COPY, (string) ($data['cohort_urgency_copy'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_TITLE, (string) ($data['premium_pitch_title'] ?? ''));
         $settings->set(SettingsService::PREMIUM_PITCH_BODY, (string) ($data['premium_pitch_body'] ?? ''));
         $settings->set(

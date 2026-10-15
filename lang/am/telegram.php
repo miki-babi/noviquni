@@ -302,7 +302,6 @@ return [
         'open_bot_to_onboard' => 'ለማዋቀር ቦቱን ክፈት',
         'guidance_premium_required' => 'መመሪያ ለፕሪሚየም አባላት ብቻ ነው።',
         'guidance_unlock_premium' => 'ፕሪሚየም ይሁኑ',
-        'guidance_referral_progress' => 'ወይም ጓደኞችን ይጋብዙ፦ :progress/:required',
     ],
     'broadcast' => [
         'choice_prompt' => 'አንድ አማራጭ ይምረጡ፦',
@@ -337,7 +336,6 @@ return [
         'active_title' => 'ፕሪሚየም ንቁ ነው',
         'active_body' => 'ለኩዊዞች፣ የልምምድ ፈተናዎች እና ፕሪሚየም መርጃዎች ሙሉ መዳረሻ አለዎት።',
         'unavailable' => 'ክፍያ ለጊዜው አይገኝም። እባክዎ ቆይተው እንደገና ይሞክሩ።',
-        'referral_progress' => 'ወይም በነጻ ይክፈቱ፦ :progress/:required ግብዣዎች',
         'locked_label' => 'ፕሪሚየም መርጃ',
     ],
 ];

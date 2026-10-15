@@ -8,7 +8,6 @@ use App\Models\LearningResource;
 use App\Models\User;
 use App\Services\College\TelegramResourceFormatter;
 use App\Services\PremiumService;
-use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\UserEventService;
 use App\Support\TelegramCopy;
@@ -25,7 +24,6 @@ trait OpensMiniAppResource
         LearningResource $resource,
         PremiumService $premium,
         SettingsService $settings,
-        ReferralService $referrals,
         bool $recordOpen = true,
     ): array|RedirectResponse|View {
         /** @var User $user */
@@ -46,9 +44,6 @@ trait OpensMiniAppResource
                 'user' => $user,
                 'resource' => $resource,
                 'price' => $settings->premiumPrice(),
-                'required' => $settings->requiredReferrals(),
-                'progress' => $referrals->qualifiedCount($user),
-                'urgency' => $settings->cohortUrgencyCopy(),
                 'paymentBotUrl' => $settings->paymentBotUrl($user),
                 'activeNav' => 'courses',
             ]);
@@ -77,7 +72,6 @@ trait OpensMiniAppResource
         string $view,
         PremiumService $premium,
         SettingsService $settings,
-        ReferralService $referrals,
         TelegramResourceFormatter $formatter,
         ?CollegeResourceKind $interactiveKind = null,
     ): View|RedirectResponse {
@@ -85,7 +79,7 @@ trait OpensMiniAppResource
 
         abort_unless(in_array($resource->type, $types, true), 404);
 
-        $access = $this->authorizeMiniAppResource($resource, $premium, $settings, $referrals);
+        $access = $this->authorizeMiniAppResource($resource, $premium, $settings);
 
         if ($access instanceof RedirectResponse || $access instanceof View) {
             return $access;

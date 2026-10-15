@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Telegram\MiniApp;
 use App\Enums\UserEventName;
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\UserEventService;
 use App\Support\TelegramCopy;
@@ -14,7 +13,7 @@ use Illuminate\View\View;
 
 class PremiumController extends Controller
 {
-    public function show(SettingsService $settings, ReferralService $referrals, UserEventService $userEvents): View
+    public function show(SettingsService $settings, UserEventService $userEvents): View
     {
         /** @var User $user */
         $user = Auth::user();
@@ -25,9 +24,6 @@ class PremiumController extends Controller
             'copy' => $copy,
             'user' => $user,
             'price' => $settings->premiumPrice(),
-            'required' => $settings->requiredReferrals(),
-            'progress' => $referrals->qualifiedCount($user),
-            'urgency' => $settings->cohortUrgencyCopy(),
             'paymentBotUrl' => $settings->paymentBotUrl($user),
             'activeNav' => 'premium',
         ]);
