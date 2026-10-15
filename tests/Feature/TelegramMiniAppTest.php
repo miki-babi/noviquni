@@ -167,7 +167,7 @@ it('sends hub routes to the bot-only mini app page', function () {
         ->assertSee('Use the Telegram menu to continue');
 });
 
-it('routes profile and premium hub pages to the bot-only screen', function () {
+it('routes the profile hub page to the bot-only screen', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -180,11 +180,25 @@ it('routes profile and premium hub pages to the bot-only screen', function () {
         ->assertOk()
         ->assertSee('Use the Telegram menu to continue')
         ->assertDontSee('ABEBE KEBEDE');
+});
+
+it('shows the premium landing page with gat marketing copy', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_USERNAME, 'noviquni_pay_bot');
 
     $this->actingAs($user)
         ->get(route('tg.premium'))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue');
+        ->assertSee('Walk into the GAT ready.', false)
+        ->assertSee('What you get', false)
+        ->assertSee('2,100+ interactive practice questions', false)
+        ->assertSee('Premium Pricing', false)
+        ->assertSee('Start practicing today.', false)
+        ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false);
 });
 
 it('shows the study profile edit form', function () {

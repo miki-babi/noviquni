@@ -46,10 +46,10 @@ trait OpensMiniAppResource
                 'user' => $user,
                 'resource' => $resource,
                 'price' => $settings->premiumPrice(),
+                'seasonPrice' => $settings->premiumExamSeasonPrice(),
                 'required' => $settings->requiredReferrals(),
                 'progress' => $referrals->qualifiedCount($user),
-                'pitchTitle' => $settings->premiumPitchTitle(),
-                'pitchBody' => $settings->premiumPitchBody(),
+                'urgency' => $settings->cohortUrgencyCopy(),
                 'paymentBotUrl' => $settings->paymentBotUrl($user),
                 'activeNav' => 'courses',
             ]);

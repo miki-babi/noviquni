@@ -16,6 +16,7 @@ use App\Http\Controllers\Telegram\MiniApp\Players\ExamResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ReferenceBooksPlayerController;
+use App\Http\Controllers\Telegram\MiniApp\PremiumController;
 use App\Http\Controllers\Telegram\MiniApp\ProfileController;
 use App\Http\Controllers\Telegram\MiniApp\ProgressController;
 use App\Http\Controllers\Telegram\MiniApp\ReferralShareController;
@@ -88,7 +89,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::post('profile/referral-share', ReferralShareController::class)->name('profile.referral-share');
         Route::post('home-screen/prompted', [HomeScreenController::class, 'prompted'])->name('home-screen.prompted');
         Route::post('home-screen/added', [HomeScreenController::class, 'added'])->name('home-screen.added');
-        Route::get('premium', UseBotController::class)->name('premium');
+        Route::get('premium', [PremiumController::class, 'show'])->name('premium');
     });
 });
 

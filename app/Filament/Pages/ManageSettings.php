@@ -55,6 +55,7 @@ class ManageSettings extends Page
 
         $this->form->fill([
             'premium_price' => $settings->premiumPrice(),
+            'premium_exam_season_price' => $settings->premiumExamSeasonPrice(),
             'required_referrals' => $settings->requiredReferrals(),
             'points_per_referral' => $settings->pointsPerReferral(),
             'payment_instructions' => $settings->paymentInstructions(),
@@ -102,7 +103,17 @@ class ManageSettings extends Page
             ->components([
                 Section::make('Premium & referrals')
                     ->schema([
-                        TextInput::make('premium_price')->numeric()->required()->suffix('ETB'),
+                        TextInput::make('premium_price')
+                            ->label('Monthly premium price')
+                            ->numeric()
+                            ->required()
+                            ->suffix('ETB'),
+                        TextInput::make('premium_exam_season_price')
+                            ->label('Exam-season premium price')
+                            ->numeric()
+                            ->required()
+                            ->suffix('ETB')
+                            ->helperText('Shown next to the monthly price on the Premium landing page.'),
                         TextInput::make('required_referrals')
                             ->label('Referrals to unlock Premium')
                             ->numeric()
@@ -278,6 +289,7 @@ class ManageSettings extends Page
         $settings = app(SettingsService::class);
 
         $settings->set(SettingsService::PREMIUM_PRICE, (string) $data['premium_price']);
+        $settings->set(SettingsService::PREMIUM_EXAM_SEASON_PRICE, (string) $data['premium_exam_season_price']);
         $settings->set(SettingsService::REQUIRED_REFERRALS, (string) $data['required_referrals']);
         $settings->set(SettingsService::POINTS_PER_REFERRAL, (string) $data['points_per_referral']);
         $settings->set(SettingsService::PAYMENT_INSTRUCTIONS, (string) $data['payment_instructions']);

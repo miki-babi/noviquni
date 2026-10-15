@@ -11,6 +11,8 @@ class SettingsService
 {
     public const PREMIUM_PRICE = 'premium_price';
 
+    public const PREMIUM_EXAM_SEASON_PRICE = 'premium_exam_season_price';
+
     public const REQUIRED_REFERRALS = 'required_referrals';
 
     public const POINTS_PER_REFERRAL = 'points_per_referral';
@@ -58,6 +60,7 @@ class SettingsService
     {
         return [
             self::PREMIUM_PRICE => '30',
+            self::PREMIUM_EXAM_SEASON_PRICE => '150',
             self::REQUIRED_REFERRALS => '3',
             self::POINTS_PER_REFERRAL => '1',
             self::PREMIUM_DURATION_DAYS => '30',
@@ -74,8 +77,8 @@ class SettingsService
             self::TELEGRAM_START_CAPTION => '',
             self::TELEGRAM_START_BUTTONS => '[]',
             self::COHORT_URGENCY_COPY => 'Seasonal cohort: unlock full resources this week — 30 ETB or invite 3 friends.',
-            self::PREMIUM_PITCH_TITLE => 'Premium unlocks 1:1 guidance',
-            self::PREMIUM_PITCH_BODY => "Opportunity and internship links stay free for everyone.\n\nPremium gives you personal guidance on applications, plus full access to premium modules, notes, worksheets, quizzes, flashcards, and exams.\n\nPay once, or unlock Premium free by inviting friends.",
+            self::PREMIUM_PITCH_TITLE => 'Walk into the GAT ready.',
+            self::PREMIUM_PITCH_BODY => 'Most students prepare for the GAT with scattered PDFs, blurry scans and answer keys that are often wrong. NOViQUni Premium turns all of that into one organized, interactive practice platform.',
             self::OPPORTUNITY_GUIDANCE_USERNAME => '',
             self::OPPORTUNITY_GUIDANCE_OPENING_MESSAGE => "Hi, I'd like guidance on {title} (partner: {partner}).\n\nFrom: {student}",
         ];
@@ -103,6 +106,11 @@ class SettingsService
     public function premiumPrice(): float
     {
         return (float) $this->get(self::PREMIUM_PRICE, '30');
+    }
+
+    public function premiumExamSeasonPrice(): float
+    {
+        return (float) $this->get(self::PREMIUM_EXAM_SEASON_PRICE, '150');
     }
 
     public function requiredReferrals(): int
