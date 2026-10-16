@@ -182,12 +182,7 @@ class TelegramService
 
         return [
             'keyboard' => [
-                [
-                    [
-                        'text' => $copy->get('keyboard.continue_exam'),
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ],
-                ],
+                ...$this->dailyChallengePriorityRows($copy, $user),
                 [
                     [
                         'text' => $copy->get('keyboard.maths'),
@@ -237,6 +232,7 @@ class TelegramService
 
         return [
             'keyboard' => [
+                ...$this->dailyChallengePriorityRows($copy, $user),
                 [
                     [
                         'text' => $copy->get('keyboard.subject.practice_exams'),
@@ -265,6 +261,38 @@ class TelegramService
             ],
             'resize_keyboard' => true,
         ];
+    }
+
+    /**
+     * Daily Challenge stays on top until completed today; then continue studying leads.
+     *
+     * @return list<list<array<string, mixed>>>
+     */
+    public function dailyChallengePriorityRows(TelegramCopy $copy, ?User $user = null): array
+    {
+        $dailyRow = $this->dailyChallengeKeyboardRow($copy);
+        $continueRow = [[
+            'text' => $copy->get('keyboard.continue_exam'),
+            'style' => TelegramButtonStyle::Primary->value,
+        ]];
+
+        $completed = app(DailyChallengeService::class)
+            ->userHasCompletedTodaysDailyChallenge($user);
+
+        return $completed
+            ? [$continueRow, $dailyRow]
+            : [$dailyRow, $continueRow];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function dailyChallengeKeyboardRow(TelegramCopy $copy): array
+    {
+        return [[
+            'text' => $copy->get('keyboard.daily_challenge'),
+            'style' => TelegramButtonStyle::Success->value,
+        ]];
     }
 
     /**

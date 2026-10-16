@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
@@ -228,6 +229,16 @@ class User extends Authenticatable implements FilamentUser
     public function challengeCompletions(): HasMany
     {
         return $this->hasMany(ChallengeCompletion::class);
+    }
+
+    public function dailyChallengeAttempts(): HasMany
+    {
+        return $this->hasMany(DailyChallengeAttempt::class);
+    }
+
+    public function streak(): HasOne
+    {
+        return $this->hasOne(UserStreak::class);
     }
 
     /**

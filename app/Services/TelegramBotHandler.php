@@ -846,7 +846,11 @@ class TelegramBotHandler
 
         foreach ([TelegramLocale::English, TelegramLocale::Amharic] as $locale) {
             $copy = new TelegramCopy($locale->value);
+            $map[$copy->get('keyboard.daily_challenge')] = 'daily_challenge';
             $map[$copy->get('keyboard.continue_exam')] = 'continue_exam';
+            // Legacy label before "continue studying" rename.
+            $map['continue exam'] = 'continue_exam';
+            $map['ፈተና ቀጥል'] = 'continue_exam';
             $map[$copy->get('keyboard.maths')] = 'maths';
             $map[$copy->get('keyboard.reading_writing')] = 'reading_writing';
             $map[$copy->get('keyboard.analytical_reasoning')] = 'analytical_reasoning';
@@ -887,6 +891,7 @@ class TelegramBotHandler
     protected function runMenuAction(User $user, int|string $chatId, string $action): void
     {
         match ($action) {
+            'daily_challenge' => $this->showDailyChallenge($user, $chatId),
             'continue_exam' => $this->showContinue($user, $chatId),
             'maths' => $this->openGatSubject($user, $chatId, 'maths'),
             'reading_writing' => $this->openGatSubject($user, $chatId, 'reading-writing'),
@@ -1324,6 +1329,54 @@ class TelegramBotHandler
         }
 
         return rtrim($text)."\n\n".$cta;
+    }
+
+    protected function showDailyChallenge(User $user, int|string $chatId): void
+    {
+        $copy = TelegramCopy::for($user);
+        $dailyChallenges = app(DailyChallengeService::class);
+        $challenge = $dailyChallenges->today();
+
+        if ($challenge === null) {
+            $this->telegram->sendMessage($chatId, $copy->get('daily_challenge.status_missing'), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ]);
+
+            return;
+        }
+
+        $streak = (int) ($dailyChallenges->streakFor($user)?->current_streak ?? 0);
+        $attempt = $dailyChallenges->attemptFor($user, $challenge);
+
+        if ($attempt !== null) {
+            $text = $copy->get('daily_challenge.status_done', [
+                'score' => $attempt->score,
+                'total' => $attempt->total,
+                'streak' => $streak,
+            ]);
+            $buttons = [[
+                [
+                    'text' => $copy->get('daily_challenge.leaderboard_button'),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.play.daily-challenge.leaderboard')],
+                    'style' => TelegramButtonStyle::Primary->value,
+                ],
+            ]];
+        } else {
+            $text = $copy->get('daily_challenge.status_ready', [
+                'streak' => $streak,
+            ]);
+            $buttons = [[
+                [
+                    'text' => $copy->get('daily_challenge.open_button'),
+                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.play.daily-challenge')],
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ]];
+        }
+
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->inlineKeyboard($buttons),
+        ]);
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void

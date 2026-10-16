@@ -1,6 +1,7 @@
 @props([
     'payload',
     'resultUrl' => null,
+    'trackDuration' => false,
 ])
 
 @php
@@ -52,6 +53,8 @@
             timedOut: false,
             resultUrl: @js($resultUrl),
             resultPosted: false,
+            trackDuration: @js((bool) $trackDuration),
+            startedAtMs: null,
             get total() { return this.questions.length },
             get hasTimer() {
                 return this.timerEnabled
@@ -81,6 +84,7 @@
                 this.timeLimitSeconds = this.configuredTimeLimitSeconds ?? this.defaultTimeLimitSeconds
                 this.remainingSeconds = this.timeLimitSeconds
                 this.timerEnabled = true
+                this.startedAtMs = Date.now()
                 this.started = true
                 this.$nextTick(() => this.startTimer())
             },
@@ -89,7 +93,15 @@
                 this.timerEnabled = false
                 this.timeLimitSeconds = null
                 this.remainingSeconds = null
+                this.startedAtMs = Date.now()
                 this.started = true
+            },
+            elapsedDurationMs() {
+                if (! this.trackDuration || this.startedAtMs === null) {
+                    return 0
+                }
+
+                return Math.max(0, Date.now() - this.startedAtMs)
             },
             startTimer() {
                 this.stopTimer()
@@ -162,6 +174,7 @@
                             score: this.score,
                             total: this.total,
                             timed_out: this.timedOut,
+                            duration_ms: this.elapsedDurationMs(),
                         }),
                     })
 
@@ -189,6 +202,7 @@
                 this.timerEnabled = false
                 this.timeLimitSeconds = null
                 this.remainingSeconds = null
+                this.startedAtMs = null
             },
             next() {
                 if (this.current < this.total - 1) this.current++

@@ -291,7 +291,7 @@ it('opens pdf resources with a mini app player button instead of sending the doc
         $shareUrl = (string) ($saveShare[1]['url'] ?? '');
 
         return str_contains((string) ($data['text'] ?? ''), 'Week 1 Lecture Notes')
-            && ($openButton['text'] ?? null) === 'Open PDF player'
+            && ($openButton['text'] ?? null) === 'Open file'
             && ($openButton['web_app']['url'] ?? null) === route('tg.play.reference-books', $resource)
             && ($saveShare[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && ($saveShare[0]['text'] ?? null) === 'Quick save'
@@ -368,7 +368,7 @@ it('shows a green Saved button when a pdf resource is already bookmarked', funct
         $deepLink = 'https://t.me/noviquni_bot?start=resource_'.$resource->id;
         $expectedShareText = "📚 Already Saved Notes\n\nLecture summary for week 2\n\nGet it here 👇\n{$deepLink}\n\n🎓 More freshman resources, exams, assignments, short notes & reference books are available on NOViQ Uni.";
 
-        return data_get($request->data(), 'reply_markup.inline_keyboard.0.0.text') === 'Open PDF player'
+        return data_get($request->data(), 'reply_markup.inline_keyboard.0.0.text') === 'Open file'
             && ($buttons[0]['text'] ?? null) === 'Saved'
             && ($buttons[0]['style'] ?? null) === 'success'
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id

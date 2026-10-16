@@ -2,7 +2,8 @@
 
 return [
     'keyboard' => [
-        'continue_exam' => 'ፈተና ቀጥል',
+        'daily_challenge' => 'ዕለታዊ ፈተና',
+        'continue_exam' => 'መማር ቀጥል',
         'maths' => 'ሂሳብ',
         'reading_writing' => 'ንባብ/ጽሁፍ',
         'analytical_reasoning' => 'አመክንዮአዊ ትንተና',
@@ -43,7 +44,8 @@ return [
             'saved' => 'በፍጥነት የተቀመጡን በጥናት መተግበሪያ ይክፈቱ፦',
             'profile' => 'መገለጫን በጥናት መተግበሪያ ይክፈቱ፦',
             'profile_edit' => 'ዩኒቨርሲቲ፣ ሴሚስተር እና ኮርሶች ለማዋቀር መገለጫን ይክፈቱ፦',
-            'continue_exam' => 'ፈተናዎን በጥናት መተግበሪያ ይቀጥሉ፦',
+            'continue_exam' => 'መማርዎን በጥናት መተግበሪያ ይቀጥሉ፦',
+            'daily_challenge' => 'የዛሬውን ዕለታዊ ፈተና ይክፈቱ፦',
             'maths' => 'ሂሳብን በጥናት መተግበሪያ ይክፈቱ፦',
             'reading_writing' => 'ንባብ/ጽሁፍን በጥናት መተግበሪያ ይክፈቱ፦',
             'analytical_reasoning' => 'አመክንዮአዊ ትንተናን በጥናት መተግበሪያ ይክፈቱ፦',
@@ -54,7 +56,8 @@ return [
             'saved' => '🔖 በፍጥነት የተቀመጡ ክፈት',
             'profile' => '👤 መገለጫ ክፈት',
             'profile_edit' => '👤 የጥናት መገለጫ አርትዕ',
-            'continue_exam' => '📝 ፈተና ቀጥል',
+            'continue_exam' => '📝 መማር ቀጥል',
+            'daily_challenge' => '🎯 ዕለታዊ ፈተና ክፈት',
             'maths' => '🧮 ሂሳብ ክፈት',
             'reading_writing' => '📖 ንባብ/ጽሁፍ ክፈት',
             'analytical_reasoning' => '🧠 አመክንዮአዊ ትንተና ክፈት',
@@ -65,7 +68,20 @@ return [
         'returning_button' => '📚 መማርዎን ይቀጥሉ',
         'new' => "ሰላም :name — ወደ Noviq Uni እንኳን በደህና መጡ።\nኮርሶችዎን በመገለጫ ያዋቅሩ፣ ከዚያ መማር በአንድ መታ ይቀጥላል።",
         'new_button' => '🎯 በመገለጫ አዋቅር',
-        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\nፈተና ቀጥል · ሂሳብ · ንባብ/ጽሁፍ · አመክንዮአዊ ትንተና · በፍጥነት የተቀመጡ · ፕሪሚየም ክፈት · ያግኙን · አጋራ እና ሽልማት",
+        'keyboard_hint' => "የጥናት ምናሌዎ ዝግጁ ነው፦\nዕለታዊ ፈተና · መማር ቀጥል · ሂሳብ · ንባብ/ጽሁፍ · አመክንዮአዊ ትንተና · በፍጥነት የተቀመጡ · ፕሪሚየም ክፈት · ያግኙን · አጋራ እና ሽልማት",
+    ],
+    'daily_challenge' => [
+        'open_button' => '🎯 ዕለታዊ ፈተና ክፈት',
+        'status_ready' => '🎯 <b>የዛሬው ፈተና</b>
+10 የተደባለቁ GAT ጥያቄዎች። ተከታታይ ቀናት፦ <b>:streak</b>
+ለመጫወት ከታች ይንኩ።',
+        'status_done' => '🎯 <b>የዛሬው ፈተና</b>
+ውጤትዎ <b>:score/:total</b>። ተከታታይ ቀናት፦ <b>:streak</b>
+ለመቀጠል ነገ ይመለሱ።',
+        'status_missing' => '🎯 የዛሬው ፈተና ገና ዝግጁ አይደለም። ትንሽ ቆይተው ይመልከቱ።',
+        'remind' => '🎯 የዛሬው ፈተና እየጠበቀ ነው — ከእኩለ ሌሊት በፊት 10 ፈጣን GAT ጥያቄዎች።',
+        'remind_streak' => '🎯 የ<b>:streak</b> ቀን ተከታታይነትዎ በእኩለ ሌሊት ይቋረጣል — የዛሬውን ፈተና ካላጠናቀቁ!',
+        'leaderboard_button' => '🏆 ደረጃ ሰሌዳ',
     ],
     'refer' => [
         'start_cta' => 'አሁን ጀምር',
@@ -241,7 +257,7 @@ return [
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'በጥናት መተግበሪያ ክፈት',
-        'open_pdf_player' => 'PDF ማጫወቻ ክፈት',
+        'open_pdf_player' => 'ፋይል ክፈት',
         'quick_save' => 'በፍጥነት አስቀምጥ',
         'share' => 'አጋራ',
         'share_message' => '📚 :title

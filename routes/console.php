@@ -22,3 +22,15 @@ Schedule::call(function (): void {
             $broadcasts->send($broadcast);
         });
 })->everyMinute()->name('dispatch-scheduled-broadcasts')->withoutOverlapping();
+
+Schedule::command('daily:challenge')
+    ->dailyAt('00:00')
+    ->timezone('Africa/Nairobi')
+    ->withoutOverlapping()
+    ->name('generate-daily-challenge');
+
+Schedule::command('daily:challenge-remind')
+    ->dailyAt('18:00')
+    ->timezone('Africa/Nairobi')
+    ->withoutOverlapping()
+    ->name('remind-daily-challenge');

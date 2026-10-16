@@ -505,7 +505,7 @@ it('opens telegram vault pdfs with a mini app player button', function () {
         $buttons = data_get($data, 'reply_markup.inline_keyboard.1', []);
         $shareUrl = (string) ($buttons[1]['url'] ?? '');
 
-        return ($openButton['text'] ?? null) === 'Open PDF player'
+        return ($openButton['text'] ?? null) === 'Open file'
             && ($openButton['web_app']['url'] ?? null) === route('tg.play.reference-books', $resource)
             && ($buttons[0]['callback_data'] ?? null) === 'save:resource:'.$resource->id
             && ($buttons[0]['text'] ?? null) === 'Quick save'

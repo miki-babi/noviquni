@@ -2,7 +2,8 @@
 
 return [
     'keyboard' => [
-        'continue_exam' => 'continue exam',
+        'daily_challenge' => 'daily challenge',
+        'continue_exam' => 'continue studying',
         'maths' => 'maths',
         'reading_writing' => 'reading/writing',
         'analytical_reasoning' => 'Analytical reasoning',
@@ -44,7 +45,8 @@ return [
             'saved' => 'Open Quick saved in the study app:',
             'profile' => 'Open Profile in the study app:',
             'profile_edit' => 'Open Profile to set your university, semester, and courses:',
-            'continue_exam' => 'Continue your exam in the study app:',
+            'continue_exam' => 'Continue studying in the study app:',
+            'daily_challenge' => 'Open today\'s daily challenge:',
             'maths' => 'Open Maths in the study app:',
             'reading_writing' => 'Open Reading/Writing in the study app:',
             'analytical_reasoning' => 'Open Analytical reasoning in the study app:',
@@ -55,7 +57,8 @@ return [
             'saved' => '🔖 Open Quick saved',
             'profile' => '👤 Open Profile',
             'profile_edit' => '👤 Edit study profile',
-            'continue_exam' => '📝 Continue exam',
+            'continue_exam' => '📝 Continue studying',
+            'daily_challenge' => '🎯 Open daily challenge',
             'maths' => '🧮 Open Maths',
             'reading_writing' => '📖 Open Reading/Writing',
             'analytical_reasoning' => '🧠 Open Analytical reasoning',
@@ -66,7 +69,16 @@ return [
         'returning_button' => '📚 Continue studying',
         'new' => "Hey :name — welcome to Noviq Uni.\nSet up your courses in Profile, then we keep study one tap away.",
         'new_button' => '🎯 Set up in Profile',
-        'keyboard_hint' => "Your study menu is ready:\ncontinue exam · maths · reading/writing · Analytical reasoning · Quick saved · unlock premium · contact us · share and reward",
+        'keyboard_hint' => "Your study menu is ready:\ndaily challenge · continue studying · maths · reading/writing · Analytical reasoning · Quick saved · unlock premium · contact us · share and reward",
+    ],
+    'daily_challenge' => [
+        'open_button' => '🎯 Open daily challenge',
+        'status_ready' => "🎯 <b>Today's Challenge</b>\n10 mixed GAT questions. Streak: <b>:streak</b>\nTap below to play.",
+        'status_done' => "🎯 <b>Today's Challenge</b>\nYou scored <b>:score/:total</b>. Streak: <b>:streak</b>\nCome back tomorrow to keep it going.",
+        'status_missing' => "🎯 Today's Challenge is not ready yet. Check back soon.",
+        'remind' => "🎯 Today's Challenge is waiting — 10 quick GAT questions before midnight.",
+        'remind_streak' => "🎯 Your <b>:streak</b>-day streak ends at midnight unless you finish today's challenge!",
+        'leaderboard_button' => '🏆 Leaderboard',
     ],
     'refer' => [
         'start_cta' => 'Start now',
@@ -218,7 +230,7 @@ return [
     'resource' => [
         'not_found' => 'Resource not found.',
         'open_in_app' => 'Open in study app',
-        'open_pdf_player' => 'Open PDF player',
+        'open_pdf_player' => 'Open file',
         'quick_save' => 'Quick save',
         'share' => 'Share',
         'share_message' => "📚 :title\n\n:description\n\nGet it here 👇\n:link\n\n🎓 More freshman resources, exams, assignments, short notes & reference books are available on NOViQ Uni.",

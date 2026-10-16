@@ -10,7 +10,6 @@ use App\Models\University;
 use App\Models\User;
 use App\Models\Year;
 use App\Services\SettingsService;
-use App\Services\TelegramDeepLink;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -34,22 +33,24 @@ it('builds the GAT main keyboard for all students', function () {
 
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('continue exam')
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('daily challenge')
         ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('maths')
-        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('reading/writing')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Analytical reasoning')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('unlock premium')
-        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('contact us')
-        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('share and reward')
-        ->and(data_get($keyboard, 'keyboard.5.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.5.1.style'))->toBeNull();
+        ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('continue studying')
+        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('maths')
+        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('reading/writing')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('Analytical reasoning')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('🔖 Quick saved')
+        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('unlock premium')
+        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.6.0.text'))->toBe('contact us')
+        ->and(data_get($keyboard, 'keyboard.6.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.6.1.text'))->toBe('share and reward')
+        ->and(data_get($keyboard, 'keyboard.6.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.6.1.style'))->toBeNull();
 });
 
 it('builds the GAT subject reply keyboard', function () {
@@ -59,11 +60,13 @@ it('builds the GAT subject reply keyboard', function () {
 
     $keyboard = app(TelegramService::class)->gatSubjectKeyboard($user);
 
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Practice exams')
-        ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('quiz')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('reference books')
-        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('past exams')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('← back')
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('daily challenge')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('continue studying')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Practice exams')
+        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('quiz')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('reference books')
+        ->and(data_get($keyboard, 'keyboard.3.1.text'))->toBe('past exams')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('← back')
         ->and(data_get($keyboard, 'resize_keyboard'))->toBeTrue();
 });
 
@@ -379,7 +382,7 @@ it('lets non-freshman students update department without attaching courses', fun
         ->and($user->courses()->count())->toBe(0);
 });
 
-it('opens course hubs inside the mini app', function () {
+it('sends course hub mini app routes back to the bot menu', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -393,31 +396,15 @@ it('opens course hubs inside the mini app', function () {
     ]);
     $user->courses()->sync([$course->id]);
 
-    $notes = LearningResource::factory()->published()->referenceBooks()->create([
-        'course_id' => $course->id,
-        'stream_id' => $stream->id,
-        'title' => 'Week-1 notes',
-    ]);
-
     $this->actingAs($user)
         ->get(route('tg.courses.show', $course))
         ->assertOk()
-        ->assertSee('Chemistry')
-        ->assertSee('Reference books')
-        ->assertSee(route('tg.courses.hub', ['course' => $course, 'hub' => 'reference_books']), false)
-        ->assertDontSee('Week-1 notes')
-        ->assertSee('data-tg-header-back', false)
-        ->assertDontSee('data-tg-nav-bar', false)
-        ->assertSee(route('tg.browse'), false);
+        ->assertSee('Use the Telegram menu to continue', false);
 
     $this->actingAs($user)
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'reference_books']))
         ->assertOk()
-        ->assertSee('Week-1 notes')
-        ->assertSee($notes->miniAppUrl(), false)
-        ->assertDontSee(app(TelegramDeepLink::class)->forResource($notes->id), false)
-        ->assertDontSee('data-tg-bot-link', false)
-        ->assertSee('study-card--lime', false);
+        ->assertSee('Use the Telegram menu to continue', false);
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

@@ -62,8 +62,8 @@ it('accepts a start update and creates a completed GAT student without onboardin
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'share and reward';
     });
 });
 
@@ -194,14 +194,15 @@ it('restores the main reply keyboard when Back is tapped from courses', function
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'reading/writing'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Analytical reasoning'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'unlock premium'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'contact us'
-            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'share and reward';
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'continue studying'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'maths'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'reading/writing'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'Analytical reasoning'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'unlock premium'
+            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'contact us'
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'share and reward';
     });
 });
 
@@ -572,9 +573,9 @@ it('shows profile submenu with notifications refer and settings', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Profile in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Open Profile';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Profile to set your university')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Edit study profile';
     });
 });
 
@@ -600,14 +601,15 @@ it('switches language and refreshes keyboard labels', function () {
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ፈተና ቀጥል'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'ሂሳብ'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'ንባብ/ጽሁፍ'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'አመክንዮአዊ ትንተና'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'ፕሪሚየም ክፈት'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ያግኙን'
-            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'አጋራ እና ሽልማት';
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ዕለታዊ ፈተና'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'መማር ቀጥል'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'ሂሳብ'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'ንባብ/ጽሁፍ'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'አመክንዮአዊ ትንተና'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ፕሪሚየም ክፈት'
+            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'ያግኙን'
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'አጋራ እና ሽልማት';
     });
 });
 
@@ -690,7 +692,7 @@ it('completes mid-funnel users when they send free text instead of asking for ye
             return false;
         }
 
-        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'continue exam';
+        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'daily challenge';
     });
 });
 
@@ -944,14 +946,14 @@ it('opens a course from /start course deep link', function () {
     });
 });
 
-it('opens a mini app button when continue exam is tapped', function () {
+it('opens a mini app button when continue studying is tapped', function () {
     User::factory()->student()->create([
         'telegram_id' => '555301',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555301, 'continue exam', 601))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555301, 'continue studying', 601))
         ->assertOk();
 
     Http::assertSent(function ($request) {
@@ -961,9 +963,8 @@ it('opens a mini app button when continue exam is tapped', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Continue your exam in the study app')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📝 Continue exam';
+        return str_contains((string) ($data['text'] ?? ''), 'No courses yet')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit');
     });
 });
 
@@ -991,11 +992,13 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === 'quiz'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'reference books'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'past exams'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '← back';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'continue studying'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Practice exams'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'quiz'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'reference books'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'past exams'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === '← back';
     });
 });
 
@@ -1017,7 +1020,7 @@ it('tells the student when reading/writing is tapped without a matching course',
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'That course is not set up yet')
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'maths';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'maths';
     });
 });
 
@@ -1046,7 +1049,7 @@ it('opens reading/writing when the course uses Reading and writing naming', func
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
     });
 });
 
@@ -1075,7 +1078,7 @@ it('opens Analytical reasoning when the matching course exists', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
     });
 });
 
@@ -1133,7 +1136,7 @@ it('sends contact us copy from settings when contact us is tapped', function () 
         $data = $request->data();
 
         return ($data['text'] ?? '') === 'Custom GAT contact copy'
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
     });
 });
 

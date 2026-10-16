@@ -98,7 +98,7 @@ it('sends the custom start message to new users without onboarding prompts', fun
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
     });
 
     Http::assertNotSent(function ($request) {
@@ -168,9 +168,9 @@ it('sends the admin start photo caption and inline buttons on /start', function 
 
         return str_contains($request->url(), '/sendMessage')
             && str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'continue exam'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
             && data_get($data, 'reply_markup.keyboard.0.0.web_app') === null
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'share and reward';
     });
 });
 
@@ -240,8 +240,8 @@ it('logs the outbound telegram payloads sent after /start', function () {
         ->and((string) ($startLogs[0]->context['text'] ?? ''))->toContain('Welcome back, Abebe')
         ->and(data_get($startLogs[0]->context, 'reply_markup.inline_keyboard.0.0.web_app.url'))->toBe(route('tg.browse'))
         ->and((string) ($startLogs[1]->context['text'] ?? ''))->toContain('Your study menu is ready')
-        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.0.0.text'))->toBe('continue exam')
-        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.3.1.text'))->toBe('share and reward');
+        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.0.0.text'))->toBe('daily challenge')
+        ->and(data_get($startLogs[1]->context, 'reply_markup.keyboard.6.1.text'))->toBe('share and reward');
 });
 
 it('logs the start photo caption when a custom start image is sent', function () {
