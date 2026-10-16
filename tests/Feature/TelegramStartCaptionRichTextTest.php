@@ -61,7 +61,7 @@ it('sends start captions with telegram-safe rich text formatting', function () {
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) use ($user) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendPhoto')) {
             return false;
         }
@@ -72,8 +72,7 @@ it('sends start captions with telegram-safe rich text formatting', function () {
         $caption = (string) $fields->get('caption');
 
         return str_starts_with($caption, "Welcome back, <b>Abebe</b>!\nKeep going.")
-            && str_contains($caption, 'Start now</a>')
-            && str_contains($caption, 'start='.$user->referral_code)
+            && ! str_contains($caption, 'Start now')
             && $fields->get('parse_mode') === 'HTML';
     });
 });

@@ -1214,7 +1214,7 @@ class TelegramBotHandler
         $isNewUser = $user->wasRecentlyCreated;
 
         // Brand-new students are auto-enrolled in GAT courses, so course presence
-        // must not trigger the returning "Welcome back" + referral "Start now" pitch.
+        // must not trigger the returning "Welcome back" pitch.
         if ($isNewUser && $hasCourses) {
             if ($sendReplyKeyboard) {
                 $this->sendReplyKeyboard($user, $chatId);
@@ -1224,13 +1224,7 @@ class TelegramBotHandler
         }
 
         if (! $hasCourses) {
-            $text = $copy->get('start.new', ['name' => $name]);
-
-            if (! $isNewUser) {
-                $text = $this->withReferralCta($text, $user);
-            }
-
-            $this->telegram->sendMessage($chatId, $text, [
+            $this->telegram->sendMessage($chatId, $copy->get('start.new', ['name' => $name]), [
                 'reply_markup' => [
                     'inline_keyboard' => [[
                         [
@@ -1249,7 +1243,7 @@ class TelegramBotHandler
             return;
         }
 
-        $this->telegram->sendMessage($chatId, $this->withReferralCta($copy->get('start.returning', ['name' => $name]), $user), [
+        $this->telegram->sendMessage($chatId, $copy->get('start.returning', ['name' => $name]), [
             'reply_markup' => [
                 'inline_keyboard' => [[
                     [
@@ -1274,14 +1268,14 @@ class TelegramBotHandler
         $copy = TelegramCopy::for($user);
         $caption = TelegramHtml::fromRichHtml($this->settings->telegramStartCaption());
         $caption = str_replace(
-            ['{{first_name}}', '{{name}}'],
+            ['{{first_name}}', '{{name}}', '{{referral_cta}}'],
             [
                 TelegramHtml::escape($copy->firstName($user)),
                 TelegramHtml::escape($user->name),
+                $this->referralCtaHtml($user),
             ],
             $caption,
         );
-        $caption = $this->withReferralCta($caption, $user);
 
         $inlineKeyboard = app(BroadcastService::class)->inlineKeyboard($this->settings->telegramStartButtons());
         $rows = $inlineKeyboard['inline_keyboard'] ?? [];
