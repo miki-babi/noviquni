@@ -1171,9 +1171,9 @@ it('opens a forwardable start message from the invite friends reply keyboard lab
 
         return str_contains($text, 'Join me on Noviq Uni for GAT prep')
             && str_contains($text, 'Daily challenge')
+            && str_contains($text, 'Start now</a>')
             && str_contains($text, 'start='.$user->referral_code)
             && ! str_contains($text, 'Welcome back')
-            && ! str_contains($text, 'Start now</a>')
             && ! array_key_exists('reply_markup', $data);
     });
 });
@@ -1210,9 +1210,9 @@ it('opens refer invite from the Refer reply keyboard label', function () {
         $text = (string) ($data['text'] ?? '');
 
         return str_contains($text, 'Join me on Noviq Uni for GAT prep')
+            && str_contains($text, 'Start now</a>')
             && str_contains($text, 'start='.$user->referral_code)
             && ! str_contains($text, 'Welcome back')
-            && ! str_contains($text, 'Start now</a>')
             && ! array_key_exists('reply_markup', $data);
     });
 });
@@ -1237,9 +1237,9 @@ it('still opens refer flow from the legacy refer and earn keyboard label', funct
         $text = (string) ($data['text'] ?? '');
 
         return str_contains($text, 'Join me on Noviq Uni for GAT prep')
+            && str_contains($text, 'Start now</a>')
             && str_contains($text, 'start='.$user->referral_code)
             && ! str_contains($text, 'Welcome back')
-            && ! str_contains($text, 'Start now</a>')
             && ! array_key_exists('reply_markup', $data);
     });
 });

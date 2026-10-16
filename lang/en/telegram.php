@@ -91,7 +91,7 @@ return [
         'stats' => "👥 Referrals\nProgress: :count/:required\nPoints: :points",
         'forward_hint' => 'Forward the message below to your friends so they can join with your link.',
         'share' => '📤 Share',
-        'share_message' => "Join me on Noviq Uni for GAT prep.\n\nDaily challenge, mixed quizzes, and practice exams for maths, reading/writing, and analytical reasoning — free to start.\n\n:link",
+        'share_message' => "Join me on Noviq Uni for GAT prep.\n\nDaily challenge, mixed quizzes, and practice exams for maths, reading/writing, and analytical reasoning — free to start.",
     ],
     'challenges' => [
         'list_button' => '🏆 Challenges',

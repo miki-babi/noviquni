@@ -3578,9 +3578,7 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage($chatId, $copy->get('refer.invite'));
 
-        $this->telegram->sendMessage($chatId, $copy->get('refer.share_message', [
-            'link' => $this->referrals->referralLink($user),
-        ]));
+        $this->telegram->sendMessage($chatId, $this->withReferralCta($copy->get('refer.share_message'), $user));
     }
 
     protected function toggleNotifications(User $user, int|string $chatId): void
