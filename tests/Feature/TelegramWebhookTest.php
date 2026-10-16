@@ -992,13 +992,11 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Continue studying'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Practice exams'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'Quiz'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'Reference books'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'Past exams'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '← Back';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams'
+            && data_get($data, 'reply_markup.keyboard.0.1.text') === 'Quiz'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Reference books'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'Past exams'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === '← Back';
     });
 });
 
@@ -1049,7 +1047,7 @@ it('opens reading/writing when the course uses Reading and writing naming', func
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
     });
 });
 
@@ -1078,7 +1076,7 @@ it('opens Analytical reasoning when the matching course exists', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
     });
 });
 

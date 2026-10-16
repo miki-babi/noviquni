@@ -160,8 +160,10 @@ it('puts daily challenge above continue studying until completed, then removes i
         ->and(data_get($incomplete, 'keyboard.1.0.text'))->toBe('Continue studying');
 
     $subjectIncomplete = $telegram->gatSubjectKeyboard($user);
-    expect(data_get($subjectIncomplete, 'keyboard.0.0.text'))->toBe('Daily challenge')
-        ->and(data_get($subjectIncomplete, 'keyboard.1.0.text'))->toBe('Continue studying');
+    expect(collect(data_get($subjectIncomplete, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge')
+        ->not->toContain('Continue studying')
+        ->and(data_get($subjectIncomplete, 'keyboard.0.0.text'))->toBe('Practice exams');
 
     $challenge = DailyChallenge::factory()->create();
     DailyChallengeAttempt::factory()->create([
@@ -175,9 +177,10 @@ it('puts daily challenge above continue studying until completed, then removes i
         ->not->toContain('Daily challenge');
 
     $subjectComplete = $telegram->gatSubjectKeyboard($user->fresh());
-    expect(data_get($subjectComplete, 'keyboard.0.0.text'))->toBe('Continue studying')
-        ->and(collect(data_get($subjectComplete, 'keyboard'))->flatten(1)->pluck('text'))
-        ->not->toContain('Daily challenge');
+    expect(collect(data_get($subjectComplete, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge')
+        ->not->toContain('Continue studying')
+        ->and(data_get($subjectComplete, 'keyboard.0.0.text'))->toBe('Practice exams');
 });
 
 it('scores a daily challenge submission through the mini app', function () {

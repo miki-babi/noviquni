@@ -60,13 +60,14 @@ it('builds the GAT subject reply keyboard', function () {
 
     $keyboard = app(TelegramService::class)->gatSubjectKeyboard($user);
 
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('daily challenge')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('continue studying')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Practice exams')
-        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('quiz')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('reference books')
-        ->and(data_get($keyboard, 'keyboard.3.1.text'))->toBe('past exams')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('← back')
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Practice exams')
+        ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('Quiz')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('Reference books')
+        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('Past exams')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('← Back')
+        ->and(collect(data_get($keyboard, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge')
+        ->not->toContain('Continue studying')
         ->and(data_get($keyboard, 'resize_keyboard'))->toBeTrue();
 });
 

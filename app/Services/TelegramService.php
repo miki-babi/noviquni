@@ -232,7 +232,6 @@ class TelegramService
 
         return [
             'keyboard' => [
-                ...$this->dailyChallengePriorityRows($copy, $user),
                 [
                     [
                         'text' => $copy->get('keyboard.subject.practice_exams'),
