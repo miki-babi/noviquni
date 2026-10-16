@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\TelegramFileAsset;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LearningResourceFiles
 {
@@ -144,6 +145,103 @@ class LearningResourceFiles
     public static function isPdfFileName(?string $name): bool
     {
         return filled($name) && self::isPdfPath($name);
+    }
+
+    /**
+     * Probe public + local disks for a stored learning-resource key.
+     *
+     * @return array{
+     *     public_root: string|null,
+     *     local_root: string|null,
+     *     public_exists: bool,
+     *     local_exists: bool,
+     *     absolute_public_path: string|null,
+     *     absolute_local_path: string|null,
+     *     public_dir_exists: bool,
+     *     local_dir_exists: bool,
+     *     public_sibling_count: int,
+     *     local_sibling_count: int,
+     * }
+     */
+    public static function probeDiskKey(string $key): array
+    {
+        $publicRoot = self::diskRoot('public');
+        $localRoot = self::diskRoot('local');
+        $dir = dirname($key);
+        $dir = ($dir === '.' || $dir === '') ? null : $dir;
+
+        $publicExists = Storage::disk('public')->exists($key);
+        $localExists = Storage::disk('local')->exists($key);
+
+        return [
+            'public_root' => $publicRoot,
+            'local_root' => $localRoot,
+            'public_exists' => $publicExists,
+            'local_exists' => $localExists,
+            'absolute_public_path' => self::absoluteDiskPath('public', $key),
+            'absolute_local_path' => self::absoluteDiskPath('local', $key),
+            'public_dir_exists' => $dir !== null && Storage::disk('public')->directoryExists($dir),
+            'local_dir_exists' => $dir !== null && Storage::disk('local')->directoryExists($dir),
+            'public_sibling_count' => self::siblingFileCount('public', $dir),
+            'local_sibling_count' => self::siblingFileCount('local', $dir),
+        ];
+    }
+
+    /**
+     * @param  list<string>|null  $paths
+     */
+    public static function formatDiskPathStatusLines(?array $paths): string
+    {
+        if (! is_array($paths) || $paths === []) {
+            return '';
+        }
+
+        $lines = [];
+
+        foreach ($paths as $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+
+            $public = Storage::disk('public')->exists($path) ? 'yes' : 'no';
+            $local = Storage::disk('local')->exists($path) ? 'yes' : 'no';
+            $lines[] = "{$path}  (public: {$public}, local: {$local})";
+        }
+
+        return implode("\n", $lines);
+    }
+
+    public static function diskRoot(string $disk): ?string
+    {
+        $root = config("filesystems.disks.{$disk}.root");
+
+        return is_string($root) && $root !== '' ? $root : null;
+    }
+
+    public static function absoluteDiskPath(string $disk, string $key): ?string
+    {
+        try {
+            return Storage::disk($disk)->path($key);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    public static function siblingFileCount(string $disk, ?string $directory): int
+    {
+        if ($directory === null || $directory === '' || $directory === '.') {
+            return 0;
+        }
+
+        try {
+            if (! Storage::disk($disk)->directoryExists($directory)) {
+                return 0;
+            }
+
+            return count(Storage::disk($disk)->files($directory));
+        } catch (Throwable) {
+            return 0;
+        }
     }
 
     public static function isValidPathForCourse(string $path, int|string $courseId): bool

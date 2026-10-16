@@ -7,8 +7,10 @@ use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\User;
+use App\Support\LearningResourceFiles;
 use App\Support\StudyRichText;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 
 uses(RefreshDatabase::class);
@@ -84,4 +86,35 @@ it('rejects invalid content json on the learning edit page for non-interactive t
         ])
         ->call('save')
         ->assertHasFormErrors(['content']);
+});
+
+it('shows stored disk file paths with public and local exists status on edit', function () {
+    Storage::fake('public');
+    Storage::fake('local');
+
+    $admin = User::factory()->admin()->create();
+    $stream = Stream::factory()->create();
+    $course = Course::factory()->create(['stream_id' => $stream->id]);
+
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/gat-samples-rw.pdf';
+    Storage::disk('local')->put($path, '%PDF-1.4 on-local-only');
+
+    $resource = LearningResource::factory()->withFiles([$path])->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'type' => ResourceType::ReferenceBooks,
+    ]);
+
+    $this->actingAs($admin);
+
+    $expected = LearningResourceFiles::formatDiskPathStatusLines([$path]);
+
+    expect($expected)->toContain($path)
+        ->and($expected)->toContain('public: no')
+        ->and($expected)->toContain('local: yes');
+
+    Livewire::test(EditLearning::class, ['record' => $resource->getRouteKey()])
+        ->assertSee($path, false)
+        ->assertSee('public: no', false)
+        ->assertSee('local: yes', false);
 });

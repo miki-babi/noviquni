@@ -74,39 +74,7 @@ class ResourceFileController extends Controller
         ]);
 
         if ($source === 'disk') {
-            $diskName = LearningResourceFiles::diskName();
-            $disk = Storage::disk($diskName);
-            $exists = $disk->exists($key);
-            $isPdf = LearningResourceFiles::isPdfPath($key);
-
-            Log::info('miniapp.pdf_stream.disk_check', [
-                ...$context,
-                'disk' => $diskName,
-                'exists' => $exists,
-                'is_pdf_path' => $isPdf,
-            ]);
-
-            if (! $exists || ! $isPdf) {
-                Log::warning('miniapp.pdf_stream.missing_disk_file', [
-                    ...$context,
-                    'disk' => $diskName,
-                    'key' => $key,
-                    'exists' => $exists,
-                    'is_pdf_path' => $isPdf,
-                ]);
-                abort(404);
-            }
-
-            Log::info('miniapp.pdf_stream.ok', [
-                ...$context,
-                'source' => 'disk',
-                'disk' => $diskName,
-            ]);
-
-            return $disk->response($key, $filename, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="'.$filename.'"',
-            ]);
+            return $this->streamDiskPdf($resource, $key, $filename, $context);
         }
 
         $contents = $telegram->downloadFileContents($key);
@@ -132,5 +100,61 @@ class ResourceFileController extends Controller
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
             'Content-Length' => (string) $length,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    protected function streamDiskPdf(
+        LearningResource $resource,
+        string $key,
+        string $filename,
+        array $context,
+    ): StreamedResponse {
+        $diskName = LearningResourceFiles::diskName();
+        $probe = LearningResourceFiles::probeDiskKey($key);
+        $isPdf = LearningResourceFiles::isPdfPath($key);
+        $hasTelegramFiles = filled($resource->telegram_files);
+
+        $diskContext = [
+            ...$context,
+            'disk' => $diskName,
+            'key' => $key,
+            'exists' => $probe['public_exists'],
+            'is_pdf_path' => $isPdf,
+            'has_telegram_files' => $hasTelegramFiles,
+            ...$probe,
+        ];
+
+        Log::info('miniapp.pdf_stream.disk_check', $diskContext);
+
+        if ($probe['public_exists'] && $isPdf) {
+            Log::info('miniapp.pdf_stream.ok', [
+                ...$context,
+                'source' => 'disk',
+                'disk' => $diskName,
+            ]);
+
+            return Storage::disk($diskName)->response($key, $filename, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            ]);
+        }
+
+        if ($probe['local_exists'] && $isPdf) {
+            Log::info('miniapp.pdf_stream.ok', [
+                ...$context,
+                'source' => 'disk_local_fallback',
+                'disk' => 'local',
+            ]);
+
+            return Storage::disk('local')->response($key, $filename, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            ]);
+        }
+
+        Log::warning('miniapp.pdf_stream.missing_disk_file', $diskContext);
+        abort(404);
     }
 }

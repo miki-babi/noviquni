@@ -26,6 +26,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -909,6 +910,13 @@ class LearningForm
                                 $component->state($record->files);
                             }
                         })
+                        ->columnSpanFull(),
+                    TextEntry::make('disk_file_paths_display')
+                        ->label('Disk file path(s)')
+                        ->state(fn (?LearningResource $record): string => LearningResourceFiles::formatDiskPathStatusLines($record?->files))
+                        ->placeholder('No disk files stored on this resource.')
+                        ->helperText('Relative keys under the '.LearningResourceFiles::diskName().' disk (local probed as fallback). Mini App streams these via /tg/files/{slug}/{index}.')
+                        ->visible(fn (?LearningResource $record): bool => filled($record?->files))
                         ->columnSpanFull(),
                     Select::make('telegram_file_ids')
                         ->label(fn (Get $get): string => $get('file_mode') === 'single' ? 'Telegram file' : 'Telegram files')

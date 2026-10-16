@@ -136,7 +136,8 @@ it('shows the bootstrap page for guests on the PDF stream', function () {
 it('logs missing disk files when the PDF stream 404s', function () {
     [$user, $course, $stream] = pdfViewerContext();
 
-    Storage::fake(LearningResourceFiles::diskName());
+    Storage::fake('public');
+    Storage::fake('local');
 
     $path = LearningResourceFiles::directoryForCourse($course->id).'/missing.pdf';
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
@@ -158,6 +159,68 @@ it('logs missing disk files when the PDF stream 404s', function () {
     expect($logged->pluck('message')->all())
         ->toContain('miniapp.pdf_stream.start')
         ->toContain('miniapp.pdf_stream.missing_disk_file');
+
+    $missing = $logged->first(
+        fn (MessageLogged $event): bool => $event->message === 'miniapp.pdf_stream.missing_disk_file',
+    );
+
+    expect($missing)->not->toBeNull()
+        ->and($missing->context)->toHaveKeys([
+            'public_exists',
+            'local_exists',
+            'public_root',
+            'local_root',
+            'absolute_public_path',
+            'absolute_local_path',
+            'public_dir_exists',
+            'local_dir_exists',
+            'public_sibling_count',
+            'local_sibling_count',
+            'has_telegram_files',
+        ])
+        ->and($missing->context['public_exists'])->toBeFalse()
+        ->and($missing->context['local_exists'])->toBeFalse()
+        ->and($missing->context['has_telegram_files'])->toBeFalse();
+});
+
+it('streams a PDF from the local disk when public is missing', function () {
+    [$user, $course, $stream] = pdfViewerContext();
+
+    Storage::fake('public');
+    Storage::fake('local');
+
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/legacy-local.pdf';
+    Storage::disk('local')->put($path, '%PDF-1.4 local-fallback-bytes');
+
+    $resource = LearningResource::factory()->published()->withFiles([$path])->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'type' => ResourceType::ReferenceBooks,
+        'title' => 'Legacy local PDF',
+    ]);
+
+    $logged = collect();
+
+    Event::listen(MessageLogged::class, function (MessageLogged $event) use ($logged): void {
+        $logged->push($event);
+    });
+
+    $response = $this->actingAs($user)
+        ->get(route('tg.files.show', ['resource' => $resource, 'index' => 0]));
+
+    $response
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf');
+
+    expect($response->streamedContent())->toContain('%PDF-1.4 local-fallback-bytes');
+
+    $ok = $logged->first(
+        fn (MessageLogged $event): bool => $event->message === 'miniapp.pdf_stream.ok',
+    );
+
+    expect($ok)->not->toBeNull()
+        ->and($ok->context['source'] ?? null)->toBe('disk_local_fallback')
+        ->and($ok->context['disk'] ?? null)->toBe('local');
 });
 
 it('shows the locked view when streaming a premium PDF without entitlement', function () {
