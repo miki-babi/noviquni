@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\LearningResourceFiles;
 use Database\Factories\TelegramFileAssetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable([
     'file_id',
@@ -14,11 +17,33 @@ use Illuminate\Database\Eloquent\Model;
     'mime_type',
     'file_size',
     'uploaded_by_username',
+    'stored_path',
+    'course_file_id',
 ])]
 class TelegramFileAsset extends Model
 {
     /** @use HasFactory<TelegramFileAssetFactory> */
     use HasFactory;
+
+    public function courseFile(): BelongsTo
+    {
+        return $this->belongsTo(CourseFile::class);
+    }
+
+    public function resolvedDiskPath(): ?string
+    {
+        if (! filled($this->stored_path)) {
+            return null;
+        }
+
+        $disk = Storage::disk(LearningResourceFiles::diskName());
+
+        if (! $disk->exists($this->stored_path)) {
+            return null;
+        }
+
+        return $this->stored_path;
+    }
 
     /**
      * @return array<string, string>

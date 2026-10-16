@@ -1852,11 +1852,26 @@ class TelegramBotHandler
             'reply_markup' => $this->resourceFileKeyboard($user, $resource),
         ];
 
-        foreach ($resource->telegram_files ?? [] as $telegramFile) {
-            if (! is_array($telegramFile)) {
-                continue;
-            }
+        $telegramEntries = collect($resource->telegram_files ?? [])
+            ->filter(fn ($telegramFile): bool => is_array($telegramFile))
+            ->values();
 
+        $telegramFileIds = $telegramEntries
+            ->map(fn (array $telegramFile): mixed => $telegramFile['file_id'] ?? null)
+            ->filter(fn ($fileId): bool => is_string($fileId) && filled($fileId))
+            ->values()
+            ->all();
+
+        $assetsByFileId = $telegramFileIds === []
+        ? collect()
+        : TelegramFileAsset::query()
+            ->whereIn('file_id', $telegramFileIds)
+            ->get()
+            ->keyBy('file_id');
+
+        $disk = Storage::disk(config('filesystems.default'));
+
+        foreach ($telegramEntries as $telegramFile) {
             $fileId = $telegramFile['file_id'] ?? null;
             $fileName = $telegramFile['file_name'] ?? null;
 
@@ -1866,6 +1881,26 @@ class TelegramBotHandler
 
             if (LearningResourceFiles::isPdfFileName(is_string($fileName) ? $fileName : null)) {
                 continue;
+            }
+
+            /** @var TelegramFileAsset|null $asset */
+            $asset = $assetsByFileId->get($fileId);
+            $storedPath = $asset?->resolvedDiskPath();
+
+            if ($storedPath !== null) {
+                $absolutePath = $disk->path($storedPath);
+
+                if (is_file($absolutePath)) {
+                    $this->telegram->sendDocument(
+                        $chatId,
+                        $absolutePath,
+                        $sent ? '' : $caption,
+                        $markup,
+                    );
+                    $sent = true;
+
+                    continue;
+                }
             }
 
             $this->telegram->sendDocument(
@@ -1880,8 +1915,6 @@ class TelegramBotHandler
         if ($sent) {
             return;
         }
-
-        $disk = Storage::disk(config('filesystems.default'));
 
         foreach ($resource->files ?? [] as $path) {
             if (! is_string($path) || blank($path)) {

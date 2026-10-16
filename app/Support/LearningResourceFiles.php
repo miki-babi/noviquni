@@ -23,6 +23,9 @@ class LearningResourceFiles
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/vnd.ms-powerpoint',
             'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/zip',
+            'application/x-zip-compressed',
+            'text/plain',
             'image/jpeg',
             'image/png',
             'image/webp',
@@ -34,7 +37,7 @@ class LearningResourceFiles
      */
     public static function acceptedExtensions(): array
     {
-        return ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'webp'];
+        return ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip', 'txt', 'jpg', 'jpeg', 'png', 'webp'];
     }
 
     public static function directoryForCourse(int|string $courseId): string

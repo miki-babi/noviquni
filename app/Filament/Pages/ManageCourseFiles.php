@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Models\Course;
+use App\Models\CourseFile;
 use App\Support\LearningResourceFiles;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -103,7 +104,7 @@ class ManageCourseFiles extends Page implements HasTable
                             ->live()
                             ->searchable()
                             ->helperText(fn (Get $get): string => filled($get('course_id'))
-                                ? LearningResourceFiles::countForCourse($get('course_id')).' file(s) already in this course library.'
+                                ? $this->libraryCountForCourse($get('course_id')).' file(s) already in this course library.'
                                 : 'Select a course to upload into its library.')
                             ->columnSpanFull(),
                         FileUpload::make('files')
@@ -118,7 +119,7 @@ class ManageCourseFiles extends Page implements HasTable
                             ->acceptedFileTypes(LearningResourceFiles::acceptedMimeTypes())
                             ->required()
                             ->disabled(fn (Get $get): bool => blank($get('course_id')))
-                            ->helperText('PDF, Word, PowerPoint, or images. Original filenames are kept.')
+                            ->helperText('PDF, Word, PowerPoint, zip, text, or images. Original filenames are kept.')
                             ->columnSpanFull(),
                     ]),
             ]);
@@ -129,7 +130,7 @@ class ManageCourseFiles extends Page implements HasTable
         return $table
             ->heading('Course library')
             ->description('Files already uploaded for the selected course.')
-            ->records(fn (): array => LearningResourceFiles::listForCourse($this->data['course_id'] ?? null))
+            ->records(fn (): array => $this->libraryRecordsForCourse($this->data['course_id'] ?? null))
             ->columns([
                 TextColumn::make('name')
                     ->label('File')
@@ -180,6 +181,11 @@ class ManageCourseFiles extends Page implements HasTable
 
                             return;
                         }
+
+                        CourseFile::query()
+                            ->where('course_id', $courseId)
+                            ->where('path', $path)
+                            ->delete();
 
                         Storage::disk(LearningResourceFiles::diskName())->delete($path);
 
@@ -237,6 +243,7 @@ class ManageCourseFiles extends Page implements HasTable
     public function save(): void
     {
         $data = $this->form->getState();
+        $courseId = $data['course_id'] ?? null;
         $files = $data['files'] ?? [];
 
         if (is_string($files) && filled($files)) {
@@ -247,7 +254,42 @@ class ManageCourseFiles extends Page implements HasTable
             $files = [];
         }
 
-        $count = count(array_values(array_filter($files, fn ($path): bool => filled($path))));
+        $paths = array_values(array_filter($files, fn ($path): bool => filled($path)));
+        $disk = LearningResourceFiles::diskName();
+
+        if (filled($courseId)) {
+            foreach ($paths as $path) {
+                if (! is_string($path) || ! LearningResourceFiles::isValidPathForCourse($path, $courseId)) {
+                    continue;
+                }
+
+                $exists = CourseFile::query()
+                    ->where('course_id', $courseId)
+                    ->where('path', $path)
+                    ->exists();
+
+                if ($exists) {
+                    continue;
+                }
+
+                $size = Storage::disk($disk)->exists($path) ? (int) Storage::disk($disk)->size($path) : 0;
+
+                CourseFile::query()->create([
+                    'course_id' => $courseId,
+                    'title' => pathinfo($path, PATHINFO_FILENAME) ?: basename($path),
+                    'description' => null,
+                    'path' => $path,
+                    'disk' => $disk,
+                    'size' => $size,
+                    'mime' => Storage::disk($disk)->mimeType($path) ?: null,
+                    'is_published' => false,
+                    'external_id' => null,
+                    'telegram_file_id' => null,
+                ]);
+            }
+        }
+
+        $count = count($paths);
 
         Notification::make()
             ->title($count === 1 ? '1 file uploaded' : "{$count} files uploaded")
@@ -255,8 +297,49 @@ class ManageCourseFiles extends Page implements HasTable
             ->send();
 
         $this->form->fill([
-            'course_id' => $data['course_id'] ?? null,
+            'course_id' => $courseId,
             'files' => [],
         ]);
+    }
+
+    /**
+     * @return array<string, array{path: string, name: string, size: int|null, size_label: string}>
+     */
+    protected function libraryRecordsForCourse(int|string|null $courseId): array
+    {
+        if (! filled($courseId)) {
+            return [];
+        }
+
+        $records = [];
+
+        $catalog = CourseFile::query()
+            ->where('course_id', $courseId)
+            ->orderBy('title')
+            ->get();
+
+        foreach ($catalog as $file) {
+            $records[$file->path] = [
+                'path' => $file->path,
+                'name' => $file->title !== '' ? $file->title : basename($file->path),
+                'size' => $file->size,
+                'size_label' => LearningResourceFiles::formatBytes($file->size),
+            ];
+        }
+
+        foreach (LearningResourceFiles::listForCourse($courseId) as $path => $diskFile) {
+            if (array_key_exists($path, $records)) {
+                continue;
+            }
+
+            $records[$path] = $diskFile;
+        }
+
+        return $records;
+    }
+
+    protected function libraryCountForCourse(int|string|null $courseId): int
+    {
+        return count($this->libraryRecordsForCourse($courseId));
     }
 }

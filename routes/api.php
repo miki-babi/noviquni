@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Api\CourseFileController;
 use App\Http\Controllers\Api\LearningImportController;
 use App\Http\Controllers\Api\PaymentBotController;
+use App\Http\Controllers\Api\TelegramFileController;
 use App\Http\Controllers\Api\UploadController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,4 +21,11 @@ Route::middleware(['import.token', 'throttle:120,1'])->group(function (): void {
     Route::post('learnings', [LearningImportController::class, 'store'])->name('api.learnings.store');
     Route::patch('learnings/{learning:slug}', [LearningImportController::class, 'update'])->name('api.learnings.update');
     Route::post('uploads', [UploadController::class, 'store'])->name('api.uploads.store');
+
+    Route::get('course-files', [CourseFileController::class, 'index'])->name('api.course-files.index');
+    Route::post('course-files', [CourseFileController::class, 'store'])->name('api.course-files.store');
+    Route::patch('course-files/{courseFile}', [CourseFileController::class, 'update'])->name('api.course-files.update');
+
+    Route::get('telegram-files', [TelegramFileController::class, 'index'])->name('api.telegram-files.index');
+    Route::patch('telegram-files/{telegramFileAsset}', [TelegramFileController::class, 'update'])->name('api.telegram-files.update');
 });

@@ -136,11 +136,24 @@ class LearningResource extends Model
             ];
         }
 
-        foreach ($this->telegram_files ?? [] as $telegramFile) {
-            if (! is_array($telegramFile)) {
-                continue;
-            }
+        $telegramEntries = collect($this->telegram_files ?? [])
+            ->filter(fn ($telegramFile): bool => is_array($telegramFile))
+            ->values();
 
+        $fileIds = $telegramEntries
+            ->map(fn (array $telegramFile): mixed => $telegramFile['file_id'] ?? null)
+            ->filter(fn ($fileId): bool => is_string($fileId) && filled($fileId))
+            ->values()
+            ->all();
+
+        $assetsByFileId = $fileIds === []
+            ? collect()
+            : TelegramFileAsset::query()
+                ->whereIn('file_id', $fileIds)
+                ->get()
+                ->keyBy('file_id');
+
+        foreach ($telegramEntries as $telegramFile) {
             $fileId = $telegramFile['file_id'] ?? null;
             $fileName = $telegramFile['file_name'] ?? null;
 
@@ -148,10 +161,26 @@ class LearningResource extends Model
                 continue;
             }
 
+            $name = is_string($fileName) && filled($fileName) ? $fileName : 'document.pdf';
+            /** @var TelegramFileAsset|null $asset */
+            $asset = $assetsByFileId->get($fileId);
+            $diskPath = $asset?->resolvedDiskPath();
+
+            if ($diskPath !== null) {
+                $attachments[] = [
+                    'source' => 'disk',
+                    'key' => $diskPath,
+                    'name' => $name,
+                    'index' => count($attachments),
+                ];
+
+                continue;
+            }
+
             $attachments[] = [
                 'source' => 'telegram',
                 'key' => $fileId,
-                'name' => is_string($fileName) && filled($fileName) ? $fileName : 'document.pdf',
+                'name' => $name,
                 'index' => count($attachments),
             ];
         }
