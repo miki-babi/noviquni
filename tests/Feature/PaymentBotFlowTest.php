@@ -41,8 +41,12 @@ function paymentBotHasMainKeyboard(mixed $replyMarkup): bool
         return false;
     }
 
-    return str_contains($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_REGISTER)
+    $registerPos = strpos($encoded, PaymentBotTelegramService::BUTTON_REGISTER);
+    $contactPos = strpos($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US);
+
+    return $registerPos !== false
+        && $contactPos !== false
+        && $registerPos < $contactPos
         && str_contains($encoded, '"style":"primary"')
         && ! str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
         && ! str_contains($encoded, 'Our story')
@@ -81,8 +85,9 @@ function paymentBotHasPaymentCardInlineKeyboard(mixed $replyMarkup): bool
         && str_contains($encoded, 'pay:cbe')
         && str_contains($encoded, 'pay:telebirr')
         && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_CBE.'","callback_data":"pay:cbe","style":"success"')
-        && str_contains($encoded, 'web_app')
-        && str_contains($encoded, '/tg/premium');
+        && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_ABOUT_PREMIUM.'","web_app":{"url":"')
+        && str_contains($encoded, '"/tg/premium"')
+        && str_contains($encoded, '"style":"primary"');
 }
 
 function paymentBotHasTelebirrCardInlineKeyboard(mixed $replyMarkup): bool
@@ -101,8 +106,9 @@ function paymentBotHasTelebirrCardInlineKeyboard(mixed $replyMarkup): bool
         && str_contains($encoded, 'pay:cbe')
         && str_contains($encoded, 'pay:telebirr')
         && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_TELEBIRR.'","callback_data":"pay:telebirr","style":"success"')
-        && str_contains($encoded, 'web_app')
-        && str_contains($encoded, '/tg/premium');
+        && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_ABOUT_PREMIUM.'","web_app":{"url":"')
+        && str_contains($encoded, '"/tg/premium"')
+        && str_contains($encoded, '"style":"primary"');
 }
 
 it('sends welcome with What you get Mini App button and refreshes reply keyboard on start', function () {
@@ -174,9 +180,7 @@ it('attaches What you get Mini App button when the old reply button is tapped', 
     });
 });
 
-it('returns configured copy for Contact us', function () {
-    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_CONTACT_US, 'Custom contact us copy');
-
+it('sends a contact link to @mikiyas_sh when Contact us is tapped', function () {
     $this->postJson('/telegram/payment-bot/webhook', [
         'update_id' => 11,
         'message' => [
@@ -195,8 +199,13 @@ it('returns configured copy for Contact us', function () {
             return false;
         }
 
-        return str_contains((string) ($request['text'] ?? ''), 'Custom contact us copy')
-            && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
+        $text = (string) ($request['text'] ?? '');
+        $markup = paymentBotEncodeMarkup($request['reply_markup'] ?? null);
+
+        return str_contains($text, 'mikiyas_sh')
+            && str_contains($markup, 'mikiyas_sh')
+            && str_contains($markup, 'https://t.me/mikiyas_sh')
+            && str_contains($markup, 'url');
     });
 });
 

@@ -43,13 +43,13 @@ class PaymentBotTelegramService
         return [
             'keyboard' => [
                 [
-                    ['text' => self::BUTTON_CONTACT_US],
-                ],
-                [
                     [
                         'text' => self::BUTTON_REGISTER,
                         'style' => TelegramButtonStyle::Primary->value,
                     ],
+                ],
+                [
+                    ['text' => self::BUTTON_CONTACT_US],
                 ],
             ],
             'resize_keyboard' => true,
@@ -103,6 +103,7 @@ class PaymentBotTelegramService
                 [
                     'text' => self::BUTTON_ABOUT_PREMIUM,
                     'web_app' => ['url' => $premiumMiniAppUrl],
+                    'style' => TelegramButtonStyle::Primary->value,
                 ],
             ],
         ]);
@@ -139,6 +140,7 @@ class PaymentBotTelegramService
                 [
                     'text' => self::BUTTON_ABOUT_PREMIUM,
                     'web_app' => ['url' => $premiumMiniAppUrl],
+                    'style' => TelegramButtonStyle::Primary->value,
                 ],
             ],
         ]);

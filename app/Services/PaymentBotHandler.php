@@ -21,6 +21,8 @@ class PaymentBotHandler
 
     public const PAYMENT_CARD_TELEBIRR_NUMBER = '0967072576';
 
+    public const CONTACT_TELEGRAM_HANDLE = 'mikiyas_sh';
+
     public function __construct(
         public PaymentBotTelegramService $telegram,
         public PaymentService $payments,
@@ -145,9 +147,19 @@ class PaymentBotHandler
         }
 
         if ($text === PaymentBotTelegramService::BUTTON_CONTACT_US) {
-            $this->sendWithKeyboard(
+            $handle = self::CONTACT_TELEGRAM_HANDLE;
+
+            $this->telegram->sendMessage(
                 $chatId,
-                TelegramHtml::escape($this->settings->paymentBotContactUs()),
+                'Contact us on Telegram: @'.TelegramHtml::escape($handle),
+                [
+                    'reply_markup' => $this->telegram->inlineKeyboard([[
+                        [
+                            'text' => 'Message @'.TelegramHtml::escape($handle),
+                            'url' => 'https://t.me/'.$handle,
+                        ],
+                    ]]),
+                ],
             );
 
             return true;
