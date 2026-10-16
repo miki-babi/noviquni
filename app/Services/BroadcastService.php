@@ -30,6 +30,10 @@ class BroadcastService
 
     public const int MaxChoiceButtons = 2;
 
+    public const int AudienceBatchSize = 100;
+
+    public const int PendingDeliveryBatchSize = 50;
+
     public function __construct(public TelegramService $telegram) {}
 
     /**
@@ -449,46 +453,239 @@ class BroadcastService
         return $delivered;
     }
 
+    /**
+     * Enqueue one pending delivery row per audience user for cron to drain.
+     */
+    public function queueSend(Broadcast $broadcast): bool
+    {
+        $updated = Broadcast::query()
+            ->whereKey($broadcast->id)
+            ->whereIn('status', [
+                BroadcastStatus::Draft,
+                BroadcastStatus::Scheduled,
+                BroadcastStatus::Sent,
+            ])
+            ->update([
+                'status' => BroadcastStatus::Sending,
+                'scheduled_at' => null,
+            ]);
+
+        if ($updated === 0) {
+            return false;
+        }
+
+        $broadcast->refresh();
+
+        $enqueued = 0;
+
+        $this->audienceQuery($broadcast)
+            ->orderBy('id')
+            ->chunkById(self::AudienceBatchSize, function (Collection $users) use ($broadcast, &$enqueued): void {
+                $now = now();
+                $rows = [];
+
+                foreach ($users as $user) {
+                    $rows[] = [
+                        'broadcast_id' => $broadcast->id,
+                        'user_id' => $user->id,
+                        'channel' => 'telegram',
+                        'status' => 'pending',
+                        'body' => $this->personalize($broadcast->body, $user),
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                if ($rows === []) {
+                    return;
+                }
+
+                NotificationDelivery::query()->insert($rows);
+                $enqueued += count($rows);
+            });
+
+        if ($enqueued === 0) {
+            $this->markSent($broadcast);
+        }
+
+        return true;
+    }
+
+    /**
+     * Deliver immediately to the full audience (no pending queue).
+     */
     public function send(Broadcast $broadcast): void
     {
         $broadcast->update(['status' => BroadcastStatus::Sending, 'scheduled_at' => null]);
 
+        $afterUserId = 0;
+
+        while (true) {
+            $nextAfterUserId = $this->sendAudienceBatch($broadcast, $afterUserId);
+
+            if ($nextAfterUserId === null) {
+                break;
+            }
+
+            $afterUserId = $nextAfterUserId;
+        }
+
+        $this->markSent($broadcast);
+    }
+
+    /**
+     * Send up to $limit pending broadcast deliveries. Returns how many were processed.
+     */
+    public function processPendingDeliveries(int $limit = self::PendingDeliveryBatchSize): int
+    {
+        $ids = NotificationDelivery::query()
+            ->where('status', 'pending')
+            ->whereNotNull('broadcast_id')
+            ->orderBy('id')
+            ->limit($limit)
+            ->pluck('id');
+
+        if ($ids->isEmpty()) {
+            return 0;
+        }
+
+        $deliveries = NotificationDelivery::query()
+            ->with(['user', 'broadcast'])
+            ->whereIn('id', $ids)
+            ->where('status', 'pending')
+            ->orderBy('id')
+            ->get();
+
+        $processed = 0;
+        /** @var array<int, Broadcast> $broadcasts */
+        $broadcasts = [];
+
+        foreach ($deliveries as $delivery) {
+            $broadcast = $delivery->broadcast;
+            $user = $delivery->user;
+
+            if ($broadcast !== null) {
+                $broadcasts[$broadcast->id] = $broadcast;
+            }
+
+            if ($broadcast === null || $user === null || blank($user->telegram_id)) {
+                $delivery->update(['status' => 'failed']);
+                $processed++;
+
+                continue;
+            }
+
+            $payload = [];
+            $replyMarkup = $this->inlineKeyboard($broadcast->buttons, $broadcast);
+
+            if ($replyMarkup !== null) {
+                $payload['reply_markup'] = $replyMarkup;
+            }
+
+            $result = $this->telegram->sendMessage($user->telegram_id, (string) $delivery->body, $payload);
+            $delivered = $result !== null;
+            $messageId = $delivered && isset($result['message_id'])
+                ? (int) $result['message_id']
+                : null;
+
+            $delivery->update([
+                'status' => $delivered ? 'sent' : 'failed',
+                'sent_at' => $delivered ? now() : null,
+                'telegram_message_id' => $messageId,
+            ]);
+
+            $processed++;
+        }
+
+        foreach ($broadcasts as $broadcast) {
+            $this->markSentIfQueueComplete($broadcast);
+        }
+
+        return $processed;
+    }
+
+    /**
+     * Send one audience page immediately. Returns the last user id when another batch may remain.
+     */
+    public function sendAudienceBatch(Broadcast $broadcast, int $afterUserId, int $limit = self::AudienceBatchSize): ?int
+    {
         $replyMarkup = $this->inlineKeyboard($broadcast->buttons, $broadcast);
 
-        $this->audienceQuery($broadcast)
-            ->orderBy('id')
-            ->chunkById(100, function (Collection $users) use ($broadcast, $replyMarkup): void {
-                foreach ($users as $user) {
-                    $body = $this->personalize($broadcast->body, $user);
+        $users = $this->audienceQuery($broadcast)
+            ->where('users.id', '>', $afterUserId)
+            ->orderBy('users.id')
+            ->limit($limit)
+            ->get();
 
-                    $payload = [];
+        foreach ($users as $user) {
+            $this->deliverBroadcastToUser($broadcast, $user, $replyMarkup);
+        }
 
-                    if ($replyMarkup !== null) {
-                        $payload['reply_markup'] = $replyMarkup;
-                    }
+        if ($users->count() === $limit) {
+            return (int) $users->last()->id;
+        }
 
-                    $result = $this->telegram->sendMessage($user->telegram_id, $body, $payload);
-                    $delivered = $result !== null;
-                    $messageId = $delivered && isset($result['message_id'])
-                        ? (int) $result['message_id']
-                        : null;
+        return null;
+    }
 
-                    NotificationDelivery::query()->create([
-                        'broadcast_id' => $broadcast->id,
-                        'user_id' => $user->id,
-                        'channel' => 'telegram',
-                        'status' => $delivered ? 'sent' : 'failed',
-                        'body' => $body,
-                        'sent_at' => $delivered ? now() : null,
-                        'telegram_message_id' => $messageId,
-                    ]);
-                }
-            });
-
+    public function markSent(Broadcast $broadcast): void
+    {
         $broadcast->update([
             'status' => BroadcastStatus::Sent,
             'sent_at' => now(),
         ]);
+    }
+
+    public function markSentIfQueueComplete(Broadcast $broadcast): void
+    {
+        $broadcast->refresh();
+
+        if ($broadcast->status !== BroadcastStatus::Sending) {
+            return;
+        }
+
+        $hasPending = NotificationDelivery::query()
+            ->where('broadcast_id', $broadcast->id)
+            ->where('status', 'pending')
+            ->exists();
+
+        if ($hasPending) {
+            return;
+        }
+
+        $this->markSent($broadcast);
+    }
+
+    /**
+     * @param  array{inline_keyboard: array<int, array<int, array<string, mixed>>>}|null  $replyMarkup
+     */
+    public function deliverBroadcastToUser(Broadcast $broadcast, User $user, ?array $replyMarkup = null): bool
+    {
+        $body = $this->personalize($broadcast->body, $user);
+
+        $payload = [];
+
+        if ($replyMarkup !== null) {
+            $payload['reply_markup'] = $replyMarkup;
+        }
+
+        $result = $this->telegram->sendMessage($user->telegram_id, $body, $payload);
+        $delivered = $result !== null;
+        $messageId = $delivered && isset($result['message_id'])
+            ? (int) $result['message_id']
+            : null;
+
+        NotificationDelivery::query()->create([
+            'broadcast_id' => $broadcast->id,
+            'user_id' => $user->id,
+            'channel' => 'telegram',
+            'status' => $delivered ? 'sent' : 'failed',
+            'body' => $body,
+            'sent_at' => $delivered ? now() : null,
+            'telegram_message_id' => $messageId,
+        ]);
+
+        return $delivered;
     }
 
     /**

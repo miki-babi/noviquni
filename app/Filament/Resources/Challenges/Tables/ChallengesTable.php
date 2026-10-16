@@ -98,10 +98,10 @@ class ChallengesTable
                             'created_by' => auth()->id(),
                         ]);
 
-                        $broadcasts->send($broadcast);
+                        $broadcasts->queueSend($broadcast);
 
                         Notification::make()
-                            ->title('Challenge broadcast sent')
+                            ->title('Challenge broadcast queued')
                             ->success()
                             ->send();
                     }),

@@ -33,21 +33,50 @@ class BroadcastsTable
             ])
             ->recordActions([
                 EditAction::make(),
-                Action::make('sendNow')
-                    ->label(fn ($record): string => $record->status === BroadcastStatus::Sent ? 'Send again' : 'Send now')
-                    ->visible(fn ($record) => in_array($record->status, [
+                Action::make('queueSend')
+                    ->label(fn (Broadcast $record): string => $record->status === BroadcastStatus::Sent
+                        ? 'Queue again'
+                        : 'Queue send')
+                    ->visible(fn (Broadcast $record): bool => in_array($record->status, [
                         BroadcastStatus::Draft,
                         BroadcastStatus::Scheduled,
                         BroadcastStatus::Sent,
                     ], true))
                     ->requiresConfirmation()
-                    ->modalHeading(fn ($record): string => $record->status === BroadcastStatus::Sent
-                        ? 'Send this broadcast again?'
+                    ->modalHeading(fn (Broadcast $record): string => $record->status === BroadcastStatus::Sent
+                        ? 'Queue this broadcast again?'
+                        : 'Queue this broadcast?')
+                    ->modalDescription('Creates pending deliveries for each recipient. Cron sends about 50 users per minute.')
+                    ->action(function (Broadcast $record, BroadcastService $broadcasts): void {
+                        $queued = $broadcasts->queueSend($record);
+
+                        $notification = Notification::make()
+                            ->title($queued ? 'Broadcast queued' : 'Broadcast already sending');
+
+                        if ($queued) {
+                            $notification->success();
+                        } else {
+                            $notification->warning();
+                        }
+
+                        $notification->send();
+                    }),
+                Action::make('sendNow')
+                    ->label(fn (Broadcast $record): string => $record->status === BroadcastStatus::Sent
+                        ? 'Send again now'
+                        : 'Send now')
+                    ->color('warning')
+                    ->visible(fn (Broadcast $record): bool => in_array($record->status, [
+                        BroadcastStatus::Draft,
+                        BroadcastStatus::Scheduled,
+                        BroadcastStatus::Sent,
+                    ], true))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Broadcast $record): string => $record->status === BroadcastStatus::Sent
+                        ? 'Send this broadcast again now?'
                         : 'Send this broadcast now?')
-                    ->modalDescription(fn ($record): ?string => $record->status === BroadcastStatus::Sent
-                        ? 'This will deliver the message to the audience again.'
-                        : null)
-                    ->action(function ($record, BroadcastService $broadcasts): void {
+                    ->modalDescription('Delivers to the full audience immediately in this request. Large audiences may take a while.')
+                    ->action(function (Broadcast $record, BroadcastService $broadcasts): void {
                         $broadcasts->send($record);
 
                         Notification::make()
