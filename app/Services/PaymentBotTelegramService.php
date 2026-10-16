@@ -12,6 +12,12 @@ class PaymentBotTelegramService
 
     public const BUTTON_REGISTER = 'Register now';
 
+    public const BUTTON_SEND_SCREENSHOT = '📎 Send ScreenShot';
+
+    public const BUTTON_TELEBIRR = 'Telebirr';
+
+    public const BUTTON_BACK_TO_PACKAGES = '← Back to Packages';
+
     public function api(): TelegramBotApi
     {
         $token = config('services.payment_bot.token');
@@ -62,6 +68,37 @@ class PaymentBotTelegramService
                 'web_app' => ['url' => app(TelegramService::class)->miniAppUrl('tg.premium')],
             ],
         ]]);
+    }
+
+    /**
+     * Inline keyboard for the CBE-style premium payment card.
+     *
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    public function paymentCardInlineKeyboard(): array
+    {
+        $premiumMiniAppUrl = app(TelegramService::class)->miniAppUrl('tg.premium');
+
+        return $this->inlineKeyboard([
+            [
+                [
+                    'text' => self::BUTTON_SEND_SCREENSHOT,
+                    'callback_data' => 'pay:screenshot',
+                ],
+            ],
+            [
+                [
+                    'text' => self::BUTTON_TELEBIRR,
+                    'callback_data' => 'pay:telebirr',
+                ],
+            ],
+            [
+                [
+                    'text' => self::BUTTON_BACK_TO_PACKAGES,
+                    'web_app' => ['url' => $premiumMiniAppUrl],
+                ],
+            ],
+        ]);
     }
 
     /**

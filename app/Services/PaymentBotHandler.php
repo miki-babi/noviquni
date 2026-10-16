@@ -11,6 +11,16 @@ use Illuminate\Support\Str;
 
 class PaymentBotHandler
 {
+    public const PAYMENT_CARD_AMOUNT = '500';
+
+    public const PAYMENT_CARD_CURRENCY = 'ETB';
+
+    public const PAYMENT_CARD_ACCOUNT_NUMBER = '1000518046822';
+
+    public const PAYMENT_CARD_ACCOUNT_NAME = 'Mikiyas Shiferaw';
+
+    public const PAYMENT_CARD_TELEBIRR_NUMBER = '0967072576';
+
     public function __construct(
         public PaymentBotTelegramService $telegram,
         public PaymentService $payments,
@@ -173,18 +183,36 @@ class PaymentBotHandler
 
     protected function sendPaymentBriefing(int|string $chatId, User $student): void
     {
-        $payment = $this->payments->createOrReusePendingPaymentBotPayment($student);
-        $title = $this->settings->premiumPitchTitle();
-        $instructions = $this->payments->instructionsFor($payment);
-        $registerPrompt = $this->settings->paymentBotRegisterPrompt();
+        $this->payments->createOrReusePendingPaymentBotPayment($student);
 
-        $text = '<b>'.TelegramHtml::escape($title)."</b>\n"
-            ."\n<b>Price:</b> {$payment->amount} {$payment->currency}"
-            ."\n<b>Reference:</b> ".TelegramHtml::escape((string) $payment->external_ref)
-            ."\n\n".TelegramHtml::escape($instructions)
-            ."\n\n".TelegramHtml::escape($registerPrompt);
+        $text = '<b>CBE</b>'
+            ."\n\n👤 <b>Account Number:</b> <code>".self::PAYMENT_CARD_ACCOUNT_NUMBER.'</code>'
+            ."\n👤 <b>Name:</b> ".TelegramHtml::escape(self::PAYMENT_CARD_ACCOUNT_NAME)
+            ."\n💰 <b>Amount:</b> ".self::PAYMENT_CARD_AMOUNT.' '.self::PAYMENT_CARD_CURRENCY
+            ."\n\n📎 ከፈሉ በስልኩ screenshot ይላኩ";
 
-        $this->sendWithKeyboard($chatId, $text);
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->paymentCardInlineKeyboard(),
+        ]);
+    }
+
+    protected function sendScreenshotHint(int|string $chatId): void
+    {
+        $this->telegram->sendMessage(
+            $chatId,
+            'Please send your payment screenshot here. We will review it and activate your Premium.',
+        );
+    }
+
+    protected function sendTelebirrDetails(int|string $chatId): void
+    {
+        $text = '<b>Telebirr</b>'
+            ."\n\n👤 <b>Phone Number:</b> <code>".self::PAYMENT_CARD_TELEBIRR_NUMBER.'</code>'
+            ."\n👤 <b>Name:</b> ".TelegramHtml::escape(self::PAYMENT_CARD_ACCOUNT_NAME)
+            ."\n💰 <b>Amount:</b> ".self::PAYMENT_CARD_AMOUNT.' '.self::PAYMENT_CARD_CURRENCY
+            ."\n\n📎 ከፈሉ በስልኩ screenshot ይላኩ";
+
+        $this->telegram->sendMessage($chatId, $text);
     }
 
     protected function sendWithKeyboard(int|string $chatId, string $text): void
@@ -293,6 +321,20 @@ class PaymentBotHandler
         $messageId = isset($message['message_id']) ? (int) $message['message_id'] : null;
 
         if ($callbackId === '' || $chatId === null) {
+            return;
+        }
+
+        if ($data === 'pay:screenshot') {
+            $this->telegram->answerCallbackQuery($callbackId);
+            $this->sendScreenshotHint($chatId);
+
+            return;
+        }
+
+        if ($data === 'pay:telebirr') {
+            $this->telegram->answerCallbackQuery($callbackId);
+            $this->sendTelebirrDetails($chatId);
+
             return;
         }
 
