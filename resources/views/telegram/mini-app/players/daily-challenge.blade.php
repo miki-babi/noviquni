@@ -37,6 +37,9 @@
                 :payload="$payload"
                 :result-url="$resultUrl"
                 :track-duration="true"
+                :report-url="route('tg.play.question-report')"
+                report-source="daily_challenge"
+                :daily-challenge-id="$challenge->id"
             />
             <p class="pt-2 text-xs text-text-muted">
                 Daily challenge is free. Premium unlocks full explanations and more practice.

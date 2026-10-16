@@ -17,6 +17,9 @@
             :is-bookmarked="$isBookmarked ?? false"
             :copy="$copy"
             :result-url="route('tg.play.exam.result', $resource)"
+            :report-url="route('tg.play.question-report')"
+            report-source="exam"
+            :learning-resource-id="$resource->id"
         />
     @else
         <div class="space-y-5 px-4">

@@ -16,6 +16,7 @@ use App\Http\Controllers\Telegram\MiniApp\Players\DailyChallengePlayerController
 use App\Http\Controllers\Telegram\MiniApp\Players\DailyChallengeResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ExamResultController;
+use App\Http\Controllers\Telegram\MiniApp\Players\QuestionReportController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizPlayerController;
 use App\Http\Controllers\Telegram\MiniApp\Players\QuizResultController;
 use App\Http\Controllers\Telegram\MiniApp\Players\ReferenceBooksPlayerController;
@@ -84,6 +85,7 @@ Route::prefix('tg')->name('tg.')->group(function () {
         Route::get('play/daily-challenge', DailyChallengePlayerController::class)->name('play.daily-challenge');
         Route::post('play/daily-challenge/result', DailyChallengeResultController::class)->name('play.daily-challenge.result');
         Route::get('play/daily-challenge/leaderboard', DailyChallengeLeaderboardController::class)->name('play.daily-challenge.leaderboard');
+        Route::post('play/questions/report', QuestionReportController::class)->name('play.question-report');
         Route::get('progress', ProgressController::class)->name('progress');
         Route::get('profile', UseBotController::class)->name('profile');
         Route::get('profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');

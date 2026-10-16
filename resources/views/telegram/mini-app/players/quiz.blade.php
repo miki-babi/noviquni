@@ -10,6 +10,9 @@
             <x-study.quiz
                 :payload="$payload"
                 :result-url="route('tg.play.quiz.result', $resource)"
+                :report-url="route('tg.play.question-report')"
+                report-source="quiz"
+                :learning-resource-id="$resource->id"
             />
         @else
             <x-telegram.mini-app.player-reader :chunks="$chunks" :copy="$copy" />

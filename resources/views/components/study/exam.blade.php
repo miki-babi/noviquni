@@ -4,6 +4,9 @@
     'isBookmarked' => false,
     'copy' => null,
     'resultUrl' => null,
+    'reportUrl' => null,
+    'reportSource' => 'exam',
+    'learningResourceId' => null,
 ])
 
 @php
@@ -59,6 +62,17 @@
             resultUrl: @js($resultUrl),
             timedOut: false,
             resultPosted: false,
+            reportUrl: @js($reportUrl),
+            reportSource: @js($reportSource),
+            learningResourceId: @js($learningResourceId ?? $resource?->id),
+            dailyChallengeId: null,
+            reportOpen: false,
+            reportIndex: null,
+            reportReason: 'typo',
+            reportNote: '',
+            reportBusy: false,
+            reportError: null,
+            reportedIndexes: {},
             get total() { return this.questions.length },
             get progress() {
                 if (this.total === 0) return 0
@@ -204,6 +218,67 @@
             prev() {
                 if (this.current > 0) this.current--
             },
+            isReported(index) {
+                return Boolean(this.reportedIndexes[index])
+            },
+            openReport(index) {
+                if (! this.reportUrl || this.isReported(index)) return
+                this.reportIndex = index
+                this.reportReason = 'typo'
+                this.reportNote = ''
+                this.reportError = null
+                this.reportOpen = true
+            },
+            closeReport(force = false) {
+                if (this.reportBusy && ! force) return
+                this.reportOpen = false
+                this.reportIndex = null
+                this.reportError = null
+            },
+            canSubmitReport() {
+                if (this.reportReason === 'other') {
+                    return (this.reportNote || '').trim().length >= 3
+                }
+                return true
+            },
+            async submitReport() {
+                if (! this.reportUrl || this.reportBusy || ! this.canSubmitReport() || this.reportIndex === null) return
+                this.reportBusy = true
+                this.reportError = null
+                try {
+                    const response = await fetch(this.reportUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({
+                            source: this.reportSource,
+                            learning_resource_id: this.learningResourceId,
+                            daily_challenge_id: this.dailyChallengeId,
+                            question_index: this.reportIndex,
+                            reason: this.reportReason,
+                            note: (this.reportNote || '').trim() || null,
+                        }),
+                    })
+                    const payload = await response.json().catch(() => ({}))
+                    if (! response.ok) {
+                        this.reportError = payload.message
+                            || payload.errors?.note?.[0]
+                            || 'Could not send report. Try again.'
+                        return
+                    }
+                    this.reportedIndexes[this.reportIndex] = true
+                    this.reportBusy = false
+                    this.closeReport(true)
+                } catch (error) {
+                    this.reportError = 'Could not send report. Try again.'
+                } finally {
+                    this.reportBusy = false
+                }
+            },
         }"
     >
         <div
@@ -340,6 +415,24 @@
                                 Question {{ $index + 1 }}
                             </span>
                         @endif
+
+                        <div x-show="reportUrl" x-cloak class="shrink-0">
+                            <button
+                                type="button"
+                                class="text-xs font-semibold text-text-muted underline-offset-2 hover:text-text-secondary hover:underline"
+                                x-show="! isReported({{ $index }})"
+                                @click="openReport({{ $index }})"
+                            >
+                                Report
+                            </button>
+                            <span
+                                class="text-xs font-semibold text-primary-200"
+                                x-show="isReported({{ $index }})"
+                                x-cloak
+                            >
+                                Reported
+                            </span>
+                        </div>
                     </div>
 
                     <div class="study-rich-text text-[1.2rem] font-bold leading-snug tracking-tight text-text-primary sm:text-xl">
@@ -426,5 +519,7 @@
                 </button>
             </div>
         </div>
+
+        <x-study.question-report-modal />
     </div>
 @endif

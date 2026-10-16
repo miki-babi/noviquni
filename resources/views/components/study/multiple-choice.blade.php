@@ -13,11 +13,30 @@
 @endphp
 
 <div class="space-y-4">
-    <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm font-medium text-text-muted">Question {{ $index + 1 }}</span>
-        @if (filled($difficulty))
-            <x-ui.badge>{{ ucfirst((string) $difficulty) }}</x-ui.badge>
-        @endif
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-text-muted">Question {{ $index + 1 }}</span>
+            @if (filled($difficulty))
+                <x-ui.badge>{{ ucfirst((string) $difficulty) }}</x-ui.badge>
+            @endif
+        </div>
+        <div x-show="reportUrl" x-cloak class="shrink-0">
+            <button
+                type="button"
+                class="text-xs font-semibold text-text-muted underline-offset-2 hover:text-text-secondary hover:underline"
+                x-show="! isReported({{ $index }})"
+                @click="openReport({{ $index }})"
+            >
+                Report
+            </button>
+            <span
+                class="text-xs font-semibold text-primary-200"
+                x-show="isReported({{ $index }})"
+                x-cloak
+            >
+                Reported
+            </span>
+        </div>
     </div>
 
     <div class="study-rich-text text-lg font-semibold text-text-primary">
