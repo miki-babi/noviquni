@@ -2,11 +2,15 @@
 
 namespace App\Filament\Resources\TelegramFileAssets;
 
+use App\Filament\Resources\TelegramFileAssets\Pages\CreateTelegramFileAsset;
+use App\Filament\Resources\TelegramFileAssets\Pages\EditTelegramFileAsset;
 use App\Filament\Resources\TelegramFileAssets\Pages\ListTelegramFileAssets;
+use App\Filament\Resources\TelegramFileAssets\Schemas\TelegramFileAssetForm;
 use App\Filament\Resources\TelegramFileAssets\Tables\TelegramFileAssetsTable;
 use App\Models\TelegramFileAsset;
 use BackedEnum;
 use Filament\Resources\Resource;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use UnitEnum;
@@ -38,7 +42,12 @@ class TelegramFileAssetResource extends Resource
 
     public static function canCreate(): bool
     {
-        return false;
+        return true;
+    }
+
+    public static function form(Schema $schema): Schema
+    {
+        return TelegramFileAssetForm::configure($schema);
     }
 
     public static function table(Table $table): Table
@@ -50,6 +59,8 @@ class TelegramFileAssetResource extends Resource
     {
         return [
             'index' => ListTelegramFileAssets::route('/'),
+            'create' => CreateTelegramFileAsset::route('/create'),
+            'edit' => EditTelegramFileAsset::route('/{record}/edit'),
         ];
     }
 }

@@ -2357,6 +2357,7 @@ class TelegramBotHandler
         $buffer = $this->adminPublishBuffer($telegramId) ?? [
             'asset_ids' => [],
             'prompt_message_id' => null,
+            'file_ids_message_id' => null,
             'media_group_id' => null,
         ];
 
@@ -2373,6 +2374,9 @@ class TelegramBotHandler
             'asset_ids' => $assetIds,
             'prompt_message_id' => isset($buffer['prompt_message_id'])
                 ? (int) $buffer['prompt_message_id']
+                : null,
+            'file_ids_message_id' => isset($buffer['file_ids_message_id'])
+                ? (int) $buffer['file_ids_message_id']
                 : null,
             'media_group_id' => $mediaGroupId ?? ($buffer['media_group_id'] ?? null),
         ];
@@ -2465,6 +2469,13 @@ class TelegramBotHandler
         }
 
         $this->rememberAdminPublishPromptMessage($telegramId, $buffer, $result, $promptMessageId);
+
+        $fileIdsMessageId = isset($buffer['file_ids_message_id']) && (int) $buffer['file_ids_message_id'] > 0
+            ? (int) $buffer['file_ids_message_id']
+            : null;
+
+        $fileIdsResult = $this->sendOrEditBulkFileIdsMessage($chatId, $assets, $fileIdsMessageId);
+        $this->rememberAdminPublishFileIdsMessage($telegramId, $buffer, $fileIdsResult, $fileIdsMessageId);
     }
 
     /**
@@ -2487,6 +2498,59 @@ class TelegramBotHandler
 
         $buffer['prompt_message_id'] = $messageId;
         $this->putAdminPublishBuffer($telegramId, $buffer);
+    }
+
+    /**
+     * @param  array<string, mixed>  $buffer
+     * @param  array<string, mixed>|null  $result
+     */
+    protected function rememberAdminPublishFileIdsMessage(
+        int $telegramId,
+        array $buffer,
+        ?array $result,
+        ?int $existingMessageId,
+    ): void {
+        $messageId = isset($result['message_id'])
+            ? (int) $result['message_id']
+            : $existingMessageId;
+
+        if ($messageId === null || $messageId < 1) {
+            return;
+        }
+
+        $buffer['file_ids_message_id'] = $messageId;
+        $this->putAdminPublishBuffer($telegramId, $buffer);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Collection<int, TelegramFileAsset>  $assets
+     * @return array<string, mixed>|null
+     */
+    protected function sendOrEditBulkFileIdsMessage(
+        int|string $chatId,
+        Collection $assets,
+        ?int $messageId = null,
+    ): ?array {
+        $lines = $assets
+            ->map(function (TelegramFileAsset $asset): string {
+                $name = filled($asset->file_name) ? $asset->file_name : ('#'.$asset->id);
+
+                return '• '.e($name).': <code>'.e($asset->file_id).'</code>';
+            })
+            ->implode("\n");
+
+        $text = "<b>File IDs for stored files:</b>\n\n"
+            .$lines;
+
+        if ($messageId !== null) {
+            $result = $this->telegram->editMessageText($chatId, $messageId, $text);
+
+            if ($result !== null) {
+                return $result;
+            }
+        }
+
+        return $this->telegram->sendMessage($chatId, $text);
     }
 
     /**

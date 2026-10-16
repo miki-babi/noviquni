@@ -9,6 +9,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -72,6 +73,7 @@ class TelegramFileAssetsTable
                             'title' => filled($title) ? $title : null,
                         ]);
                     }),
+                EditAction::make(),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

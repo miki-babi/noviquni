@@ -237,6 +237,21 @@ it('prompts for bulk publish after buffering an album of documents', function ()
             && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'admin:publish:separate'
             && data_get($data, 'reply_markup.inline_keyboard.2.0.callback_data') === 'admin:publish:done';
     });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+
+        return str_contains($text, 'File IDs for stored files')
+            && str_contains($text, 'chapter-1.pdf')
+            && str_contains($text, 'BQACAgQAAxkBAAI-album-1')
+            && str_contains($text, 'chapter-2.pdf')
+            && str_contains($text, 'BQACAgQAAxkBAAI-album-2');
+    });
 });
 
 it('bulk publishes multiple vault files through one shared wizard', function () {
