@@ -82,6 +82,23 @@ function paymentBotHasPaymentCardInlineKeyboard(mixed $replyMarkup): bool
         && str_contains($encoded, '/tg/premium');
 }
 
+function paymentBotHasTelebirrCardInlineKeyboard(mixed $replyMarkup): bool
+{
+    $encoded = paymentBotEncodeMarkup($replyMarkup);
+
+    if ($encoded === '') {
+        return false;
+    }
+
+    return str_contains($encoded, PaymentBotTelegramService::BUTTON_SEND_SCREENSHOT)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_CBE)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_BACK_TO_PACKAGES)
+        && str_contains($encoded, 'pay:screenshot')
+        && str_contains($encoded, 'pay:cbe')
+        && str_contains($encoded, 'web_app')
+        && str_contains($encoded, '/tg/premium');
+}
+
 it('sends welcome with What you get Mini App button and refreshes reply keyboard on start', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700001',
@@ -494,7 +511,7 @@ it('sends a screenshot hint when the Send Screenshot inline button is tapped', f
     });
 });
 
-it('sends Telebirr details when the Telebirr inline button is tapped', function () {
+it('edits the existing message to Telebirr details when the Telebirr inline button is tapped', function () {
     $this->postJson('/telegram/payment-bot/webhook', [
         'update_id' => 21,
         'callback_query' => [
@@ -519,12 +536,51 @@ it('sends Telebirr details when the Telebirr inline button is tapped', function 
     Http::assertSent(function ($request) {
         $text = (string) ($request['text'] ?? '');
 
-        return str_contains($request->url(), '/sendMessage')
+        return str_contains($request->url(), '/editMessageText')
             && ($request['chat_id'] ?? null) == '700021'
+            && ($request['message_id'] ?? null) == '61'
             && str_contains($text, 'Telebirr')
             && str_contains($text, '0967072576')
             && str_contains($text, 'Mikiyas Shiferaw')
             && str_contains($text, '500')
-            && str_contains($text, 'ETB');
+            && str_contains($text, 'ETB')
+            && paymentBotHasTelebirrCardInlineKeyboard($request['reply_markup'] ?? null);
+    });
+});
+
+it('edits the existing message back to CBE details when the CBE inline button is tapped', function () {
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 22,
+        'callback_query' => [
+            'id' => 'cb-cbe',
+            'data' => 'pay:cbe',
+            'from' => [
+                'id' => 700022,
+                'username' => 'student',
+            ],
+            'message' => [
+                'message_id' => 62,
+                'chat' => ['id' => 700022],
+            ],
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        return str_contains($request->url(), '/answerCallbackQuery')
+            && ($request['callback_query_id'] ?? null) === 'cb-cbe';
+    });
+
+    Http::assertSent(function ($request) {
+        $text = (string) ($request['text'] ?? '');
+
+        return str_contains($request->url(), '/editMessageText')
+            && ($request['chat_id'] ?? null) == '700022'
+            && ($request['message_id'] ?? null) == '62'
+            && str_contains($text, 'CBE')
+            && str_contains($text, '1000518046822')
+            && str_contains($text, 'Mikiyas Shiferaw')
+            && str_contains($text, '500')
+            && str_contains($text, 'ETB')
+            && paymentBotHasPaymentCardInlineKeyboard($request['reply_markup'] ?? null);
     });
 });

@@ -16,6 +16,8 @@ class PaymentBotTelegramService
 
     public const BUTTON_TELEBIRR = 'Telebirr';
 
+    public const BUTTON_CBE = 'CBE';
+
     public const BUTTON_BACK_TO_PACKAGES = '← Back to Packages';
 
     public function api(): TelegramBotApi
@@ -90,6 +92,37 @@ class PaymentBotTelegramService
                 [
                     'text' => self::BUTTON_TELEBIRR,
                     'callback_data' => 'pay:telebirr',
+                ],
+            ],
+            [
+                [
+                    'text' => self::BUTTON_BACK_TO_PACKAGES,
+                    'web_app' => ['url' => $premiumMiniAppUrl],
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * Inline keyboard for the Telebirr-style premium payment card.
+     *
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    public function telebirrCardInlineKeyboard(): array
+    {
+        $premiumMiniAppUrl = app(TelegramService::class)->miniAppUrl('tg.premium');
+
+        return $this->inlineKeyboard([
+            [
+                [
+                    'text' => self::BUTTON_SEND_SCREENSHOT,
+                    'callback_data' => 'pay:screenshot',
+                ],
+            ],
+            [
+                [
+                    'text' => self::BUTTON_CBE,
+                    'callback_data' => 'pay:cbe',
                 ],
             ],
             [
@@ -182,6 +215,24 @@ class PaymentBotTelegramService
             'parse_mode' => 'HTML',
             'reply_markup' => $replyMarkup ?? ['inline_keyboard' => []],
         ], fn (mixed $value): bool => $value !== null));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>|null
+     */
+    public function editMessageText(
+        int|string $chatId,
+        int $messageId,
+        string $text,
+        array $payload = [],
+    ): ?array {
+        return $this->api()->call('editMessageText', array_merge([
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ], $payload));
     }
 
     /**

@@ -204,7 +204,7 @@ class PaymentBotHandler
         );
     }
 
-    protected function sendTelebirrDetails(int|string $chatId): void
+    protected function sendTelebirrDetails(int|string $chatId, ?int $messageId): void
     {
         $text = '<b>Telebirr</b>'
             ."\n\n👤 <b>Phone Number:</b> <code>".self::PAYMENT_CARD_TELEBIRR_NUMBER.'</code>'
@@ -212,7 +212,38 @@ class PaymentBotHandler
             ."\n💰 <b>Amount:</b> ".self::PAYMENT_CARD_AMOUNT.' '.self::PAYMENT_CARD_CURRENCY
             ."\n\n📎 ከፈሉ በስልኩ screenshot ይላኩ";
 
-        $this->telegram->sendMessage($chatId, $text);
+        if ($messageId !== null) {
+            $this->telegram->editMessageText($chatId, $messageId, $text, [
+                'reply_markup' => $this->telegram->telebirrCardInlineKeyboard(),
+            ]);
+
+            return;
+        }
+
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->telebirrCardInlineKeyboard(),
+        ]);
+    }
+
+    protected function sendCbeDetails(int|string $chatId, ?int $messageId): void
+    {
+        $text = '<b>CBE</b>'
+            ."\n\n👤 <b>Account Number:</b> <code>".self::PAYMENT_CARD_ACCOUNT_NUMBER.'</code>'
+            ."\n👤 <b>Name:</b> ".TelegramHtml::escape(self::PAYMENT_CARD_ACCOUNT_NAME)
+            ."\n💰 <b>Amount:</b> ".self::PAYMENT_CARD_AMOUNT.' '.self::PAYMENT_CARD_CURRENCY
+            ."\n\n📎 ከፈሉ በስልኩ screenshot ይላኩ";
+
+        if ($messageId !== null) {
+            $this->telegram->editMessageText($chatId, $messageId, $text, [
+                'reply_markup' => $this->telegram->paymentCardInlineKeyboard(),
+            ]);
+
+            return;
+        }
+
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->paymentCardInlineKeyboard(),
+        ]);
     }
 
     protected function sendWithKeyboard(int|string $chatId, string $text): void
@@ -333,7 +364,14 @@ class PaymentBotHandler
 
         if ($data === 'pay:telebirr') {
             $this->telegram->answerCallbackQuery($callbackId);
-            $this->sendTelebirrDetails($chatId);
+            $this->sendTelebirrDetails($chatId, $messageId);
+
+            return;
+        }
+
+        if ($data === 'pay:cbe') {
+            $this->telegram->answerCallbackQuery($callbackId);
+            $this->sendCbeDetails($chatId, $messageId);
 
             return;
         }
