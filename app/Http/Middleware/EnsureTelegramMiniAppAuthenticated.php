@@ -24,6 +24,7 @@ class EnsureTelegramMiniAppAuthenticated
             'host' => $request->getHost(),
             'expects_json' => $request->expectsJson(),
             'has_session_cookie' => $request->hasSession() && $request->session()->isStarted(),
+            'is_file_stream' => $request->routeIs('tg.files.show') || str_starts_with($request->path(), 'tg/files'),
             'user_agent' => substr((string) $request->userAgent(), 0, 180),
         ]);
 

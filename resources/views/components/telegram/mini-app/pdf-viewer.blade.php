@@ -101,6 +101,11 @@
             const loaderProgress = root.querySelector('[data-pdf-loader-progress]');
 
             if (! url || ! stage) {
+                console.warn('[miniapp.pdf] missing url or stage', {
+                    hasUrl: Boolean(url),
+                    hasStage: Boolean(stage),
+                });
+
                 return;
             }
 
@@ -286,6 +291,12 @@
                         scheduleSharpRender();
                     }
                 } catch (e) {
+                    console.warn('[miniapp.pdf] render failed', {
+                        url,
+                        name: e?.name ?? null,
+                        message: e?.message ?? String(e),
+                    });
+
                     if (token === renderToken) {
                         setLoaderVisible(false);
                         error?.classList.remove('hidden');
@@ -305,7 +316,38 @@
             setLoaderVisible(true);
             setLoaderStatus('Loading content…');
 
+            console.warn('[miniapp.pdf] loading', { url });
+
             try {
+                const preflight = await fetch(url, {
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/pdf,*/*' },
+                });
+                const contentType = preflight.headers.get('content-type');
+                let startsWithPdf = false;
+
+                if (preflight.body) {
+                    const reader = preflight.body.getReader();
+                    const first = await reader.read();
+                    const peek = first.value ? first.value.slice(0, 5) : new Uint8Array();
+                    startsWithPdf = String.fromCharCode(...peek) === '%PDF-';
+                    await reader.cancel();
+                }
+
+                console.warn('[miniapp.pdf] preflight', {
+                    url,
+                    status: preflight.status,
+                    ok: preflight.ok,
+                    contentType,
+                    startsWithPdf,
+                });
+
+                if (! preflight.ok || ! startsWithPdf) {
+                    throw new Error(
+                        `PDF stream not usable (status=${preflight.status}, content-type=${contentType}, startsWithPdf=${startsWithPdf})`,
+                    );
+                }
+
                 const loadingTask = pdfjsLib.getDocument({ url, withCredentials: true });
 
                 loadingTask.onProgress = ({ loaded, total }) => {
@@ -320,6 +362,11 @@
                 pdfDoc = await loadingTask.promise;
                 await renderPages(1, { blocking: true });
             } catch (e) {
+                console.warn('[miniapp.pdf] load failed', {
+                    url,
+                    name: e?.name ?? null,
+                    message: e?.message ?? String(e),
+                });
                 setLoaderVisible(false);
                 error?.classList.remove('hidden');
 

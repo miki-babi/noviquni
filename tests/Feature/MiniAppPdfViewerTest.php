@@ -9,6 +9,8 @@ use App\Models\User;
 use App\Services\SettingsService;
 use App\Support\LearningResourceFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Log\Events\MessageLogged;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
@@ -115,9 +117,47 @@ it('shows the bootstrap page for guests on the PDF stream', function () {
         'type' => ResourceType::ReferenceBooks,
     ]);
 
+    $logged = collect();
+
+    Event::listen(MessageLogged::class, function (MessageLogged $event) use ($logged): void {
+        $logged->push($event);
+    });
+
     $this->get(route('tg.files.show', ['resource' => $resource, 'index' => 0]))
         ->assertOk()
         ->assertSee('tg-session-form', false);
+
+    expect($logged->contains(
+        fn (MessageLogged $event): bool => $event->message === 'Telegram mini-app guest bootstrap'
+            && ($event->context['is_file_stream'] ?? false) === true,
+    ))->toBeTrue();
+});
+
+it('logs missing disk files when the PDF stream 404s', function () {
+    [$user, $course, $stream] = pdfViewerContext();
+
+    Storage::fake(LearningResourceFiles::diskName());
+
+    $path = LearningResourceFiles::directoryForCourse($course->id).'/missing.pdf';
+    $resource = LearningResource::factory()->published()->withFiles([$path])->create([
+        'course_id' => $course->id,
+        'stream_id' => $stream->id,
+        'type' => ResourceType::ReferenceBooks,
+    ]);
+
+    $logged = collect();
+
+    Event::listen(MessageLogged::class, function (MessageLogged $event) use ($logged): void {
+        $logged->push($event);
+    });
+
+    $this->actingAs($user)
+        ->get(route('tg.files.show', ['resource' => $resource, 'index' => 0]))
+        ->assertNotFound();
+
+    expect($logged->pluck('message')->all())
+        ->toContain('miniapp.pdf_stream.start')
+        ->toContain('miniapp.pdf_stream.missing_disk_file');
 });
 
 it('shows the locked view when streaming a premium PDF without entitlement', function () {
