@@ -94,6 +94,7 @@ class ProfileController extends Controller
             'courses' => $courses,
             'selectedCourseIds' => $selectedCourseIds,
             'isFreshman' => $user->isFreshman(),
+            'isGat' => (bool) $user->is_gat,
             'activeNav' => 'profile',
         ]);
     }
@@ -104,6 +105,32 @@ class ProfileController extends Controller
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
         $user->loadMissing('years');
+
+        if ($user->is_gat) {
+            $validated = $request->validate([
+                'university_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('universities', 'id')->where(fn ($query) => $query->where('is_active', true)),
+                ],
+                'semester_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('semesters', 'id'),
+                ],
+            ]);
+
+            $user->update([
+                'university_id' => isset($validated['university_id']) ? (int) $validated['university_id'] : null,
+                'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
+            ]);
+
+            $onboarding->syncGatSubjectCourses($user->fresh() ?? $user);
+
+            return redirect()
+                ->route('tg.profile')
+                ->with('status', $copy->get('settings.academic_saved'));
+        }
 
         if (! $user->isFreshman()) {
             $validated = $request->validate([

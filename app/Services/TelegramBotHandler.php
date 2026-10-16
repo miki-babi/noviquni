@@ -728,34 +728,7 @@ class TelegramBotHandler
             return null;
         }
 
-        $copy = TelegramCopy::for($user);
-        $paymentBotUrl = $this->settings->paymentBotUrl($user);
-
-        if ($paymentBotUrl === null) {
-            $this->telegram->sendMessage($chatId, 'Payment is temporarily unavailable. Please try again later.');
-
-            return null;
-        }
-
-        $price = $this->settings->premiumPrice();
-        $title = $this->settings->premiumPitchTitle();
-        $body = $this->settings->premiumPitchBody();
-
-        $this->telegram->sendMessage(
-            $chatId,
-            '<b>'.TelegramHtml::escape($title)."</b>\n"
-            .TelegramHtml::escape($body)
-            ."\n\nPrice: {$price} ETB\n\nOpen the payment bot to complete Premium:",
-            [
-                'reply_markup' => $this->telegram->inlineKeyboard([[
-                    [
-                        'text' => $copy->get('opportunities.guidance_unlock_premium'),
-                        'url' => $paymentBotUrl,
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ],
-                ]]),
-            ],
-        );
+        $this->sendPremiumPitch($user, $chatId);
 
         return null;
     }
@@ -2974,16 +2947,70 @@ class TelegramBotHandler
             return;
         }
 
+        $this->sendPremiumPitch($user, $chatId);
+    }
+
+    protected function sendPremiumPitch(User $user, int|string $chatId): void
+    {
+        $this->telegram->sendMessage(
+            $chatId,
+            $this->premiumPrivilegesMessage($user),
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard(
+                    $this->premiumPitchKeyboard($user),
+                ),
+            ],
+        );
+    }
+
+    protected function premiumPrivilegesMessage(User $user): string
+    {
         $copy = TelegramCopy::for($user);
         $price = $this->settings->premiumPrice();
-        $title = $this->settings->premiumPitchTitle();
-        $body = $this->settings->premiumPitchBody();
+        $lines = [
+            '<b>'.TelegramHtml::escape($copy->get('premium_landing.title')).'</b>',
+            TelegramHtml::escape($copy->get('premium_landing.subtitle')),
+            '',
+        ];
 
+        foreach ($this->premiumPrivilegeFeatures() as [$titleKey, $bodyKey]) {
+            $lines[] = '• <b>'.TelegramHtml::escape($copy->get('premium_landing.'.$titleKey)).'</b> — '
+                .TelegramHtml::escape($copy->get('premium_landing.'.$bodyKey));
+        }
+
+        $lines[] = '';
+        $lines[] = "Price: {$price} ETB";
+
+        if ($this->settings->paymentBotUrl($user) === null) {
+            $lines[] = '';
+            $lines[] = TelegramHtml::escape($copy->get('premium_landing.unavailable'));
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @return list<array{0: string, 1: string}>
+     */
+    protected function premiumPrivilegeFeatures(): array
+    {
+        return [
+            ['feature_questions_title', 'feature_questions_body'],
+            ['feature_quizzes_title', 'feature_quizzes_body'],
+            ['feature_short_title', 'feature_short_body'],
+            ['feature_exams_title', 'feature_exams_body'],
+            ['feature_checked_title', 'feature_checked_body'],
+            ['feature_fresh_title', 'feature_fresh_body'],
+        ];
+    }
+
+    /**
+     * @return list<list<array<string, mixed>>>
+     */
+    protected function premiumPitchKeyboard(User $user): array
+    {
+        $copy = TelegramCopy::for($user);
         $rows = [];
-        $pitchText = '<b>'.TelegramHtml::escape($title)."</b>\n"
-            .TelegramHtml::escape($body)
-            ."\n\nPrice: {$price} ETB";
-
         $paymentBotUrl = $this->settings->paymentBotUrl($user);
 
         if ($paymentBotUrl !== null) {
@@ -2992,17 +3019,14 @@ class TelegramBotHandler
                 'url' => $paymentBotUrl,
                 'style' => TelegramButtonStyle::Primary->value,
             ]];
-        } else {
-            $pitchText .= "\n\nPayment is temporarily unavailable. Please try again later.";
         }
 
-        $this->telegram->sendMessage(
-            $chatId,
-            $pitchText,
-            $rows === [] ? [] : [
-                'reply_markup' => $this->telegram->inlineKeyboard($rows),
-            ],
-        );
+        $rows[] = [[
+            'text' => $copy->get('premium.description_button'),
+            'web_app' => ['url' => $this->telegram->miniAppUrl('tg.premium')],
+        ]];
+
+        return $rows;
     }
 
     protected function showResourceLibrary(User $user, int|string $chatId, ?int $messageId = null): void
@@ -3664,6 +3688,10 @@ class TelegramBotHandler
 
     protected function canAutoCompleteOnboarding(User $user): bool
     {
+        if ($user->is_gat) {
+            return true;
+        }
+
         if (in_array($user->onboarding_step, [
             OnboardingStep::Start,
             OnboardingStep::Year,
@@ -3700,7 +3728,11 @@ class TelegramBotHandler
             return;
         }
 
-        if ($year->slug !== YearSlug::Freshman->value && blank($user->department_name)) {
+        if (
+            ! $user->is_gat
+            && $year->slug !== YearSlug::Freshman->value
+            && blank($user->department_name)
+        ) {
             $user->update(['onboarding_step' => OnboardingStep::Department]);
             $this->askDepartment($user, $chatId, $messageId);
 
@@ -3837,11 +3869,12 @@ class TelegramBotHandler
         $user->syncYear($year);
         $user->unsetRelation('years');
 
-        if ($year->slug === YearSlug::Freshman->value) {
+        if ($year->slug === YearSlug::Freshman->value || $user->is_gat) {
             $user->update([
                 'stream_id' => null,
                 'university_id' => null,
                 'semester_id' => null,
+                'department_name' => null,
             ]);
             cache()->forget("onboarding.courses.{$user->id}");
             $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
@@ -3899,9 +3932,12 @@ class TelegramBotHandler
     protected function finishOnboarding(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $copy = TelegramCopy::for($user);
+        $isGat = (bool) $user->is_gat;
         $isFreshman = $user->isFreshman();
 
-        if ($isFreshman) {
+        if ($isGat) {
+            $this->onboarding->syncGatSubjectCourses($user);
+        } elseif ($isFreshman) {
             $this->onboarding->syncAllActiveCourses($user);
         }
 
@@ -3913,6 +3949,20 @@ class TelegramBotHandler
             $this->telegram->editMessageText($chatId, $messageId, $copy->get('menu.setup_finished'), [
                 'reply_markup' => $this->telegram->inlineKeyboard([]),
             ]);
+        }
+
+        if ($isGat) {
+            $this->telegram->sendMessage($chatId, $copy->get('menu.onboarding_done'), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ]);
+
+            $user = $user->fresh();
+
+            if ($user !== null) {
+                $this->resumeStartPayload($user, $chatId);
+            }
+
+            return;
         }
 
         $doneKey = $isFreshman ? 'menu.onboarding_done' : 'menu.onboarding_done_department';

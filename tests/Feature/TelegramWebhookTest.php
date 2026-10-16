@@ -35,6 +35,10 @@ beforeEach(function () {
 it('accepts a start update and creates a completed GAT student without onboarding', function () {
     Queue::fake();
 
+    $maths = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths', 'is_active' => true]);
+    $reading = Course::factory()->create(['name' => 'Reading and writing', 'slug' => 'reading-and-writing', 'is_active' => true]);
+    $analytical = Course::factory()->create(['name' => 'Analytical reasoning', 'slug' => 'analytical-reasoning', 'is_active' => true]);
+
     $this->postJson('/telegram/webhook', telegramMessagePayload(555001, '/start'))
         ->assertOk();
 
@@ -42,7 +46,9 @@ it('accepts a start update and creates a completed GAT student without onboardin
 
     expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
         ->and($user->is_gat)->toBeTrue()
-        ->and($user->stream_id)->toBeNull();
+        ->and($user->stream_id)->toBeNull()
+        ->and($user->courses()->pluck('courses.id')->sort()->values()->all())
+        ->toBe(collect([$maths->id, $reading->id, $analytical->id])->sort()->values()->all());
 
     Queue::assertNotPushed(ProcessTelegramUpdateJob::class);
 
@@ -63,7 +69,7 @@ it('accepts a start update and creates a completed GAT student without onboardin
 
         return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
             && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'Refer';
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'Refer';
     });
 });
 
@@ -75,6 +81,38 @@ it('marks new students as GAT on /start', function () {
 
     expect($user->is_gat)->toBeTrue()
         ->and($user->onboarding_step)->toBe(OnboardingStep::Complete);
+});
+
+it('auto-enrolls GAT courses for existing students with an empty course list', function () {
+    $maths = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths', 'is_active' => true]);
+    Course::factory()->create(['name' => 'Reading and writing', 'slug' => 'reading-writing', 'is_active' => true]);
+    Course::factory()->create(['name' => 'Analytical reasoning', 'slug' => 'analytical-reasoning', 'is_active' => true]);
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555013',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_gat' => true,
+        'is_active' => true,
+    ]);
+
+    expect($user->courses()->count())->toBe(0);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555013, '/start', 13))
+        ->assertOk();
+
+    expect($user->fresh()->courses()->pluck('courses.slug')->sort()->values()->all())
+        ->toBe(['analytical-reasoning', 'maths', 'reading-writing']);
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Welcome back')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
+    });
 });
 
 it('treats legacy university and course onboarding callbacks as stale', function () {
@@ -195,14 +233,13 @@ it('restores the main reply keyboard when Back is tapped from courses', function
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Continue studying'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Maths'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'Reading/writing'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'Analytical reasoning'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'Unlock premium'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'Contact us'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'Refer';
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Maths'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'Reading/writing'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Analytical reasoning'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 Quick saved'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'Unlock premium'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'Contact us'
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'Refer';
     });
 });
 
@@ -602,14 +639,13 @@ it('switches language and refreshes keyboard labels', function () {
         $data = $request->data();
 
         return data_get($data, 'reply_markup.keyboard.0.0.text') === 'ዕለታዊ ፈተና'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'መማር ቀጥል'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'ሂሳብ'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'ንባብ/ጽሁፍ'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'አመክንዮአዊ ትንተና'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 በፍጥነት የተቀመጡ'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ፕሪሚየም ክፈት'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'ያግኙን'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'ይጋብዙ';
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'ሂሳብ'
+            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'ንባብ/ጽሁፍ'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'አመክንዮአዊ ትንተና'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === '🔖 በፍጥነት የተቀመጡ'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === 'ፕሪሚየም ክፈት'
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ያግኙን'
+            && data_get($data, 'reply_markup.keyboard.5.1.text') === 'ይጋብዙ';
     });
 });
 
@@ -1414,5 +1450,69 @@ it('paginates quick saved with next and back callbacks', function () {
             && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:0'
                 && ($button['text'] ?? '') === '‹ Back')
             && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:1');
+    });
+});
+
+it('shows member privileges and premium description when Unlock premium is tapped', function () {
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_USERNAME, 'noviquni_pay_bot');
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555050',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555050, 'Unlock premium'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($user) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains($text, 'Included with Premium')
+            && str_contains($text, '2,100+ practice questions')
+            && str_contains($text, '279 quizzes &amp; practice exams')
+            && str_contains($text, 'Price: ')
+            && str_contains($text, ' ETB')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Become Premium'
+                && ($button['url'] ?? '') === 'https://t.me/noviquni_pay_bot?start=u'.$user->id)
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Premium description'
+                && str_contains((string) data_get($button, 'web_app.url'), '/tg/premium'));
+    });
+});
+
+it('shows member privileges and premium description for premium_pay callbacks', function () {
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_USERNAME, 'noviquni_pay_bot');
+
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555051',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555051, 'premium_pay'))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($user) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+
+        return str_contains($text, 'Included with Premium')
+            && str_contains($text, '2,100+ practice questions')
+            && str_contains($text, 'New questions every weekday')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Become Premium'
+                && ($button['url'] ?? '') === 'https://t.me/noviquni_pay_bot?start=u'.$user->id)
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Premium description'
+                && str_contains((string) data_get($button, 'web_app.url'), '/tg/premium'));
     });
 });

@@ -23,46 +23,48 @@
         <form method="POST" action="{{ route('tg.profile.academic') }}" class="space-y-4">
             @csrf
 
-            @if ($isFreshman)
-                <div class="study-card study-continue">
-                    <p class="study-card-title">{{ $copy->get('profile.stream') }}</p>
-                    <div class="mt-3 space-y-2">
-                        @foreach ($streams as $stream)
-                            <label class="study-card study-card-ghost block cursor-pointer">
-                                <div class="study-card-inner">
-                                    <input
-                                        type="radio"
-                                        name="stream_id"
-                                        value="{{ $stream->id }}"
-                                        class="mt-1"
-                                        @checked((int) $selectedStreamId === $stream->id)
-                                        required
-                                    >
-                                    <span class="study-card-title">{{ $stream->name }}</span>
-                                </div>
-                            </label>
-                        @endforeach
+            @if (! $isGat)
+                @if ($isFreshman)
+                    <div class="study-card study-continue">
+                        <p class="study-card-title">{{ $copy->get('profile.stream') }}</p>
+                        <div class="mt-3 space-y-2">
+                            @foreach ($streams as $stream)
+                                <label class="study-card study-card-ghost block cursor-pointer">
+                                    <div class="study-card-inner">
+                                        <input
+                                            type="radio"
+                                            name="stream_id"
+                                            value="{{ $stream->id }}"
+                                            class="mt-1"
+                                            @checked((int) $selectedStreamId === $stream->id)
+                                            required
+                                        >
+                                        <span class="study-card-title">{{ $stream->name }}</span>
+                                    </div>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('stream_id')
+                            <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
+                        @enderror
                     </div>
-                    @error('stream_id')
-                        <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
-                </div>
-            @else
-                <div class="study-card study-continue">
-                    <p class="study-card-title">{{ $copy->get('profile.department') }}</p>
-                    <input
-                        type="text"
-                        name="department_name"
-                        value="{{ $departmentName }}"
-                        maxlength="255"
-                        required
-                        class="mt-3 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-primary"
-                        placeholder="{{ $copy->get('profile.department') }}"
-                    >
-                    @error('department_name')
-                        <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
-                    @enderror
-                </div>
+                @else
+                    <div class="study-card study-continue">
+                        <p class="study-card-title">{{ $copy->get('profile.department') }}</p>
+                        <input
+                            type="text"
+                            name="department_name"
+                            value="{{ $departmentName }}"
+                            maxlength="255"
+                            required
+                            class="mt-3 w-full rounded-2xl border border-border bg-surface px-4 py-3 text-sm text-text-primary"
+                            placeholder="{{ $copy->get('profile.department') }}"
+                        >
+                        @error('department_name')
+                            <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
+                        @enderror
+                    </div>
+                @endif
             @endif
 
             <div class="study-card study-continue">
@@ -135,7 +137,7 @@
                 @enderror
             </div>
 
-            @if ($isFreshman)
+            @if (! $isGat && $isFreshman)
                 <div class="study-card study-continue">
                     <p class="study-card-title">{{ $copy->get('profile.courses') }}</p>
                     <div class="mt-3 space-y-2">

@@ -339,6 +339,9 @@ return [
         'add' => 'ወደ መነሻ ገጽ ጨምር',
         'not_now' => 'አሁን አይደለም',
     ],
+    'premium' => [
+        'description_button' => 'ፕሪሚየም መግለጫ',
+    ],
     'premium_landing' => [
         'badge' => 'ፕሪሚየም',
         'title' => 'በፕሪሚየም የሚገኙ',

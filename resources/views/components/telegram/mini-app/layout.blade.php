@@ -1,6 +1,6 @@
 @props([
     'copy',
-    'activeNav' => 'courses',
+    'activeNav' => 'resources',
     'title' => null,
     'backUrl' => null,
     'nextUrl' => null,

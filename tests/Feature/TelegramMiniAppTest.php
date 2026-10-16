@@ -14,6 +14,7 @@ use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Http;
 
 uses(RefreshDatabase::class);
 
@@ -33,24 +34,24 @@ it('builds the GAT main keyboard for all students', function () {
 
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
 
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('daily challenge')
+    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Daily challenge')
         ->and(data_get($keyboard, 'keyboard.0.0.web_app'))->toBeNull()
         ->and(data_get($keyboard, 'keyboard.0.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('continue studying')
-        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('maths')
-        ->and(data_get($keyboard, 'keyboard.2.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.2.1.text'))->toBe('reading/writing')
-        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('Analytical reasoning')
-        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('🔖 Quick saved')
-        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('primary')
-        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('unlock premium')
-        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBe('success')
-        ->and(data_get($keyboard, 'keyboard.6.0.text'))->toBe('contact us')
-        ->and(data_get($keyboard, 'keyboard.6.0.style'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.6.1.text'))->toBe('share and reward')
-        ->and(data_get($keyboard, 'keyboard.6.1.web_app'))->toBeNull()
-        ->and(data_get($keyboard, 'keyboard.6.1.style'))->toBeNull();
+        ->and(collect(data_get($keyboard, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Continue studying')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('Maths')
+        ->and(data_get($keyboard, 'keyboard.1.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('Reading/writing')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Analytical reasoning')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🔖 Quick saved')
+        ->and(data_get($keyboard, 'keyboard.3.0.style'))->toBe('primary')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('Unlock premium')
+        ->and(data_get($keyboard, 'keyboard.4.0.style'))->toBe('success')
+        ->and(data_get($keyboard, 'keyboard.5.0.text'))->toBe('Contact us')
+        ->and(data_get($keyboard, 'keyboard.5.0.style'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.5.1.text'))->toBe('Refer')
+        ->and(data_get($keyboard, 'keyboard.5.1.web_app'))->toBeNull()
+        ->and(data_get($keyboard, 'keyboard.5.1.style'))->toBeNull();
 });
 
 it('builds the GAT subject reply keyboard', function () {
@@ -348,6 +349,56 @@ it('allows courses from another stream on the study profile', function () {
     expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
 });
 
+it('hides department and course pickers for GAT students on the study profile', function () {
+    Course::factory()->create(['name' => 'Maths', 'slug' => 'maths', 'is_active' => true]);
+
+    $user = User::factory()->student()->gat()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('tg.profile.edit'))
+        ->assertOk()
+        ->assertDontSee('name="department_name"', false)
+        ->assertDontSee('name="stream_id"', false)
+        ->assertDontSee('name="course_ids[]"', false)
+        ->assertSee('Save changes');
+});
+
+it('clears the Courses mini app menu button when the reply keyboard is sent', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    User::factory()->student()->create([
+        'telegram_id' => '555040',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555040, '/start', 40))
+        ->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/setChatMenuButton')) {
+            return false;
+        }
+
+        $button = data_get($request->data(), 'menu_button');
+
+        return data_get($button, 'type') === 'commands'
+            && data_get($button, 'text') !== 'Courses'
+            && data_get($button, 'web_app') === null;
+    });
+
+    Http::assertNotSent(function ($request) {
+        return str_contains($request->url(), '/setChatMenuButton')
+            && data_get($request->data(), 'menu_button.type') === 'web_app'
+            && data_get($request->data(), 'menu_button.text') === 'Courses';
+    });
+});
+
 it('lets non-freshman students update department without attaching courses', function () {
     $stream = Stream::factory()->create(['name' => 'Natural']);
     Course::factory()->create([
@@ -360,6 +411,7 @@ it('lets non-freshman students update department without attaching courses', fun
         'onboarding_step' => OnboardingStep::Complete,
         'department_name' => 'Old Department',
         'is_active' => true,
+        'is_gat' => false,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Second->value)->firstOrFail());
 

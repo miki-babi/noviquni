@@ -54,6 +54,58 @@ class OnboardingService
         );
     }
 
+    /**
+     * Enroll the three GAT subjects (maths, reading/writing, analytical reasoning).
+     *
+     * @return list<int> Enrolled course ids
+     */
+    public function syncGatSubjectCourses(User $user): array
+    {
+        $ids = $this->gatSubjectCourseIds();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $user->courses()->syncWithoutDetaching($ids);
+
+        return $ids;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function gatSubjectCourseIds(): array
+    {
+        $ids = [];
+
+        foreach ($this->gatSubjectSlugGroups() as $aliases) {
+            $courseId = Course::query()
+                ->active()
+                ->whereIn('slug', $aliases)
+                ->orderBy('id')
+                ->value('id');
+
+            if ($courseId !== null) {
+                $ids[] = (int) $courseId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @return list<list<string>>
+     */
+    public function gatSubjectSlugGroups(): array
+    {
+        return [
+            ['maths'],
+            ['reading-writing', 'reading-and-writing', 'readingwriting'],
+            ['analytical-reasoning', 'analyticalreasoning'],
+        ];
+    }
+
     public function complete(User $user): void
     {
         if ($user->onboarding_step === OnboardingStep::Complete) {

@@ -24,6 +24,7 @@ class TelegramService
     public function __construct(
         public NewStudentAdminNotifier $newStudentAdminNotifier,
         public UserEventService $userEvents,
+        public OnboardingService $onboarding,
     ) {}
 
     public function token(): ?string
@@ -263,25 +264,41 @@ class TelegramService
     }
 
     /**
-     * Daily Challenge stays on top until completed today; then it is removed and continue studying leads.
+     * Daily Challenge stays on top until completed today; then it is removed.
+     * Continue studying only appears when the student has opened a study resource.
      *
      * @return list<list<array<string, mixed>>>
      */
     public function dailyChallengePriorityRows(TelegramCopy $copy, ?User $user = null): array
     {
-        $continueRow = [[
-            'text' => $copy->get('keyboard.continue_exam'),
-            'style' => TelegramButtonStyle::Primary->value,
-        ]];
+        $rows = [];
 
         $completed = app(DailyChallengeService::class)
             ->userHasCompletedTodaysDailyChallenge($user);
 
-        if ($completed) {
-            return [$continueRow];
+        if (! $completed) {
+            $rows[] = $this->dailyChallengeKeyboardRow($copy);
         }
 
-        return [$this->dailyChallengeKeyboardRow($copy), $continueRow];
+        if ($this->userHasContinueStudyingTarget($user)) {
+            $rows[] = [[
+                'text' => $copy->get('keyboard.continue_exam'),
+                'style' => TelegramButtonStyle::Primary->value,
+            ]];
+        }
+
+        return $rows;
+    }
+
+    public function userHasContinueStudyingTarget(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+
+        return $user->downloads()
+            ->whereHas('learningResource', fn ($query) => $query->published())
+            ->exists();
     }
 
     /**
@@ -494,7 +511,7 @@ class TelegramService
     }
 
     /**
-     * Default bot menu button that opens the Courses Mini App (supplies initData).
+     * Optional web_app menu button (left next to the attachment icon).
      */
     public function setChatMenuButtonWebApp(string $text, string $url): ?array
     {
@@ -507,14 +524,16 @@ class TelegramService
         ]);
     }
 
+    /**
+     * Reset the bot menu button to Telegram's default commands menu (no Courses web app).
+     */
     public function syncDefaultMiniAppMenuButton(?User $user = null): void
     {
-        $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
-
-        $this->setChatMenuButtonWebApp(
-            $copy->get('menu.courses'),
-            $this->miniAppUrl('tg.browse'),
-        );
+        $this->call('setChatMenuButton', [
+            'menu_button' => [
+                'type' => 'commands',
+            ],
+        ]);
     }
 
     /**
@@ -759,6 +778,12 @@ class TelegramService
                 'is_gat' => true,
             ]);
 
+            $user = $user->refresh();
+
+            if (! $user->courses()->exists()) {
+                $this->onboarding->syncGatSubjectCourses($user);
+            }
+
             return $user->refresh();
         }
 
@@ -772,9 +797,10 @@ class TelegramService
             'is_gat' => true,
         ]);
 
+        $this->onboarding->syncGatSubjectCourses($user);
         $this->newStudentAdminNotifier->notify($user, $this);
 
-        return $user;
+        return $user->refresh();
     }
 
     /**

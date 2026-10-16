@@ -153,6 +153,8 @@ it('resets streak when a day is missed', function () {
 
 it('puts daily challenge above continue studying until completed, then removes it', function () {
     $user = User::factory()->student()->create();
+    $resource = LearningResource::factory()->published()->create();
+    $user->downloads()->create(['learning_resource_id' => $resource->id]);
     $telegram = app(TelegramService::class);
 
     $incomplete = $telegram->mainKeyboard($user);
@@ -181,6 +183,24 @@ it('puts daily challenge above continue studying until completed, then removes i
         ->not->toContain('Daily challenge')
         ->not->toContain('Continue studying')
         ->and(data_get($subjectComplete, 'keyboard.0.0.text'))->toBe('Practice exams');
+});
+
+it('hides continue studying until the student has opened a resource', function () {
+    $user = User::factory()->student()->create();
+    $telegram = app(TelegramService::class);
+
+    $withoutProgress = $telegram->mainKeyboard($user);
+    expect(data_get($withoutProgress, 'keyboard.0.0.text'))->toBe('Daily challenge')
+        ->and(collect(data_get($withoutProgress, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Continue studying')
+        ->and(data_get($withoutProgress, 'keyboard.1.0.text'))->toBe('Maths');
+
+    $resource = LearningResource::factory()->published()->create();
+    $user->downloads()->create(['learning_resource_id' => $resource->id]);
+
+    $withProgress = $telegram->mainKeyboard($user->fresh());
+    expect(data_get($withProgress, 'keyboard.0.0.text'))->toBe('Daily challenge')
+        ->and(data_get($withProgress, 'keyboard.1.0.text'))->toBe('Continue studying');
 });
 
 it('scores a daily challenge submission through the mini app', function () {
@@ -267,9 +287,10 @@ it('omits the leaderboard button after completing today when leaderboard is disa
     expect((string) ($data['text'] ?? ''))->toContain('Nice work')
         ->and((string) ($data['text'] ?? ''))->not->toContain('leaderboard')
         ->and(data_get($data, 'reply_markup.inline_keyboard'))->toBeNull()
-        ->and(data_get($data, 'reply_markup.keyboard.0.0.text'))->toBe('Continue studying')
+        ->and(data_get($data, 'reply_markup.keyboard.0.0.text'))->toBe('Maths')
         ->and(collect(data_get($data, 'reply_markup.keyboard'))->flatten(1)->pluck('text'))
-        ->not->toContain('Daily challenge');
+        ->not->toContain('Daily challenge')
+        ->not->toContain('Continue studying');
 });
 
 it('dispatches reminders only to students who have not completed today', function () {

@@ -301,6 +301,9 @@ return [
         'add' => 'Add to home screen',
         'not_now' => 'Not now',
     ],
+    'premium' => [
+        'description_button' => 'Premium description',
+    ],
     'premium_landing' => [
         'badge' => 'Premium',
         'title' => 'Included with Premium',
