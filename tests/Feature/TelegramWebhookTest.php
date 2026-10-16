@@ -1157,7 +1157,7 @@ it('opens a forwardable start message from the invite friends reply keyboard lab
         $text = (string) data_get($request->data(), 'text');
 
         return str_contains($text, 'Refer friends')
-            && str_contains($text, 'forward the start message')
+            && str_contains($text, 'Forward the message below')
             && ! str_contains($text, 'Progress:');
     });
 
@@ -1169,15 +1169,17 @@ it('opens a forwardable start message from the invite friends reply keyboard lab
         $data = $request->data();
         $text = (string) ($data['text'] ?? '');
 
-        return str_contains($text, 'welcome to Noviq Uni')
-            && str_contains($text, 'Start now</a>')
+        return str_contains($text, 'Join me on Noviq Uni for GAT prep')
+            && str_contains($text, 'Daily challenge')
             && str_contains($text, 'start='.$user->referral_code)
-            && ! str_contains((string) data_get($data, 'reply_markup.inline_keyboard.0.0.url'), 't.me/share/url');
+            && ! str_contains($text, 'Welcome back')
+            && ! str_contains($text, 'Start now</a>')
+            && ! array_key_exists('reply_markup', $data);
     });
 });
 
 it('opens refer invite from the Refer reply keyboard label', function () {
-    User::factory()->student()->create([
+    $user = User::factory()->student()->create([
         'telegram_id' => '555305',
         'name' => 'Mikiyas',
         'onboarding_step' => OnboardingStep::Complete,
@@ -1195,7 +1197,23 @@ it('opens refer invite from the Refer reply keyboard label', function () {
         $text = (string) data_get($request->data(), 'text');
 
         return str_contains($text, 'Refer friends')
+            && str_contains($text, 'Forward the message below')
             && ! str_contains($text, 'Points:');
+    });
+
+    Http::assertSent(function ($request) use ($user) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
+
+        return str_contains($text, 'Join me on Noviq Uni for GAT prep')
+            && str_contains($text, 'start='.$user->referral_code)
+            && ! str_contains($text, 'Welcome back')
+            && ! str_contains($text, 'Start now</a>')
+            && ! array_key_exists('reply_markup', $data);
     });
 });
 
@@ -1215,13 +1233,16 @@ it('still opens refer flow from the legacy refer and earn keyboard label', funct
             return false;
         }
 
-        $text = (string) data_get($request->data(), 'text');
+        $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
 
-        return str_contains($text, 'Start now</a>')
-            && str_contains($text, 'start='.$user->referral_code);
+        return str_contains($text, 'Join me on Noviq Uni for GAT prep')
+            && str_contains($text, 'start='.$user->referral_code)
+            && ! str_contains($text, 'Welcome back')
+            && ! str_contains($text, 'Start now</a>')
+            && ! array_key_exists('reply_markup', $data);
     });
 });
-
 it('still opens continue from the legacy continue label', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Biology']);

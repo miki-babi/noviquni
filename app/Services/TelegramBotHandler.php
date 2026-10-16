@@ -3578,13 +3578,9 @@ class TelegramBotHandler
 
         $this->telegram->sendMessage($chatId, $copy->get('refer.invite'));
 
-        if ($this->settings->hasCustomTelegramStartMessage()) {
-            $this->sendCustomStartMessage($user, $chatId, sendReplyKeyboard: false);
-
-            return;
-        }
-
-        $this->sendDefaultStartMessage($user, $chatId, sendReplyKeyboard: false);
+        $this->telegram->sendMessage($chatId, $copy->get('refer.share_message', [
+            'link' => $this->referrals->referralLink($user),
+        ]));
     }
 
     protected function toggleNotifications(User $user, int|string $chatId): void

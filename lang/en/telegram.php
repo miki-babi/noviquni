@@ -87,11 +87,11 @@ return [
     ],
     'refer' => [
         'start_cta' => 'Start now',
-        'invite' => "👥 Refer friends\nShare Noviq Uni with friends — forward the start message below. Your link is already in it.",
+        'invite' => "👥 Refer friends\nForward the message below to your friends so they can join with your link.",
         'stats' => "👥 Referrals\nProgress: :count/:required\nPoints: :points",
-        'forward_hint' => 'Forward the start message below to your friends. Your Start now link is already in it.',
+        'forward_hint' => 'Forward the message below to your friends so they can join with your link.',
         'share' => '📤 Share',
-        'share_message' => "Hey! Join me on Noviq Uni for freshman study resources.\n:link",
+        'share_message' => "Join me on Noviq Uni for GAT prep.\n\nDaily challenge, mixed quizzes, and practice exams for maths, reading/writing, and analytical reasoning — free to start.\n\n:link",
     ],
     'challenges' => [
         'list_button' => '🏆 Challenges',
