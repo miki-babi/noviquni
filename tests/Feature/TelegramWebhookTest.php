@@ -71,6 +71,13 @@ it('accepts a start update and creates a completed GAT student without onboardin
             && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
             && data_get($data, 'reply_markup.keyboard.5.1.text') === 'Refer';
     });
+
+    Http::assertNotSent(function ($request) {
+        $text = (string) data_get($request->data(), 'text');
+
+        return str_contains($text, 'Welcome back')
+            || str_contains($text, 'Start now');
+    });
 });
 
 it('marks new students as GAT on /start', function () {

@@ -1211,9 +1211,26 @@ class TelegramBotHandler
         $copy = TelegramCopy::for($user);
         $name = $copy->firstName($user);
         $hasCourses = $user->courses()->exists();
+        $isNewUser = $user->wasRecentlyCreated;
+
+        // Brand-new students are auto-enrolled in GAT courses, so course presence
+        // must not trigger the returning "Welcome back" + referral "Start now" pitch.
+        if ($isNewUser && $hasCourses) {
+            if ($sendReplyKeyboard) {
+                $this->sendReplyKeyboard($user, $chatId);
+            }
+
+            return;
+        }
 
         if (! $hasCourses) {
-            $this->telegram->sendMessage($chatId, $this->withReferralCta($copy->get('start.new', ['name' => $name]), $user), [
+            $text = $copy->get('start.new', ['name' => $name]);
+
+            if (! $isNewUser) {
+                $text = $this->withReferralCta($text, $user);
+            }
+
+            $this->telegram->sendMessage($chatId, $text, [
                 'reply_markup' => [
                     'inline_keyboard' => [[
                         [
