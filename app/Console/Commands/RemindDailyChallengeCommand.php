@@ -40,10 +40,16 @@ class RemindDailyChallengeCommand extends Command
 
                     $copy = TelegramCopy::for($user);
                     $streak = (int) ($user->streak?->current_streak ?? 0);
+                    $name = $copy->firstName($user);
 
                     $text = $streak > 0
-                        ? $copy->get('daily_challenge.remind_streak', ['streak' => $streak])
-                        : $copy->get('daily_challenge.remind');
+                        ? $copy->get('daily_challenge.remind_streak', [
+                            'name' => $name,
+                            'streak' => $streak,
+                        ])
+                        : $copy->get('daily_challenge.remind', [
+                            'name' => $name,
+                        ]);
 
                     SendTelegramMessageJob::dispatch(
                         $user->telegram_id,

@@ -180,7 +180,7 @@ class LearningForm
      * @param  list<array<string, mixed>>  $questions
      * @return list<array<string, mixed>>
      */
-    protected static function questionsForRepeater(array $questions): array
+    public static function questionsForRepeater(array $questions): array
     {
         $items = [];
 
@@ -216,7 +216,7 @@ class LearningForm
     /**
      * @return list<array<string, mixed>>
      */
-    protected static function questionsFromRepeater(mixed $rawQuestions): array
+    public static function questionsFromRepeater(mixed $rawQuestions): array
     {
         if (! is_array($rawQuestions)) {
             return [];

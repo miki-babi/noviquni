@@ -72,15 +72,18 @@ return [
     ],
     'daily_challenge' => [
         'open_button' => '🎯 ዕለታዊ ፈተና ክፈት',
-        'status_ready' => '🎯 <b>የዛሬው ፈተና</b>
-10 የተደባለቁ GAT ጥያቄዎች። ተከታታይ ቀናት፦ <b>:streak</b>
+        'status_ready' => '🎯 <b>:name — የዛሬው ፈተና</b>
+10 የተደባለቁ GAT ጥያቄዎች።
 ለመጫወት ከታች ይንኩ።',
-        'status_done' => '🎯 <b>የዛሬው ፈተና</b>
+        'status_ready_streak' => '🎯 <b>:name — :streak · የዛሬው ፈተና</b>
+10 የተደባለቁ GAT ጥያቄዎች።
+ለመጫወት ከታች ይንኩ።',
+        'status_done' => '🎯 <b>:name</b>
 ውጤትዎ <b>:score/:total</b>። ተከታታይ ቀናት፦ <b>:streak</b>
 ለመቀጠል ነገ ይመለሱ።',
         'status_missing' => '🎯 የዛሬው ፈተና ገና ዝግጁ አይደለም። ትንሽ ቆይተው ይመልከቱ።',
-        'remind' => '🎯 የዛሬው ፈተና እየጠበቀ ነው — ከእኩለ ሌሊት በፊት 10 ፈጣን GAT ጥያቄዎች።',
-        'remind_streak' => '🎯 የ<b>:streak</b> ቀን ተከታታይነትዎ በእኩለ ሌሊት ይቋረጣል — የዛሬውን ፈተና ካላጠናቀቁ!',
+        'remind' => '🎯 :name — የዛሬው ፈተና እየጠበቀ ነው — ከእኩለ ሌሊት በፊት 10 ፈጣን GAT ጥያቄዎች።',
+        'remind_streak' => '🎯 :name — የ<b>:streak</b> ቀን ተከታታይነትዎ በእኩለ ሌሊት ይቋረጣል — የዛሬውን ፈተና ካላጠናቀቁ!',
         'leaderboard_button' => '🏆 ደረጃ ሰሌዳ',
     ],
     'refer' => [

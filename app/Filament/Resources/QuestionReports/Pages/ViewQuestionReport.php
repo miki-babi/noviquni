@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\QuestionReports\Pages;
 
 use App\Filament\Actions\DismissQuestionReportAction;
+use App\Filament\Actions\EditQuestionReportAction;
 use App\Filament\Actions\ResolveQuestionReportAction;
 use App\Filament\Resources\QuestionReports\QuestionReportResource;
 use App\Models\QuestionReport;
@@ -26,6 +27,7 @@ class ViewQuestionReport extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            EditQuestionReportAction::make(),
             ResolveQuestionReportAction::make(),
             DismissQuestionReportAction::make(),
         ];

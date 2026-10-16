@@ -6,6 +6,7 @@ use App\Enums\QuestionReportReason;
 use App\Enums\QuestionReportSource;
 use App\Enums\QuestionReportStatus;
 use App\Filament\Actions\DismissQuestionReportAction;
+use App\Filament\Actions\EditQuestionReportAction;
 use App\Filament\Actions\ResolveQuestionReportAction;
 use App\Models\QuestionReport;
 use Filament\Actions\ViewAction;
@@ -86,6 +87,7 @@ class QuestionReportsTable
             ])
             ->recordActions([
                 ViewAction::make(),
+                EditQuestionReportAction::make(),
                 ResolveQuestionReportAction::make(),
                 DismissQuestionReportAction::make(),
             ]);

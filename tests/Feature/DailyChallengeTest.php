@@ -253,6 +253,7 @@ it('opens daily challenge from the reply keyboard', function () {
     ]);
 
     $user = User::factory()->student()->create([
+        'name' => 'Abebe Kebede',
         'telegram_id' => 555901,
         'onboarding_step' => OnboardingStep::Complete,
     ]);
@@ -263,9 +264,10 @@ it('opens daily challenge from the reply keyboard', function () {
 
     Http::assertSent(function ($request) {
         $data = $request->data();
+        $text = (string) ($data['text'] ?? '');
 
-        return ($data['text'] ?? null) !== null
-            && str_contains((string) $data['text'], "Today's Challenge")
+        return str_contains($text, 'Abebe')
+            && str_contains($text, 'daily GAT challenge is ready')
             && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.play.daily-challenge');
     });
 });

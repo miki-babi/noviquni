@@ -1347,9 +1347,11 @@ class TelegramBotHandler
 
         $streak = (int) ($dailyChallenges->streakFor($user)?->current_streak ?? 0);
         $attempt = $dailyChallenges->attemptFor($user, $challenge);
+        $name = $copy->firstName($user);
 
         if ($attempt !== null) {
             $text = $copy->get('daily_challenge.status_done', [
+                'name' => $name,
                 'score' => $attempt->score,
                 'total' => $attempt->total,
                 'streak' => $streak,
@@ -1362,9 +1364,14 @@ class TelegramBotHandler
                 ],
             ]];
         } else {
-            $text = $copy->get('daily_challenge.status_ready', [
-                'streak' => $streak,
-            ]);
+            $text = $streak > 0
+                ? $copy->get('daily_challenge.status_ready_streak', [
+                    'name' => $name,
+                    'streak' => $streak,
+                ])
+                : $copy->get('daily_challenge.status_ready', [
+                    'name' => $name,
+                ]);
             $buttons = [[
                 [
                     'text' => $copy->get('daily_challenge.open_button'),
