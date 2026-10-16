@@ -264,13 +264,12 @@ class TelegramService
     }
 
     /**
-     * Daily Challenge stays on top until completed today; then continue studying leads.
+     * Daily Challenge stays on top until completed today; then it is removed and continue studying leads.
      *
      * @return list<list<array<string, mixed>>>
      */
     public function dailyChallengePriorityRows(TelegramCopy $copy, ?User $user = null): array
     {
-        $dailyRow = $this->dailyChallengeKeyboardRow($copy);
         $continueRow = [[
             'text' => $copy->get('keyboard.continue_exam'),
             'style' => TelegramButtonStyle::Primary->value,
@@ -279,9 +278,11 @@ class TelegramService
         $completed = app(DailyChallengeService::class)
             ->userHasCompletedTodaysDailyChallenge($user);
 
-        return $completed
-            ? [$continueRow, $dailyRow]
-            : [$dailyRow, $continueRow];
+        if ($completed) {
+            return [$continueRow];
+        }
+
+        return [$this->dailyChallengeKeyboardRow($copy), $continueRow];
     }
 
     /**
@@ -313,7 +314,14 @@ class TelegramService
             }
         }
 
-        return null;
+        // Legacy lowercase English subject hub labels.
+        return match ($label) {
+            'quiz' => 'quiz',
+            'reference books' => 'reference_books',
+            'past exams' => 'past_exams',
+            'Practice exams', 'practice exams' => 'practice_exams',
+            default => null,
+        };
     }
 
     /**

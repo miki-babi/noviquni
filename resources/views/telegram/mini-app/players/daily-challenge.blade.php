@@ -2,8 +2,8 @@
     :copy="$copy"
     :title="$title"
     :back-url="$backUrl"
-    :next-url="$leaderboardUrl"
-    :next-label="$copy->get('daily_challenge.leaderboard_button')"
+    :next-url="$leaderboardEnabled ? $leaderboardUrl : null"
+    :next-label="$leaderboardEnabled ? $copy->get('daily_challenge.leaderboard_button') : null"
 >
     <div class="space-y-5 px-4 pt-4">
         <div class="space-y-1">
@@ -27,9 +27,15 @@
         @if ($attempt)
             <div class="space-y-3">
                 <p class="text-[15px] leading-relaxed text-text-secondary">
-                    You already completed today's challenge. Check the leaderboard or come back tomorrow.
+                    @if ($leaderboardEnabled)
+                        You already completed today's challenge. Check the leaderboard or come back tomorrow.
+                    @else
+                        You already completed today's challenge. Come back tomorrow to keep your streak going.
+                    @endif
                 </p>
-                <a href="{{ $leaderboardUrl }}" class="tg-btn">{{ $copy->get('daily_challenge.leaderboard_button') }}</a>
+                @if ($leaderboardEnabled)
+                    <a href="{{ $leaderboardUrl }}" class="tg-btn">{{ $copy->get('daily_challenge.leaderboard_button') }}</a>
+                @endif
                 <a href="{{ $premiumUrl }}" class="tg-btn tg-btn-secondary">Unlock premium</a>
             </div>
         @else

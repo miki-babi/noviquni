@@ -13,6 +13,8 @@ class DailyChallengeLeaderboardController extends Controller
 {
     public function __invoke(DailyChallengeService $dailyChallenges): View
     {
+        abort_unless((bool) config('daily_challenge.leaderboard_enabled'), 404);
+
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);

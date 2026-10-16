@@ -151,17 +151,17 @@ it('resets streak when a day is missed', function () {
     expect($user->fresh()->streak->current_streak)->toBe(1);
 });
 
-it('puts daily challenge above continue studying until completed', function () {
+it('puts daily challenge above continue studying until completed, then removes it', function () {
     $user = User::factory()->student()->create();
     $telegram = app(TelegramService::class);
 
     $incomplete = $telegram->mainKeyboard($user);
-    expect(data_get($incomplete, 'keyboard.0.0.text'))->toBe('daily challenge')
-        ->and(data_get($incomplete, 'keyboard.1.0.text'))->toBe('continue studying');
+    expect(data_get($incomplete, 'keyboard.0.0.text'))->toBe('Daily challenge')
+        ->and(data_get($incomplete, 'keyboard.1.0.text'))->toBe('Continue studying');
 
     $subjectIncomplete = $telegram->gatSubjectKeyboard($user);
-    expect(data_get($subjectIncomplete, 'keyboard.0.0.text'))->toBe('daily challenge')
-        ->and(data_get($subjectIncomplete, 'keyboard.1.0.text'))->toBe('continue studying');
+    expect(data_get($subjectIncomplete, 'keyboard.0.0.text'))->toBe('Daily challenge')
+        ->and(data_get($subjectIncomplete, 'keyboard.1.0.text'))->toBe('Continue studying');
 
     $challenge = DailyChallenge::factory()->create();
     DailyChallengeAttempt::factory()->create([
@@ -170,12 +170,14 @@ it('puts daily challenge above continue studying until completed', function () {
     ]);
 
     $complete = $telegram->mainKeyboard($user->fresh());
-    expect(data_get($complete, 'keyboard.0.0.text'))->toBe('continue studying')
-        ->and(data_get($complete, 'keyboard.1.0.text'))->toBe('daily challenge');
+    expect(data_get($complete, 'keyboard.0.0.text'))->toBe('Continue studying')
+        ->and(collect(data_get($complete, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge');
 
     $subjectComplete = $telegram->gatSubjectKeyboard($user->fresh());
-    expect(data_get($subjectComplete, 'keyboard.0.0.text'))->toBe('continue studying')
-        ->and(data_get($subjectComplete, 'keyboard.1.0.text'))->toBe('daily challenge');
+    expect(data_get($subjectComplete, 'keyboard.0.0.text'))->toBe('Continue studying')
+        ->and(collect(data_get($subjectComplete, 'keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge');
 });
 
 it('scores a daily challenge submission through the mini app', function () {
@@ -194,14 +196,77 @@ it('scores a daily challenge submission through the mini app', function () {
         ->assertJsonPath('score', 10)
         ->assertJsonPath('total', 10)
         ->assertJsonPath('duration_ms', 55_000)
-        ->assertJsonPath('streak', 1);
+        ->assertJsonPath('streak', 1)
+        ->assertJsonPath('leaderboard_url', null);
+
+    $this->actingAs($user)
+        ->get(route('tg.play.daily-challenge.leaderboard'))
+        ->assertNotFound();
+
+    expect(DailyChallengeAttempt::query()->where('user_id', $user->id)->count())->toBe(1);
+});
+
+it('shows the daily challenge leaderboard when enabled', function () {
+    config(['daily_challenge.leaderboard_enabled' => true]);
+
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'role' => UserRole::Student,
+        'name' => 'Leaderboard Student',
+    ]);
+    $challenge = DailyChallenge::factory()->create();
+
+    DailyChallengeAttempt::factory()->create([
+        'user_id' => $user->id,
+        'daily_challenge_id' => $challenge->id,
+        'score' => 10,
+        'total' => 10,
+        'duration_ms' => 40_000,
+    ]);
 
     $this->actingAs($user)
         ->get(route('tg.play.daily-challenge.leaderboard'))
         ->assertOk()
-        ->assertSee($user->name);
+        ->assertSee('Leaderboard Student');
+});
 
-    expect(DailyChallengeAttempt::query()->where('user_id', $user->id)->count())->toBe(1);
+it('omits the leaderboard button after completing today when leaderboard is disabled', function () {
+    Http::fake([
+        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
+    ]);
+
+    $user = User::factory()->student()->create([
+        'name' => 'Done Student',
+        'telegram_id' => 555902,
+        'telegram_locale' => 'en',
+        'onboarding_step' => OnboardingStep::Complete,
+    ]);
+    $challenge = DailyChallenge::factory()->create();
+    DailyChallengeAttempt::factory()->create([
+        'user_id' => $user->id,
+        'daily_challenge_id' => $challenge->id,
+        'score' => 8,
+        'total' => 10,
+    ]);
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555902, 'daily challenge', 902))
+        ->assertOk();
+
+    $challengeReplies = Http::recorded(
+        fn ($request): bool => str_contains((string) ($request->data()['text'] ?? ''), 'Nice work')
+    );
+
+    expect($challengeReplies)->not->toBeEmpty();
+
+    [$request] = $challengeReplies[0];
+    $data = $request->data();
+
+    expect((string) ($data['text'] ?? ''))->toContain('Nice work')
+        ->and((string) ($data['text'] ?? ''))->not->toContain('leaderboard')
+        ->and(data_get($data, 'reply_markup.inline_keyboard'))->toBeNull()
+        ->and(data_get($data, 'reply_markup.keyboard.0.0.text'))->toBe('Continue studying')
+        ->and(collect(data_get($data, 'reply_markup.keyboard'))->flatten(1)->pluck('text'))
+        ->not->toContain('Daily challenge');
 });
 
 it('dispatches reminders only to students who have not completed today', function () {

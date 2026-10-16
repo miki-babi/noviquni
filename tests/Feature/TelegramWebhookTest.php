@@ -62,8 +62,8 @@ it('accepts a start update and creates a completed GAT student without onboardin
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'Your study menu is ready')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'Refer';
     });
 });
 
@@ -194,15 +194,15 @@ it('restores the main reply keyboard when Back is tapped from courses', function
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'continue studying'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'maths'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'reading/writing'
+        return data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Continue studying'
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Maths'
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'Reading/writing'
             && data_get($data, 'reply_markup.keyboard.3.0.text') === 'Analytical reasoning'
             && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 Quick saved'
-            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'unlock premium'
-            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'contact us'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'share and reward';
+            && data_get($data, 'reply_markup.keyboard.5.0.text') === 'Unlock premium'
+            && data_get($data, 'reply_markup.keyboard.6.0.text') === 'Contact us'
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'Refer';
     });
 });
 
@@ -609,7 +609,7 @@ it('switches language and refreshes keyboard labels', function () {
             && data_get($data, 'reply_markup.keyboard.4.0.text') === '🔖 በፍጥነት የተቀመጡ'
             && data_get($data, 'reply_markup.keyboard.5.0.text') === 'ፕሪሚየም ክፈት'
             && data_get($data, 'reply_markup.keyboard.6.0.text') === 'ያግኙን'
-            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'አጋራ እና ሽልማት';
+            && data_get($data, 'reply_markup.keyboard.6.1.text') === 'ይጋብዙ';
     });
 });
 
@@ -692,7 +692,7 @@ it('completes mid-funnel users when they send free text instead of asking for ye
             return false;
         }
 
-        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'daily challenge';
+        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
     });
 });
 
@@ -992,13 +992,13 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'continue studying'
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge'
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Continue studying'
             && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Practice exams'
-            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'quiz'
-            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'reference books'
-            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'past exams'
-            && data_get($data, 'reply_markup.keyboard.4.0.text') === '← back';
+            && data_get($data, 'reply_markup.keyboard.2.1.text') === 'Quiz'
+            && data_get($data, 'reply_markup.keyboard.3.0.text') === 'Reference books'
+            && data_get($data, 'reply_markup.keyboard.3.1.text') === 'Past exams'
+            && data_get($data, 'reply_markup.keyboard.4.0.text') === '← Back';
     });
 });
 
@@ -1020,7 +1020,7 @@ it('tells the student when reading/writing is tapped without a matching course',
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'That course is not set up yet')
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'maths';
+            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Maths';
     });
 });
 
@@ -1049,7 +1049,7 @@ it('opens reading/writing when the course uses Reading and writing naming', func
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
     });
 });
 
@@ -1078,7 +1078,7 @@ it('opens Analytical reasoning when the matching course exists', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
+            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
     });
 });
 
@@ -1116,16 +1116,14 @@ it('lists quiz resources for the selected gat subject course', function () {
     });
 });
 
-it('sends contact us copy from settings when contact us is tapped', function () {
-    app(SettingsService::class)->set(SettingsService::TELEGRAM_CONTACT_US, 'Custom GAT contact copy');
-
+it('opens the support telegram handle when contact us is tapped', function () {
     User::factory()->student()->create([
         'telegram_id' => '555304',
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555304, 'contact us', 604))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555304, 'Contact us', 604))
         ->assertOk();
 
     Http::assertSent(function ($request) {
@@ -1135,12 +1133,12 @@ it('sends contact us copy from settings when contact us is tapped', function () 
 
         $data = $request->data();
 
-        return ($data['text'] ?? '') === 'Custom GAT contact copy'
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'daily challenge';
+        return str_contains((string) ($data['text'] ?? ''), '@mikiyas_sh')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.url') === 'https://t.me/mikiyas_sh';
     });
 });
 
-it('opens refer stats and a forwardable start message from the invite friends reply keyboard label', function () {
+it('opens a forwardable start message from the invite friends reply keyboard label', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555033',
         'name' => 'Mikiyas',
@@ -1158,8 +1156,9 @@ it('opens refer stats and a forwardable start message from the invite friends re
 
         $text = (string) data_get($request->data(), 'text');
 
-        return str_contains($text, 'Progress: 0/')
-            && str_contains($text, 'Forward the start message below');
+        return str_contains($text, 'Refer friends')
+            && str_contains($text, 'forward the start message')
+            && ! str_contains($text, 'Progress:');
     });
 
     Http::assertSent(function ($request) use ($user) {
@@ -1177,7 +1176,7 @@ it('opens refer stats and a forwardable start message from the invite friends re
     });
 });
 
-it('opens refer stats from the share and reward reply keyboard label', function () {
+it('opens refer invite from the Refer reply keyboard label', function () {
     User::factory()->student()->create([
         'telegram_id' => '555305',
         'name' => 'Mikiyas',
@@ -1185,7 +1184,7 @@ it('opens refer stats from the share and reward reply keyboard label', function 
         'is_active' => true,
     ]);
 
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555305, 'share and reward', 605))
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555305, 'Refer', 605))
         ->assertOk();
 
     Http::assertSent(function ($request) {
@@ -1195,8 +1194,8 @@ it('opens refer stats from the share and reward reply keyboard label', function 
 
         $text = (string) data_get($request->data(), 'text');
 
-        return str_contains($text, 'Progress: 0/')
-            && str_contains($text, 'Forward the start message below');
+        return str_contains($text, 'Refer friends')
+            && ! str_contains($text, 'Points:');
     });
 });
 

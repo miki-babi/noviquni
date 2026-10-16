@@ -41,6 +41,8 @@ return [
         'mini_app_url' => env('TELEGRAM_MINI_APP_URL'),
         // Comma-separated Telegram usernames (without @) allowed to ingest file_ids via DM.
         'file_admin_username' => env('TELEGRAM_FILE_ADMIN_USERNAME'),
+        // Support contact opened from the "Contact us" reply keyboard.
+        'contact_username' => env('TELEGRAM_CONTACT_USERNAME', 'mikiyas_sh'),
     ],
 
     'noviq_college' => [

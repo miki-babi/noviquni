@@ -47,7 +47,9 @@ class DailyChallengeResultController extends Controller
             'attempt_id' => $attempt->id,
             'streak' => (int) ($streak?->current_streak ?? 0),
             'badges' => $streak?->unlockedBadges() ?? [],
-            'leaderboard_url' => route('tg.play.daily-challenge.leaderboard'),
+            'leaderboard_url' => config('daily_challenge.leaderboard_enabled')
+                ? route('tg.play.daily-challenge.leaderboard')
+                : null,
         ]);
     }
 }

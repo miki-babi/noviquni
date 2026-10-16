@@ -159,7 +159,8 @@ class TelegramBotHandler
         $copy = TelegramCopy::for($user);
 
         if ($text === $this->telegram->courseKeyboardBackLabel()
-            || $text === $copy->get('keyboard.subject.back')) {
+            || $text === $copy->get('keyboard.subject.back')
+            || $text === '← back') {
             if (Cache::pull($this->gatSubjectSelectionCacheKey($user)) !== null) {
                 $this->sendReplyKeyboard($user, $chatId);
 
@@ -857,6 +858,15 @@ class TelegramBotHandler
             $map[$copy->get('keyboard.premium')] = 'premium';
             $map[$copy->get('keyboard.contact')] = 'contact';
             $map[$copy->get('keyboard.refer')] = 'refer';
+            // Legacy lowercase / reward labels until users refresh via /start.
+            $map['daily challenge'] = 'daily_challenge';
+            $map['continue studying'] = 'continue_exam';
+            $map['maths'] = 'maths';
+            $map['reading/writing'] = 'reading_writing';
+            $map['unlock premium'] = 'premium';
+            $map['contact us'] = 'contact';
+            $map['share and reward'] = 'refer';
+            $map["\u{12A0}\u{130B}\u{122B} \u{12A5}\u{1293} \u{123D}\u{120D}\u{121B}\u{1275}"] = 'refer';
             // Legacy reply-keyboard labels until users refresh via /start.
             $map[$copy->get('keyboard.courses')] = 'courses';
             $map[$copy->get('keyboard.resources')] = 'resources';
@@ -1183,9 +1193,22 @@ class TelegramBotHandler
 
     protected function showContactUs(User $user, int|string $chatId): void
     {
-        $this->telegram->sendMessage($chatId, $this->settings->telegramContactUs(), [
-            'reply_markup' => $this->telegram->mainKeyboard($user),
-        ]);
+        $copy = TelegramCopy::for($user);
+        $username = ltrim((string) config('services.telegram.contact_username', 'mikiyas_sh'), '@');
+        $handle = '@'.$username;
+
+        $this->telegram->sendMessage(
+            $chatId,
+            $copy->get('contact.message', ['handle' => $handle]),
+            [
+                'reply_markup' => $this->telegram->inlineKeyboard([[
+                    [
+                        'text' => $copy->get('contact.button', ['handle' => $handle]),
+                        'url' => 'https://t.me/'.$username,
+                    ],
+                ]]),
+            ],
+        );
     }
 
     protected function sendReplyKeyboard(User $user, int|string $chatId): void
@@ -1356,13 +1379,15 @@ class TelegramBotHandler
                 'total' => $attempt->total,
                 'streak' => $streak,
             ]);
-            $buttons = [[
-                [
-                    'text' => $copy->get('daily_challenge.leaderboard_button'),
-                    'web_app' => ['url' => $this->telegram->miniAppUrl('tg.play.daily-challenge.leaderboard')],
-                    'style' => TelegramButtonStyle::Primary->value,
-                ],
-            ]];
+            $buttons = config('daily_challenge.leaderboard_enabled')
+                ? [[
+                    [
+                        'text' => $copy->get('daily_challenge.leaderboard_button'),
+                        'web_app' => ['url' => $this->telegram->miniAppUrl('tg.play.daily-challenge.leaderboard')],
+                        'style' => TelegramButtonStyle::Primary->value,
+                    ],
+                ]]
+                : [];
         } else {
             $text = $streak > 0
                 ? $copy->get('daily_challenge.status_ready_streak', [
@@ -1381,9 +1406,16 @@ class TelegramBotHandler
             ]];
         }
 
-        $this->telegram->sendMessage($chatId, $text, [
-            'reply_markup' => $this->telegram->inlineKeyboard($buttons),
-        ]);
+        $payload = [];
+
+        if ($buttons !== []) {
+            $payload['reply_markup'] = $this->telegram->inlineKeyboard($buttons);
+        } elseif ($attempt !== null) {
+            // Refresh the custom reply keyboard so Daily Challenge disappears after completion.
+            $payload['reply_markup'] = $this->telegram->mainKeyboard($user);
+        }
+
+        $this->telegram->sendMessage($chatId, $text, $payload);
     }
 
     protected function showContinue(User $user, int|string $chatId, ?int $messageId = null): void
@@ -3543,13 +3575,8 @@ class TelegramBotHandler
     {
         $copy = TelegramCopy::for($user);
         $this->userEvents->log($user, UserEventName::ReferralLinkShared);
-        $stats = $copy->get('refer.stats', [
-            'count' => $this->referrals->qualifiedCount($user),
-            'required' => $this->settings->requiredReferrals(),
-            'points' => $user->referral_points,
-        ]);
 
-        $this->telegram->sendMessage($chatId, $stats."\n\n".$copy->get('refer.forward_hint'));
+        $this->telegram->sendMessage($chatId, $copy->get('refer.invite'));
 
         if ($this->settings->hasCustomTelegramStartMessage()) {
             $this->sendCustomStartMessage($user, $chatId, sendReplyKeyboard: false);

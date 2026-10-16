@@ -23,6 +23,8 @@ class DailyChallengePlayerController extends Controller
         $attempt = $dailyChallenges->attemptFor($user, $challenge);
         $streak = $dailyChallenges->streakFor($user);
 
+        $leaderboardEnabled = (bool) config('daily_challenge.leaderboard_enabled');
+
         return view('telegram.mini-app.players.daily-challenge', [
             'copy' => $copy,
             'user' => $user,
@@ -32,7 +34,10 @@ class DailyChallengePlayerController extends Controller
             'streak' => $streak,
             'title' => $copy->get('daily_challenge.open_button'),
             'backUrl' => route('tg.home'),
-            'leaderboardUrl' => route('tg.play.daily-challenge.leaderboard'),
+            'leaderboardEnabled' => $leaderboardEnabled,
+            'leaderboardUrl' => $leaderboardEnabled
+                ? route('tg.play.daily-challenge.leaderboard')
+                : null,
             'resultUrl' => route('tg.play.daily-challenge.result'),
             'premiumUrl' => route('tg.premium'),
         ]);
