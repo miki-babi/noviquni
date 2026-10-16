@@ -18,6 +18,7 @@ return [
             'past_exams' => 'ያለፉ ፈተናዎች',
             'back' => '← ተመለስ',
             'missing_course' => 'ያ ኮርስ ገና አልተዘጋጀም። ከታተመ በኋላ እንደገና ይሞክሩ።',
+            'pick_first' => 'መጀመሪያ ሂሳብ፣ ንባብ/ጽሁፍ ወይም አመክንዮአዊ ትንተና ይምረጡ፣ ከዚያ ፈተና ጥያቄ ወይም ሌላ ዓይነት ይምረጡ።',
         ],
         'courses' => '📚 ኮርሶች',
         'resources' => '📚 የመጀመሪያ ዓመት መርጃዎች',
@@ -168,6 +169,8 @@ return [
         'back' => '« Back',
         'resources' => 'Resources:',
         'resources_for' => '<b>:course</b> — :type',
+        'resources_for_page' => '<b>:course</b> — :type (:page/:pages)',
+        'resources_page' => 'Resources (:page/:pages)',
         'no_resources' => 'No published resources for this course yet.',
     ],
     'profile' => [

@@ -182,8 +182,16 @@ class TelegramBotHandler
         $gatSubjectHub = $this->telegram->gatSubjectHubForKeyboardLabel($user, $text);
         $gatCourseId = Cache::get($this->gatSubjectSelectionCacheKey($user));
 
-        if ($gatSubjectHub !== null && filled($gatCourseId)) {
-            $this->deliverGatSubjectHub($user, $chatId, (int) $gatCourseId, $gatSubjectHub);
+        if ($gatSubjectHub !== null) {
+            if (filled($gatCourseId)) {
+                $this->deliverGatSubjectHub($user, $chatId, (int) $gatCourseId, $gatSubjectHub);
+
+                return;
+            }
+
+            $this->telegram->sendMessage($chatId, TelegramCopy::for($user)->get('keyboard.subject.pick_first'), [
+                'reply_markup' => $this->telegram->mainKeyboard($user),
+            ]);
 
             return;
         }
@@ -364,6 +372,10 @@ class TelegramBotHandler
 
                     $this->showSaved($user, $chatId, $messageId, null, (int) $remainder);
                 },
+            ),
+            str_starts_with($data, 'resources:page:') => $this->guardComplete(
+                $user,
+                fn (): ?string => $this->handleResourcesPageCallback($user, $chatId, $data, $messageId),
             ),
             $data === 'notify:on' => $this->handleNotifyOn($user, $chatId),
             $data === 'profile:notify' => $this->guardComplete($user, function () use ($user, $chatId): void {
@@ -1142,11 +1154,11 @@ class TelegramBotHandler
         array $types,
         string $hub,
         ?int $messageId = null,
+        int $page = 0,
     ): void {
         $copy = TelegramCopy::for($user);
         $course = Course::query()->find($courseId);
         $typeLabel = $copy->get('keyboard.subject.'.$hub);
-        $heading = $this->resourceListHeading($copy, $course?->name, $typeLabel);
 
         $resources = LearningResource::query()
             ->published()
@@ -1161,7 +1173,10 @@ class TelegramBotHandler
             $resources,
             "course:{$courseId}",
             $messageId,
-            $heading,
+            $course?->name,
+            $typeLabel,
+            $page,
+            "resources:page:hub:{$courseId}:{$hub}",
         );
     }
 
@@ -1679,10 +1694,10 @@ class TelegramBotHandler
         int $courseId,
         ?ResourceHub $hub = null,
         ?int $messageId = null,
+        int $page = 0,
     ): void {
         $copy = TelegramCopy::for($user);
         $course = Course::query()->find($courseId);
-        $heading = $this->resourceListHeading($copy, $course?->name, $hub?->label());
 
         $query = LearningResource::query()
             ->published()
@@ -1693,13 +1708,20 @@ class TelegramBotHandler
             $query->whereIn('type', $hub->typeValues());
         }
 
+        $pageCallbackPrefix = $hub !== null
+            ? "resources:page:rhub:{$courseId}:{$hub->value}"
+            : "resources:page:course:{$courseId}";
+
         $this->replyWithResourceList(
             $copy,
             $chatId,
             $query->get(),
             $hub !== null ? "course:{$courseId}" : 'back:courses',
             $messageId,
-            $heading,
+            $course?->name,
+            $hub?->label(),
+            $page,
+            $pageCallbackPrefix,
         );
     }
 
@@ -1709,10 +1731,10 @@ class TelegramBotHandler
         int $courseId,
         ResourceType $type,
         ?int $messageId = null,
+        int $page = 0,
     ): void {
         $copy = TelegramCopy::for($user);
         $course = Course::query()->find($courseId);
-        $heading = $this->resourceListHeading($copy, $course?->name, $type->label());
 
         $resources = LearningResource::query()
             ->published()
@@ -1727,20 +1749,11 @@ class TelegramBotHandler
             $resources,
             "course:{$courseId}",
             $messageId,
-            $heading,
+            $course?->name,
+            $type->label(),
+            $page,
+            "resources:page:type:{$courseId}:{$type->value}",
         );
-    }
-
-    protected function resourceListHeading(TelegramCopy $copy, ?string $courseName, ?string $typeLabel): string
-    {
-        if (filled($courseName) && filled($typeLabel)) {
-            return $copy->get('hub.resources_for', [
-                'course' => $courseName,
-                'type' => $typeLabel,
-            ]);
-        }
-
-        return $copy->get('hub.resources');
     }
 
     /**
@@ -1752,7 +1765,10 @@ class TelegramBotHandler
         Collection $resources,
         string $backCallback,
         ?int $messageId = null,
-        ?string $heading = null,
+        ?string $courseName = null,
+        ?string $typeLabel = null,
+        int $page = 0,
+        ?string $pageCallbackPrefix = null,
     ): void {
         if ($resources->isEmpty()) {
             $this->telegram->replyOrEdit($chatId, $copy->get('hub.no_resources'), [
@@ -1764,18 +1780,215 @@ class TelegramBotHandler
             return;
         }
 
-        $rows = $resources->map(fn (LearningResource $resource) => [
-            $this->resourceInlineButton($resource),
-        ])->values()->all();
+        $perPage = 8;
+        $totalPages = (int) max(1, (int) ceil($resources->count() / $perPage));
+        $page = max(0, min($page, $totalPages - 1));
+
+        $rows = $resources
+            ->slice($page * $perPage, $perPage)
+            ->map(fn (LearningResource $resource) => [
+                $this->resourceInlineButton($resource),
+            ])
+            ->values()
+            ->all();
+
+        if ($pageCallbackPrefix !== null && $totalPages > 1) {
+            $nav = [];
+
+            if ($page > 0) {
+                $nav[] = [
+                    'text' => $copy->get('saved.back'),
+                    'callback_data' => $pageCallbackPrefix.':'.($page - 1),
+                ];
+            }
+
+            if ($page < $totalPages - 1) {
+                $nav[] = [
+                    'text' => $copy->get('saved.next'),
+                    'callback_data' => $pageCallbackPrefix.':'.($page + 1),
+                    'style' => TelegramButtonStyle::Primary->value,
+                ];
+            }
+
+            if ($nav !== []) {
+                $rows[] = $nav;
+            }
+        }
 
         $rows[] = [[
             'text' => $copy->get('hub.back'),
             'callback_data' => $backCallback,
         ]];
 
-        $this->telegram->replyOrEdit($chatId, $heading ?? $copy->get('hub.resources'), [
+        $heading = $this->resourceListHeading($copy, $courseName, $typeLabel, $page, $totalPages);
+
+        $this->telegram->replyOrEdit($chatId, $heading, [
             'reply_markup' => $this->telegram->inlineKeyboard($rows),
         ], $messageId);
+    }
+
+    protected function resourceListHeading(
+        TelegramCopy $copy,
+        ?string $courseName,
+        ?string $typeLabel,
+        int $page = 0,
+        int $totalPages = 1,
+    ): string {
+        if (filled($courseName) && filled($typeLabel)) {
+            if ($totalPages > 1) {
+                return $copy->get('hub.resources_for_page', [
+                    'course' => $courseName,
+                    'type' => $typeLabel,
+                    'page' => $page + 1,
+                    'pages' => $totalPages,
+                ]);
+            }
+
+            return $copy->get('hub.resources_for', [
+                'course' => $courseName,
+                'type' => $typeLabel,
+            ]);
+        }
+
+        if ($totalPages > 1) {
+            return $copy->get('hub.resources_page', [
+                'page' => $page + 1,
+                'pages' => $totalPages,
+            ]);
+        }
+
+        return $copy->get('hub.resources');
+    }
+
+    protected function handleResourcesPageCallback(
+        User $user,
+        int|string $chatId,
+        string $data,
+        ?int $messageId,
+    ): ?string {
+        $remainder = Str::after($data, 'resources:page:');
+        $parts = explode(':', $remainder);
+
+        if ($parts === [] || ($parts[0] ?? '') === '') {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $kind = $parts[0];
+
+        return match ($kind) {
+            'type' => $this->handleResourcesTypePage($user, $chatId, $parts, $messageId),
+            'hub' => $this->handleResourcesGatHubPage($user, $chatId, $parts, $messageId),
+            'rhub' => $this->handleResourcesResourceHubPage($user, $chatId, $parts, $messageId),
+            'course' => $this->handleResourcesCoursePage($user, $chatId, $parts, $messageId),
+            default => TelegramCopy::for($user)->get('menu.invalid_button'),
+        };
+    }
+
+    /**
+     * @param  list<string>  $parts
+     */
+    protected function handleResourcesTypePage(
+        User $user,
+        int|string $chatId,
+        array $parts,
+        ?int $messageId,
+    ): ?string {
+        // type:{courseId}:{type}:{page}
+        if (count($parts) < 4) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $courseId = (int) $parts[1];
+        $type = ResourceType::tryFrom($parts[2]);
+        $page = (int) $parts[3];
+
+        if ($type === null || $courseId < 1) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listResourcesByType($user, $chatId, $courseId, $type, $messageId, $page);
+
+        return null;
+    }
+
+    /**
+     * @param  list<string>  $parts
+     */
+    protected function handleResourcesGatHubPage(
+        User $user,
+        int|string $chatId,
+        array $parts,
+        ?int $messageId,
+    ): ?string {
+        // hub:{courseId}:{hub}:{page}
+        if (count($parts) < 4) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $courseId = (int) $parts[1];
+        $hub = $parts[2];
+        $page = (int) $parts[3];
+
+        if ($courseId < 1 || ! in_array($hub, $this->telegram->gatSubjectHubKeys(), true)) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listResourcesByTypes($user, $chatId, $courseId, $this->telegram->resourceTypesForGatSubjectHub($hub), $hub, $messageId, $page);
+
+        return null;
+    }
+
+    /**
+     * @param  list<string>  $parts
+     */
+    protected function handleResourcesResourceHubPage(
+        User $user,
+        int|string $chatId,
+        array $parts,
+        ?int $messageId,
+    ): ?string {
+        // rhub:{courseId}:{hub}:{page}
+        if (count($parts) < 4) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $courseId = (int) $parts[1];
+        $hub = ResourceHub::tryFrom($parts[2]);
+        $page = (int) $parts[3];
+
+        if ($hub === null || $courseId < 1) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listResources($user, $chatId, $courseId, $hub, $messageId, $page);
+
+        return null;
+    }
+
+    /**
+     * @param  list<string>  $parts
+     */
+    protected function handleResourcesCoursePage(
+        User $user,
+        int|string $chatId,
+        array $parts,
+        ?int $messageId,
+    ): ?string {
+        // course:{courseId}:{page}
+        if (count($parts) < 3) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $courseId = (int) $parts[1];
+        $page = (int) $parts[2];
+
+        if ($courseId < 1) {
+            return TelegramCopy::for($user)->get('menu.invalid_button');
+        }
+
+        $this->listResources($user, $chatId, $courseId, null, $messageId, $page);
+
+        return null;
     }
 
     /**

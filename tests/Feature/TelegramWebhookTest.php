@@ -1157,6 +1157,74 @@ it('lists quiz resources for the selected gat subject course', function () {
     });
 });
 
+it('paginates quiz resources when a gat subject has more than one page', function () {
+    $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
+    $user = User::factory()->student()->create([
+        'telegram_id' => '555306',
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_active' => true,
+    ]);
+    $user->courses()->sync([$course->id]);
+
+    foreach (range(1, 10) as $index) {
+        LearningResource::factory()->published()->quiz()->create([
+            'course_id' => $course->id,
+            'stream_id' => $course->stream_id,
+            'title' => sprintf('Quiz %02d', $index),
+        ]);
+    }
+
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555306, 'Maths', 706))
+        ->assertOk();
+    $this->postJson('/telegram/webhook', telegramMessagePayload(555306, 'Quiz', 707))
+        ->assertOk();
+
+    $nextCallback = "resources:page:type:{$course->id}:quiz:1";
+
+    Http::assertSent(function ($request) use ($course, $nextCallback) {
+        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $resourceButtons = $buttons->filter(
+            fn (array $button): bool => filled($button['web_app']['url'] ?? null)
+                || str_starts_with((string) ($button['callback_data'] ?? ''), 'open:'),
+        );
+
+        return str_contains((string) ($data['text'] ?? ''), 'Maths')
+            && str_contains((string) ($data['text'] ?? ''), '(1/2)')
+            && $resourceButtons->count() === 8
+            && $buttons->count() <= 100
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === $nextCallback
+                && ($button['text'] ?? '') === 'Next ›')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "course:{$course->id}");
+    });
+
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555306, $nextCallback, 80, 708))
+        ->assertOk();
+
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+            return false;
+        }
+
+        $data = $request->data();
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
+        $resourceButtons = $buttons->filter(
+            fn (array $button): bool => filled($button['web_app']['url'] ?? null)
+                || str_starts_with((string) ($button['callback_data'] ?? ''), 'open:'),
+        );
+
+        return str_contains((string) ($data['text'] ?? ''), '(2/2)')
+            && $resourceButtons->count() === 2
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "resources:page:type:{$course->id}:quiz:0"
+                && ($button['text'] ?? '') === '‹ Back')
+            && $buttons->count() <= 100;
+    });
+});
+
 it('opens the support telegram handle when contact us is tapped', function () {
     User::factory()->student()->create([
         'telegram_id' => '555304',

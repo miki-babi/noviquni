@@ -330,9 +330,9 @@ class TelegramService
             }
         }
 
-        // Legacy lowercase English subject hub labels.
+        // Legacy English subject hub labels (including capital Quiz from the reply keyboard).
         return match ($label) {
-            'quiz' => 'quiz',
+            'Quiz', 'quiz' => 'quiz',
             'reference books' => 'reference_books',
             'past exams' => 'past_exams',
             'Practice exams', 'practice exams' => 'practice_exams',

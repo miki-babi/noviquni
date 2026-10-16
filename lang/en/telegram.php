@@ -18,6 +18,7 @@ return [
             'past_exams' => 'Past exams',
             'back' => '← Back',
             'missing_course' => 'That course is not set up yet. Try again after we publish it.',
+            'pick_first' => 'Pick Maths, Reading/writing, or Analytical reasoning first, then choose Quiz or another type.',
         ],
         // Legacy labels kept for old reply keyboards until /start refresh.
         'courses' => '📚 Courses',
@@ -137,6 +138,8 @@ return [
         'back' => '« Back',
         'resources' => 'Resources:',
         'resources_for' => '<b>:course</b> — :type',
+        'resources_for_page' => '<b>:course</b> — :type (:page/:pages)',
+        'resources_page' => 'Resources (:page/:pages)',
         'no_resources' => 'No published resources for this course yet.',
     ],
     'profile' => [
