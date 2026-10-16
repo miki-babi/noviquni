@@ -159,7 +159,7 @@ class ManageSettings extends Page
                             ->columnSpanFull(),
                     ]),
                 Section::make('Payment bot')
-                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Contact us, Register now (blue). What you get uses the same MEMBER PRIVILEGES copy as Unlock Premium (lang premium_landing).')
+                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Reply buttons: Contact us, Register now (blue). What you get is an inline Mini App button on each student message (Premium gate).')
                     ->schema([
                         Textarea::make('payment_bot_welcome')
                             ->label('Welcome message')

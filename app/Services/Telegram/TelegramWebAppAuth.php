@@ -47,9 +47,11 @@ class TelegramWebAppAuth
      */
     public function validate(string $initData, ?string $botToken = null): array
     {
-        $botToken ??= (string) config('services.telegram.bot_token');
+        $tokens = $botToken !== null && $botToken !== ''
+            ? [$botToken]
+            : $this->candidateBotTokens();
 
-        if ($botToken === '') {
+        if ($tokens === []) {
             throw new UnexpectedValueException('Telegram bot token is not configured.');
         }
 
@@ -69,10 +71,19 @@ class TelegramWebAppAuth
             ->map(fn (mixed $value, string $key): string => $key.'='.$value)
             ->implode("\n");
 
-        $secretKey = hash_hmac('sha256', $botToken, 'WebAppData', true);
-        $calculatedHash = bin2hex(hash_hmac('sha256', $dataCheckString, $secretKey, true));
+        $matched = false;
 
-        if (! hash_equals($calculatedHash, $hash)) {
+        foreach ($tokens as $token) {
+            $secretKey = hash_hmac('sha256', $token, 'WebAppData', true);
+            $calculatedHash = bin2hex(hash_hmac('sha256', $dataCheckString, $secretKey, true));
+
+            if (hash_equals($calculatedHash, $hash)) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if (! $matched) {
             throw new UnexpectedValueException('Telegram initData signature is invalid.');
         }
 
@@ -94,6 +105,19 @@ class TelegramWebAppAuth
             'auth_date' => $authDate,
             'raw' => array_map(fn (mixed $value): string => (string) $value, $params),
         ];
+    }
+
+    /**
+     * Main study bot first, then payment bot — Mini Apps opened from either must authenticate.
+     *
+     * @return list<string>
+     */
+    protected function candidateBotTokens(): array
+    {
+        return array_values(array_unique(array_filter([
+            (string) config('services.telegram.bot_token'),
+            (string) config('services.payment_bot.token'),
+        ], fn (string $token): bool => $token !== '')));
     }
 
     public function authenticate(string $initData, ?string $botToken = null): User

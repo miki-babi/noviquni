@@ -24,25 +24,48 @@ beforeEach(function () {
     ]);
 });
 
-function paymentBotHasMainKeyboard(mixed $replyMarkup): bool
+function paymentBotEncodeMarkup(mixed $replyMarkup): string
 {
     $encoded = is_string($replyMarkup)
         ? $replyMarkup
         : json_encode($replyMarkup, JSON_UNESCAPED_SLASHES);
 
-    if ($encoded === false || $encoded === null || $encoded === '') {
+    return is_string($encoded) ? $encoded : '';
+}
+
+function paymentBotHasMainKeyboard(mixed $replyMarkup): bool
+{
+    $encoded = paymentBotEncodeMarkup($replyMarkup);
+
+    if ($encoded === '') {
         return false;
     }
 
-    return str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US)
+    return str_contains($encoded, PaymentBotTelegramService::BUTTON_CONTACT_US)
         && str_contains($encoded, PaymentBotTelegramService::BUTTON_REGISTER)
         && str_contains($encoded, '"style":"primary"')
+        && ! str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
         && ! str_contains($encoded, 'Our story')
         && ! str_contains($encoded, 'Our mission');
 }
 
-it('sends welcome with reply keyboard on start without creating a payment', function () {
+function paymentBotHasWhatYouGetWebApp(mixed $replyMarkup): bool
+{
+    $encoded = paymentBotEncodeMarkup($replyMarkup);
+
+    return $encoded !== ''
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_WHAT_YOU_GET)
+        && str_contains($encoded, 'web_app')
+        && str_contains($encoded, '/tg/premium');
+}
+
+function paymentBotRequestHasWhatYouGetWebApp($request): bool
+{
+    return str_contains($request->url(), '/sendMessage')
+        && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
+}
+
+it('sends welcome with What you get Mini App button and refreshes reply keyboard on start', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700001',
         'onboarding_step' => OnboardingStep::Complete,
@@ -73,11 +96,19 @@ it('sends welcome with reply keyboard on start without creating a payment', func
         $text = (string) ($request['text'] ?? '');
 
         return str_contains($text, 'Welcome to NoviqUni Premium payments')
-            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+            && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
+    });
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
     });
 });
 
-it('returns member privileges copy for What you get', function () {
+it('attaches What you get Mini App button when the old reply button is tapped', function () {
     $this->postJson('/telegram/payment-bot/webhook', [
         'update_id' => 10,
         'message' => [
@@ -92,18 +123,14 @@ it('returns member privileges copy for What you get', function () {
     ])->assertOk();
 
     Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
+        if (! paymentBotRequestHasWhatYouGetWebApp($request)) {
             return false;
         }
 
         $text = (string) ($request['text'] ?? '');
 
-        return str_contains($text, 'Included with Premium')
-            && str_contains($text, '2,100+ practice questions')
-            && str_contains($text, '279 quizzes &amp; practice exams')
-            && str_contains($text, 'Price: ')
-            && str_contains($text, ' ETB')
-            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+        return str_contains($text, 'What you get')
+            && str_contains($text, 'Premium benefits');
     });
 });
 
@@ -129,7 +156,7 @@ it('returns configured copy for Contact us', function () {
         }
 
         return str_contains((string) ($request['text'] ?? ''), 'Custom contact us copy')
-            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+            && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
     });
 });
 
@@ -175,7 +202,7 @@ it('creates a pending payment and sends briefing when Register now is tapped', f
         return str_contains($text, (string) $payment->external_ref)
             && str_contains($text, (string) $payment->amount)
             && str_contains($text, 'Custom register prompt for receipt photo.')
-            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+            && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
     });
 });
 
@@ -204,7 +231,7 @@ it('tells unlinked users to open the main bot when Register now is tapped', func
 
         return str_contains($text, 'main NoviqUni bot')
             && str_contains($text, 'Become Premium')
-            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+            && paymentBotHasWhatYouGetWebApp($request['reply_markup'] ?? null);
     });
 });
 

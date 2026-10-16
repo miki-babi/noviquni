@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
-use App\Support\PremiumPrivilegesMessage;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -108,6 +107,7 @@ class PaymentBotHandler
 
             if ($student->hasActivePremium()) {
                 $this->sendWithKeyboard($chatId, 'Premium is already active. You are all set.');
+                $this->refreshReplyKeyboard($chatId);
 
                 return;
             }
@@ -117,6 +117,7 @@ class PaymentBotHandler
             $chatId,
             TelegramHtml::escape($this->settings->paymentBotWelcome()),
         );
+        $this->refreshReplyKeyboard($chatId);
     }
 
     /**
@@ -125,11 +126,9 @@ class PaymentBotHandler
     protected function handleMenuButton(int|string $chatId, array $from, string $text): bool
     {
         if ($text === PaymentBotTelegramService::BUTTON_WHAT_YOU_GET) {
-            $student = $this->resolveStudent($from, null);
-
             $this->sendWithKeyboard(
                 $chatId,
-                app(PremiumPrivilegesMessage::class)->for($student, includeUnavailable: false),
+                'Tap <b>What you get</b> below to open Premium benefits.',
             );
 
             return true;
@@ -191,6 +190,16 @@ class PaymentBotHandler
     protected function sendWithKeyboard(int|string $chatId, string $text): void
     {
         $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->whatYouGetInlineKeyboard(),
+        ]);
+    }
+
+    /**
+     * Reply keyboards cannot share a message with inline buttons — refresh Contact / Register separately.
+     */
+    protected function refreshReplyKeyboard(int|string $chatId): void
+    {
+        $this->telegram->sendMessage($chatId, 'Use <b>Contact us</b> or <b>Register now</b> below when you are ready.', [
             'reply_markup' => $this->telegram->mainKeyboard(),
         ]);
     }

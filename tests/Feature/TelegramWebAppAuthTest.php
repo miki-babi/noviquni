@@ -41,3 +41,19 @@ it('rejects expired initData', function () {
 
     app(TelegramWebAppAuth::class)->validate($initData);
 })->throws(UnexpectedValueException::class);
+
+it('accepts initData signed by the payment bot token', function () {
+    config([
+        'services.telegram.bot_token' => '123456:MAIN_TOKEN',
+        'services.payment_bot.token' => '789:PAYMENT_TOKEN',
+    ]);
+
+    $initData = makeTelegramInitData([
+        'id' => 555001,
+        'first_name' => 'Abebe',
+    ], '789:PAYMENT_TOKEN');
+
+    $payload = app(TelegramWebAppAuth::class)->validate($initData);
+
+    expect($payload['user']['id'])->toBe(555001);
+});

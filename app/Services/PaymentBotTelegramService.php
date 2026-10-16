@@ -35,9 +35,6 @@ class PaymentBotTelegramService
         return [
             'keyboard' => [
                 [
-                    ['text' => self::BUTTON_WHAT_YOU_GET],
-                ],
-                [
                     ['text' => self::BUTTON_CONTACT_US],
                 ],
                 [
@@ -50,6 +47,21 @@ class PaymentBotTelegramService
             'resize_keyboard' => true,
             'is_persistent' => true,
         ];
+    }
+
+    /**
+     * Inline “What you get” opens the Premium gate Mini App.
+     *
+     * @return array{inline_keyboard: list<list<array<string, mixed>>>}
+     */
+    public function whatYouGetInlineKeyboard(): array
+    {
+        return $this->inlineKeyboard([[
+            [
+                'text' => self::BUTTON_WHAT_YOU_GET,
+                'web_app' => ['url' => app(TelegramService::class)->miniAppUrl('tg.premium')],
+            ],
+        ]]);
     }
 
     /**
