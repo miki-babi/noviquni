@@ -61,7 +61,6 @@ class ManageSettings extends Page
             'payment_instructions' => $settings->paymentInstructions(),
             'payment_bot_username' => $settings->paymentBotUsername() ?? '',
             'payment_bot_welcome' => $settings->paymentBotWelcome(),
-            'payment_bot_what_you_get' => $settings->paymentBotWhatYouGet(),
             'payment_bot_contact_us' => $settings->paymentBotContactUs(),
             'payment_bot_register_prompt' => $settings->paymentBotRegisterPrompt(),
             'telegram_contact_us' => $settings->telegramContactUs(),
@@ -160,18 +159,13 @@ class ManageSettings extends Page
                             ->columnSpanFull(),
                     ]),
                 Section::make('Payment bot')
-                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Contact us, Register now (blue).')
+                    ->description('Reply-keyboard answers and registration copy for the Premium payment Telegram bot. Button labels are fixed: What you get, Contact us, Register now (blue). What you get uses the same MEMBER PRIVILEGES copy as Unlock Premium (lang premium_landing).')
                     ->schema([
                         Textarea::make('payment_bot_welcome')
                             ->label('Welcome message')
                             ->rows(4)
                             ->required()
                             ->helperText('Sent on /start with the reply keyboard.')
-                            ->columnSpanFull(),
-                        Textarea::make('payment_bot_what_you_get')
-                            ->label('What you get')
-                            ->rows(5)
-                            ->required()
                             ->columnSpanFull(),
                         Textarea::make('payment_bot_contact_us')
                             ->label('Contact us')
@@ -292,7 +286,6 @@ class ManageSettings extends Page
             ltrim(trim((string) ($data['payment_bot_username'] ?? '')), '@'),
         );
         $settings->set(SettingsService::PAYMENT_BOT_WELCOME, (string) ($data['payment_bot_welcome'] ?? ''));
-        $settings->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, (string) ($data['payment_bot_what_you_get'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_CONTACT_US, (string) ($data['payment_bot_contact_us'] ?? ''));
         $settings->set(SettingsService::PAYMENT_BOT_REGISTER_PROMPT, (string) ($data['payment_bot_register_prompt'] ?? ''));
         $settings->set(SettingsService::TELEGRAM_CONTACT_US, (string) ($data['telegram_contact_us'] ?? ''));

@@ -22,6 +22,7 @@ use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Models\Year;
 use App\Support\LearningResourceFiles;
+use App\Support\PremiumPrivilegesMessage;
 use App\Support\TelegramCopy;
 use App\Support\TelegramHtml;
 use Illuminate\Database\Eloquent\Builder;
@@ -2976,43 +2977,7 @@ class TelegramBotHandler
 
     protected function premiumPrivilegesMessage(User $user): string
     {
-        $copy = TelegramCopy::for($user);
-        $price = $this->settings->premiumPrice();
-        $lines = [
-            '<b>'.TelegramHtml::escape($copy->get('premium_landing.title')).'</b>',
-            TelegramHtml::escape($copy->get('premium_landing.subtitle')),
-            '',
-        ];
-
-        foreach ($this->premiumPrivilegeFeatures() as [$titleKey, $bodyKey]) {
-            $lines[] = '• <b>'.TelegramHtml::escape($copy->get('premium_landing.'.$titleKey)).'</b> — '
-                .TelegramHtml::escape($copy->get('premium_landing.'.$bodyKey));
-        }
-
-        $lines[] = '';
-        $lines[] = "Price: {$price} ETB";
-
-        if ($this->settings->paymentBotUrl($user) === null) {
-            $lines[] = '';
-            $lines[] = TelegramHtml::escape($copy->get('premium_landing.unavailable'));
-        }
-
-        return implode("\n", $lines);
-    }
-
-    /**
-     * @return list<array{0: string, 1: string}>
-     */
-    protected function premiumPrivilegeFeatures(): array
-    {
-        return [
-            ['feature_questions_title', 'feature_questions_body'],
-            ['feature_quizzes_title', 'feature_quizzes_body'],
-            ['feature_short_title', 'feature_short_body'],
-            ['feature_exams_title', 'feature_exams_body'],
-            ['feature_checked_title', 'feature_checked_body'],
-            ['feature_fresh_title', 'feature_fresh_body'],
-        ];
+        return app(PremiumPrivilegesMessage::class)->for($user, includeUnavailable: true);
     }
 
     /**

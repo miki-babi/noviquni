@@ -77,10 +77,7 @@ it('sends welcome with reply keyboard on start without creating a payment', func
     });
 });
 
-it('returns configured copy for each info button', function (string $button, string $needle) {
-    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_WHAT_YOU_GET, 'Custom what you get copy');
-    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_CONTACT_US, 'Custom contact us copy');
-
+it('returns member privileges copy for What you get', function () {
     $this->postJson('/telegram/payment-bot/webhook', [
         'update_id' => 10,
         'message' => [
@@ -90,22 +87,51 @@ it('returns configured copy for each info button', function (string $button, str
                 'first_name' => 'Guest',
             ],
             'chat' => ['id' => 700010],
-            'text' => $button,
+            'text' => PaymentBotTelegramService::BUTTON_WHAT_YOU_GET,
         ],
     ])->assertOk();
 
-    Http::assertSent(function ($request) use ($needle) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        return str_contains((string) ($request['text'] ?? ''), $needle)
+        $text = (string) ($request['text'] ?? '');
+
+        return str_contains($text, 'Included with Premium')
+            && str_contains($text, '2,100+ practice questions')
+            && str_contains($text, '279 quizzes &amp; practice exams')
+            && str_contains($text, 'Price: ')
+            && str_contains($text, ' ETB')
             && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
     });
-})->with([
-    'what you get' => [PaymentBotTelegramService::BUTTON_WHAT_YOU_GET, 'Custom what you get copy'],
-    'contact us' => [PaymentBotTelegramService::BUTTON_CONTACT_US, 'Custom contact us copy'],
-]);
+});
+
+it('returns configured copy for Contact us', function () {
+    app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_CONTACT_US, 'Custom contact us copy');
+
+    $this->postJson('/telegram/payment-bot/webhook', [
+        'update_id' => 11,
+        'message' => [
+            'message_id' => 21,
+            'from' => [
+                'id' => 700019,
+                'first_name' => 'Guest',
+            ],
+            'chat' => ['id' => 700019],
+            'text' => PaymentBotTelegramService::BUTTON_CONTACT_US,
+        ],
+    ])->assertOk();
+
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        return str_contains((string) ($request['text'] ?? ''), 'Custom contact us copy')
+            && paymentBotHasMainKeyboard($request['reply_markup'] ?? null);
+    });
+});
 
 it('creates a pending payment and sends briefing when Register now is tapped', function () {
     $student = User::factory()->student()->create([

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
+use App\Support\PremiumPrivilegesMessage;
 use App\Support\TelegramHtml;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -123,14 +124,22 @@ class PaymentBotHandler
      */
     protected function handleMenuButton(int|string $chatId, array $from, string $text): bool
     {
-        $answer = match ($text) {
-            PaymentBotTelegramService::BUTTON_WHAT_YOU_GET => $this->settings->paymentBotWhatYouGet(),
-            PaymentBotTelegramService::BUTTON_CONTACT_US => $this->settings->paymentBotContactUs(),
-            default => null,
-        };
+        if ($text === PaymentBotTelegramService::BUTTON_WHAT_YOU_GET) {
+            $student = $this->resolveStudent($from, null);
 
-        if ($answer !== null) {
-            $this->sendWithKeyboard($chatId, TelegramHtml::escape($answer));
+            $this->sendWithKeyboard(
+                $chatId,
+                app(PremiumPrivilegesMessage::class)->for($student, includeUnavailable: false),
+            );
+
+            return true;
+        }
+
+        if ($text === PaymentBotTelegramService::BUTTON_CONTACT_US) {
+            $this->sendWithKeyboard(
+                $chatId,
+                TelegramHtml::escape($this->settings->paymentBotContactUs()),
+            );
 
             return true;
         }
