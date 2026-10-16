@@ -74,10 +74,13 @@ function paymentBotHasPaymentCardInlineKeyboard(mixed $replyMarkup): bool
     }
 
     return str_contains($encoded, PaymentBotTelegramService::BUTTON_SEND_SCREENSHOT)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_CBE)
         && str_contains($encoded, PaymentBotTelegramService::BUTTON_TELEBIRR)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_BACK_TO_PACKAGES)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_ABOUT_PREMIUM)
         && str_contains($encoded, 'pay:screenshot')
+        && str_contains($encoded, 'pay:cbe')
         && str_contains($encoded, 'pay:telebirr')
+        && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_CBE.'","callback_data":"pay:cbe","style":"success"')
         && str_contains($encoded, 'web_app')
         && str_contains($encoded, '/tg/premium');
 }
@@ -92,9 +95,12 @@ function paymentBotHasTelebirrCardInlineKeyboard(mixed $replyMarkup): bool
 
     return str_contains($encoded, PaymentBotTelegramService::BUTTON_SEND_SCREENSHOT)
         && str_contains($encoded, PaymentBotTelegramService::BUTTON_CBE)
-        && str_contains($encoded, PaymentBotTelegramService::BUTTON_BACK_TO_PACKAGES)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_TELEBIRR)
+        && str_contains($encoded, PaymentBotTelegramService::BUTTON_ABOUT_PREMIUM)
         && str_contains($encoded, 'pay:screenshot')
         && str_contains($encoded, 'pay:cbe')
+        && str_contains($encoded, 'pay:telebirr')
+        && str_contains($encoded, '"text":"'.PaymentBotTelegramService::BUTTON_TELEBIRR.'","callback_data":"pay:telebirr","style":"success"')
         && str_contains($encoded, 'web_app')
         && str_contains($encoded, '/tg/premium');
 }

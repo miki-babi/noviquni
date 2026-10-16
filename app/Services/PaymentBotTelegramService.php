@@ -18,7 +18,7 @@ class PaymentBotTelegramService
 
     public const BUTTON_CBE = 'CBE';
 
-    public const BUTTON_BACK_TO_PACKAGES = '← Back to Packages';
+    public const BUTTON_ABOUT_PREMIUM = 'About Premium';
 
     public function api(): TelegramBotApi
     {
@@ -90,13 +90,18 @@ class PaymentBotTelegramService
             ],
             [
                 [
+                    'text' => self::BUTTON_CBE,
+                    'callback_data' => 'pay:cbe',
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+                [
                     'text' => self::BUTTON_TELEBIRR,
                     'callback_data' => 'pay:telebirr',
                 ],
             ],
             [
                 [
-                    'text' => self::BUTTON_BACK_TO_PACKAGES,
+                    'text' => self::BUTTON_ABOUT_PREMIUM,
                     'web_app' => ['url' => $premiumMiniAppUrl],
                 ],
             ],
@@ -124,10 +129,15 @@ class PaymentBotTelegramService
                     'text' => self::BUTTON_CBE,
                     'callback_data' => 'pay:cbe',
                 ],
+                [
+                    'text' => self::BUTTON_TELEBIRR,
+                    'callback_data' => 'pay:telebirr',
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
             ],
             [
                 [
-                    'text' => self::BUTTON_BACK_TO_PACKAGES,
+                    'text' => self::BUTTON_ABOUT_PREMIUM,
                     'web_app' => ['url' => $premiumMiniAppUrl],
                 ],
             ],
