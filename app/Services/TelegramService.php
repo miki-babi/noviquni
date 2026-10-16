@@ -181,43 +181,49 @@ class TelegramService
     {
         $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
 
-        return [
-            'keyboard' => [
-                ...$this->dailyChallengePriorityRows($copy, $user),
+        $keyboard = [
+            ...$this->dailyChallengePriorityRows($copy, $user),
+            [
                 [
-                    [
-                        'text' => $copy->get('keyboard.maths'),
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.reading_writing'),
-                    ],
+                    'text' => $copy->get('keyboard.maths'),
                 ],
                 [
-                    [
-                        'text' => $copy->get('keyboard.analytical_reasoning'),
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.saved'),
-                        'style' => TelegramButtonStyle::Primary->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.premium'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.contact'),
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.refer'),
-                    ],
+                    'text' => $copy->get('keyboard.reading_writing'),
                 ],
             ],
+            [
+                [
+                    'text' => $copy->get('keyboard.analytical_reasoning'),
+                ],
+            ],
+            [
+                [
+                    'text' => $copy->get('keyboard.saved'),
+                    'style' => TelegramButtonStyle::Primary->value,
+                ],
+            ],
+        ];
+
+        if ($user === null || ! $user->hasActivePremium()) {
+            $keyboard[] = [
+                [
+                    'text' => $copy->get('keyboard.premium'),
+                    'style' => TelegramButtonStyle::Success->value,
+                ],
+            ];
+        }
+
+        $keyboard[] = [
+            [
+                'text' => $copy->get('keyboard.contact'),
+            ],
+            [
+                'text' => $copy->get('keyboard.refer'),
+            ],
+        ];
+
+        return [
+            'keyboard' => $keyboard,
             'resize_keyboard' => true,
         ];
     }

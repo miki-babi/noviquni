@@ -54,6 +54,25 @@ it('builds the GAT main keyboard for all students', function () {
         ->and(data_get($keyboard, 'keyboard.5.1.style'))->toBeNull();
 });
 
+it('hides the unlock premium row for premium students', function () {
+    $user = User::factory()->student()->create([
+        'onboarding_step' => OnboardingStep::Complete,
+        'is_premium' => true,
+    ]);
+
+    $keyboard = app(TelegramService::class)->mainKeyboard($user);
+
+    $buttonTexts = collect(data_get($keyboard, 'keyboard'))->flatten(1)->pluck('text');
+
+    expect($buttonTexts)->not->toContain('Unlock premium')
+        ->and(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Daily challenge')
+        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('Maths')
+        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('Analytical reasoning')
+        ->and(data_get($keyboard, 'keyboard.3.0.text'))->toBe('🔖 Quick saved')
+        ->and(data_get($keyboard, 'keyboard.4.0.text'))->toBe('Contact us')
+        ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('Refer');
+});
+
 it('builds the GAT subject reply keyboard', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
