@@ -1869,7 +1869,7 @@ class TelegramBotHandler
             ->get()
             ->keyBy('file_id');
 
-        $disk = Storage::disk(config('filesystems.default'));
+        $disk = Storage::disk(LearningResourceFiles::diskName());
 
         foreach ($telegramEntries as $telegramFile) {
             $fileId = $telegramFile['file_id'] ?? null;

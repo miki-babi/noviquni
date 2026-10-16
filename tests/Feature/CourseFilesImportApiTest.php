@@ -23,7 +23,7 @@ beforeEach(function () {
         'services.import.api_token' => 'test-import-token',
         'services.telegram.bot_token' => 'test-token',
         'app.url' => 'https://noviquni.test',
-        'filesystems.default' => 'local',
+        'filesystems.disks.public.url' => 'https://noviquni.test/storage',
     ]);
 });
 
@@ -38,7 +38,7 @@ it('rejects course file api calls without a valid token', function () {
 });
 
 it('uploads a course file into the learning-resources library path', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
 
@@ -57,19 +57,23 @@ it('uploads a course file into the learning-resources library path', function ()
         ->assertJsonPath('course', 'maths');
 
     $path = $response->json('path');
+    $url = (string) $response->json('url');
 
     expect($path)->toStartWith('learning-resources/'.$course->id.'/')
-        ->and(Storage::disk('local')->exists($path))->toBeTrue();
+        ->and(Storage::disk('public')->exists($path))->toBeTrue()
+        ->and($url)->toContain('/storage/')
+        ->and($url)->toContain($path);
 
     $courseFile = CourseFile::query()->findOrFail($response->json('id'));
 
     expect($courseFile->external_id)->toBe('tg-unique-1')
         ->and($courseFile->telegram_file_id)->toBe('BQAC-file-1')
-        ->and($courseFile->is_published)->toBeTrue();
+        ->and($courseFile->is_published)->toBeTrue()
+        ->and($courseFile->disk)->toBe('public');
 });
 
 it('returns the existing course file when external_id already exists', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
     $existing = CourseFile::factory()->create([
@@ -77,7 +81,7 @@ it('returns the existing course file when external_id already exists', function 
         'title' => 'Existing',
         'external_id' => 'tg-dup-1',
         'path' => LearningResourceFiles::directoryForCourse($course->id).'/existing.pdf',
-        'disk' => 'local',
+        'disk' => 'public',
         'size' => 10,
     ]);
 
@@ -96,7 +100,7 @@ it('returns the existing course file when external_id already exists', function 
 });
 
 it('rejects invalid course slugs and unsupported file types', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
 
@@ -120,7 +124,7 @@ it('rejects invalid course slugs and unsupported file types', function () {
 });
 
 it('accepts zip and plain text course file uploads', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
 
@@ -207,16 +211,16 @@ it('lists telegram files and filters unmigrated ones', function () {
 });
 
 it('patches telegram file migration links without changing file_id', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/migrated.pdf';
-    Storage::disk('local')->put($path, 'pdf-bytes');
+    Storage::disk('public')->put($path, 'pdf-bytes');
 
     $courseFile = CourseFile::factory()->create([
         'course_id' => $course->id,
         'path' => $path,
-        'disk' => 'local',
+        'disk' => 'public',
     ]);
 
     $asset = TelegramFileAsset::factory()->create([
@@ -239,11 +243,11 @@ it('patches telegram file migration links without changing file_id', function ()
 });
 
 it('prefers stored_path disk for pdf attachments from telegram files', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     $course = Course::factory()->create();
     $path = LearningResourceFiles::directoryForCourse($course->id).'/vault.pdf';
-    Storage::disk('local')->put($path, '%PDF-1.4');
+    Storage::disk('public')->put($path, '%PDF-1.4');
 
     $asset = TelegramFileAsset::factory()->create([
         'file_id' => 'PDF-FILE-ID',
@@ -267,7 +271,7 @@ it('prefers stored_path disk for pdf attachments from telegram files', function 
 });
 
 it('sends migrated telegram resources from disk instead of telegram file_id', function () {
-    Storage::fake('local');
+    Storage::fake('public');
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/sendDocument' => Http::response(['ok' => true, 'result' => ['message_id' => 101]], 200),
@@ -278,7 +282,7 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
     $stream = Stream::factory()->create();
     $course = Course::factory()->create(['stream_id' => $stream->id]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/notes.docx';
-    Storage::disk('local')->put($path, 'doc-bytes');
+    Storage::disk('public')->put($path, 'doc-bytes');
 
     $asset = TelegramFileAsset::factory()->create([
         'file_id' => 'DOC-FILE-ID',
@@ -336,18 +340,18 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
 });
 
 it('shows api-uploaded course files on the filament manage page', function () {
-    Storage::fake('local');
+    Storage::fake('public');
 
     $admin = User::factory()->admin()->create();
     $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/api-file.pdf';
-    Storage::disk('local')->put($path, 'pdf');
+    Storage::disk('public')->put($path, 'pdf');
 
     CourseFile::factory()->create([
         'course_id' => $course->id,
         'title' => 'API uploaded handbook',
         'path' => $path,
-        'disk' => 'local',
+        'disk' => 'public',
         'size' => 3,
     ]);
 

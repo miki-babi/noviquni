@@ -16,7 +16,7 @@ use Livewire\Livewire;
 uses(RefreshDatabase::class);
 
 it('creates a learning resource from a single uploaded file', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -68,7 +68,7 @@ it('creates a learning resource from a single uploaded file', function () {
 });
 
 it('creates a learning resource from multiple uploaded files', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -122,7 +122,7 @@ it('creates a learning resource from multiple uploaded files', function () {
 });
 
 it('creates a learning resource from an existing course library file', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -165,7 +165,7 @@ it('creates a learning resource from an existing course library file', function 
 });
 
 it('batch uploads study files into a course library', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -194,7 +194,7 @@ it('batch uploads study files into a course library', function () {
 });
 
 it('lists uploaded files for the selected course', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();

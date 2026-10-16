@@ -54,7 +54,7 @@ it('prefills telegram vault files from telegram_file_ids query', function () {
 });
 
 it('prefills course library files from existing_files query', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -84,7 +84,7 @@ it('prefills course library files from existing_files query', function () {
 });
 
 it('keeps prefilled study files when course is re-hydrated to the same value', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
@@ -110,7 +110,7 @@ it('keeps prefilled study files when course is re-hydrated to the same value', f
 });
 
 it('clears library study files when the course changes', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();

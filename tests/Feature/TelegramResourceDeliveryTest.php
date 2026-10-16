@@ -9,6 +9,7 @@ use App\Models\LearningResource;
 use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Support\LearningResourceFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -228,7 +229,7 @@ it('opens premium mini app resources for free students so they can see the paywa
 });
 
 it('opens pdf resources with a mini app player button instead of sending the document', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $relativePath = 'learnings/week-1-notes.pdf';

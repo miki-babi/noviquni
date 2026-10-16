@@ -8,6 +8,7 @@ use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Services\SettingsService;
+use App\Support\LearningResourceFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -516,7 +517,7 @@ it('opens telegram vault pdfs with a mini app player button', function () {
 });
 
 it('still sends non-pdf disk files as telegram documents', function () {
-    $disk = config('filesystems.default');
+    $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
 
     $relativePath = 'learnings/fallback-notes.docx';

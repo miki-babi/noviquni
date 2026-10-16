@@ -47,7 +47,7 @@ class LearningResourceFiles
 
     public static function diskName(): string
     {
-        return (string) config('filesystems.default');
+        return 'public';
     }
 
     /**
