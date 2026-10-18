@@ -1427,19 +1427,8 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
     $this->postJson('/telegram/webhook', telegramMessagePayload(555040, '🔖 Quick saved', 540))
         ->assertOk();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-        $keyboard = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1);
-
-        return str_contains((string) ($data['text'] ?? ''), 'Choose a Quick saved category')
-            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Resources')
-            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Scholarships')
-            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === '← Back');
-    });
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendMessage')
+        && data_get($request->data(), 'reply_markup.keyboard') !== null);
 
     Http::assertSent(function ($request) use ($older, $newer) {
         if (! str_contains($request->url(), '/sendMessage')) {
@@ -1450,7 +1439,7 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
         $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
         $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/1)')
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
             && data_get($rows, '0.0.web_app.url') === route('tg.play.reference-books', $newer)
             && data_get($rows, '0.0.style') === 'success'
             && data_get($rows, '1.0.web_app.url') === route('tg.play.reference-books', $older)
@@ -1503,14 +1492,14 @@ it('paginates quick saved with next and back callbacks', function () {
         $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
         $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (1/2)')
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/2)')
             && $rows->count() === 6
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:1'
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:1'
                 && ($button['text'] ?? '') === 'Next ›')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:0');
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:0');
     });
 
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:resources:1', 99, 542))
+    $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:1', 99, 542))
         ->assertOk();
 
     Http::assertSent(function ($request) {
@@ -1521,10 +1510,10 @@ it('paginates quick saved with next and back callbacks', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources (2/2)')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:resources:0'
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (2/2)')
+            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:0'
                 && ($button['text'] ?? '') === '‹ Back')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:resources:1');
+            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:1');
     });
 });
 

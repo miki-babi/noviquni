@@ -406,10 +406,24 @@ it('rejects a payment and notifies the student', function () {
     expect($payment->fresh()->status)->toBe(PaymentStatus::Rejected)
         ->and($student->fresh()->hasActivePremium())->toBeFalse();
 
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/sendMessage')
-            && ($request['chat_id'] ?? null) == '700004'
-            && str_contains((string) ($request['text'] ?? ''), 'not approved');
+    Http::assertSent(function ($request) use ($payment) {
+        if (! str_contains($request->url(), '/sendMessage')) {
+            return false;
+        }
+
+        if (($request['chat_id'] ?? null) != '700004') {
+            return false;
+        }
+
+        $text = (string) ($request['text'] ?? '');
+        $keyboard = $request['reply_markup']['inline_keyboard'] ?? [];
+
+        return str_contains($text, 'not approved')
+            && str_contains($text, 'PAY-REJECT1')
+            && data_get($keyboard, '0.0.text') === 'Try again'
+            && data_get($keyboard, '0.0.callback_data') === 'pay:retry:'.$payment->id
+            && data_get($keyboard, '1.0.text') === 'Contact us'
+            && str_starts_with((string) data_get($keyboard, '1.0.url'), 'https://t.me/mikiyas_sh');
     });
 });
 

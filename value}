@@ -1,1 +1,0 @@
- PARSE ERROR PHP Parse error: Syntax error, unexpected '-', expecting '[' or T_OBJECT_OPERATOR or T_NULLSAFE_OBJECT_OPERATOR in C:\Users\mikiy\Herd\noviquni\vendor\psy\psysh\src\Exception\ParseErrorException.php on line 44.

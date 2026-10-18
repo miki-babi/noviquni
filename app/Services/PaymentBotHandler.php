@@ -195,16 +195,64 @@ class PaymentBotHandler
 
     protected function sendPaymentBriefing(int|string $chatId, User $student): void
     {
-        $this->payments->createOrReusePendingPaymentBotPayment($student);
+        $payment = $this->payments->createOrReusePendingPaymentBotPayment($student);
 
+        $this->sendPaymentCard($chatId, $payment, null);
+    }
+
+    protected function handleRetryPayment(int|string $chatId, int $paymentId): void
+    {
+        $payment = Payment::query()->find($paymentId);
+
+        if ($payment === null || $payment->provider !== Payment::PROVIDER_PAYMENT_BOT) {
+            $this->telegram->sendMessage($chatId, 'Payment not found. Please start again.');
+
+            return;
+        }
+
+        $this->sendPaymentCard($chatId, $payment, null);
+    }
+
+    protected function sendPaymentCard(int|string $chatId, Payment $payment, ?int $messageId): void
+    {
         $text = '<b>CBE</b>'
             ."\n\n👤 <b>Account Number:</b> <code>".self::PAYMENT_CARD_ACCOUNT_NUMBER.'</code>'
             ."\n👤 <b>Name:</b> ".TelegramHtml::escape(self::PAYMENT_CARD_ACCOUNT_NAME)
             ."\n💰 <b>Amount:</b> ".self::PAYMENT_CARD_AMOUNT.' '.self::PAYMENT_CARD_CURRENCY
             ."\n\n📎 ከፈሉ በስልኩ screenshot ይላኩ";
 
+        if ($messageId !== null) {
+            $this->telegram->editMessageText($chatId, $messageId, $text, [
+                'reply_markup' => $this->telegram->paymentCardInlineKeyboard(),
+            ]);
+
+            return;
+        }
+
         $this->telegram->sendMessage($chatId, $text, [
             'reply_markup' => $this->telegram->paymentCardInlineKeyboard(),
+        ]);
+    }
+
+    protected function sendPaymentRejectedMessage(int|string $chatId, Payment $payment): void
+    {
+        $text = 'Your payment screenshot was not approved. Send a clearer receipt or contact support with reference '
+            .TelegramHtml::escape((string) $payment->external_ref).'.';
+
+        $handle = self::CONTACT_TELEGRAM_HANDLE;
+
+        $this->telegram->sendMessage($chatId, $text, [
+            'reply_markup' => $this->telegram->inlineKeyboard([
+                [[
+                    'text' => 'Try again',
+                    'callback_data' => 'pay:retry:'.$payment->id,
+                    'style' => TelegramButtonStyle::Primary->value,
+                ]],
+                [[
+                    'text' => 'Contact us',
+                    'url' => 'https://t.me/'.$handle,
+                ]],
+            ]),
         ]);
     }
 
@@ -388,6 +436,13 @@ class PaymentBotHandler
             return;
         }
 
+        if (preg_match('/^pay:retry:(\d+)$/', $data, $retryMatches)) {
+            $this->telegram->answerCallbackQuery($callbackId);
+            $this->handleRetryPayment($chatId, (int) $retryMatches[1]);
+
+            return;
+        }
+
         if (! $this->fileAdmins->isAdmin($from['username'] ?? null)) {
             $this->telegram->answerCallbackQuery($callbackId, 'Not authorized.', true);
 
@@ -480,11 +535,7 @@ class PaymentBotHandler
         }
 
         if ($payment->user?->telegram_id) {
-            $this->sendWithKeyboard(
-                $payment->user->telegram_id,
-                'Your payment screenshot was not approved. Send a clearer receipt or contact support with reference '
-                .TelegramHtml::escape((string) $payment->external_ref).'.',
-            );
+            $this->sendPaymentRejectedMessage($payment->user->telegram_id, $payment);
         }
     }
 

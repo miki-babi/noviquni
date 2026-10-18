@@ -171,18 +171,8 @@ it('isolates quick saved tabs by bookmarkable type', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555202, '🔖 Quick saved', 204))
         ->assertOk();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $data = $request->data();
-        $keyboard = collect(data_get($data, 'reply_markup.keyboard', []))->flatten(1);
-
-        return str_contains((string) ($data['text'] ?? ''), 'Choose a Quick saved category')
-            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Resources')
-            && $keyboard->contains(fn (array $button) => ($button['text'] ?? '') === 'Scholarships');
-    });
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendMessage')
+        && data_get($request->data(), 'reply_markup.keyboard') !== null);
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
@@ -192,10 +182,10 @@ it('isolates quick saved tabs by bookmarkable type', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Resources')
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Notes Only')
-            && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Scholarship Only')
-            && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Job Only');
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Scholarship Only')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Job Only');
     });
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555202, 'Scholarships', 205))
@@ -209,10 +199,10 @@ it('isolates quick saved tabs by bookmarkable type', function () {
         $data = $request->data();
         $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved — Scholarships')
+        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Notes Only')
             && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Scholarship Only')
-            && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Notes Only')
-            && $buttons->every(fn (array $button) => ($button['text'] ?? '') !== 'Saved Job Only');
+            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Job Only');
     });
 });
 

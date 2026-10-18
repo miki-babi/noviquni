@@ -452,32 +452,6 @@ class TelegramService
         return '📚 '.$type->label();
     }
 
-    /**
-     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
-     */
-    public function savedKeyboard(User $user): array
-    {
-        $copy = TelegramCopy::for($user);
-
-        $rows = collect($this->savedTabKeys())
-            ->map(fn (string $tab): array => [
-                'text' => $this->savedTabKeyboardLabel($copy, $tab),
-                'style' => TelegramButtonStyle::Primary->value,
-            ])
-            ->chunk(2)
-            ->map(fn ($row): array => $row->values()->all())
-            ->all();
-
-        $rows[] = [[
-            'text' => $this->courseKeyboardBackLabel(),
-        ]];
-
-        return [
-            'keyboard' => $rows,
-            'resize_keyboard' => true,
-        ];
-    }
-
     public function savedTabForKeyboardLabel(User $user, string $label): ?string
     {
         $copy = TelegramCopy::for($user);
