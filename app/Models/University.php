@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'name',
@@ -45,6 +46,11 @@ class University extends Model
     public function learningResources(): HasMany
     {
         return $this->hasMany(LearningResource::class);
+    }
+
+    public function downloads(): HasManyThrough
+    {
+        return $this->hasManyThrough(ResourceDownload::class, LearningResource::class);
     }
 
     /**

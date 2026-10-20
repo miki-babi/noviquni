@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
     'stream_id',
@@ -57,6 +58,11 @@ class Course extends Model
     public function courseFiles(): HasMany
     {
         return $this->hasMany(CourseFile::class);
+    }
+
+    public function downloads(): HasManyThrough
+    {
+        return $this->hasManyThrough(ResourceDownload::class, LearningResource::class);
     }
 
     public function studyPlans(): HasMany

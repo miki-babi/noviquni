@@ -17,6 +17,7 @@ it('allows super admins to open system pages', function (string $path) {
     'settings' => '/admin/manage-settings',
     'activity logs' => '/admin/view-activity-logs',
     'artisan' => '/admin/run-artisan-commands',
+    'study insights' => '/admin/study-insights',
 ]);
 
 it('hides system pages from staff without the super admin role', function (string $path) {
@@ -38,4 +39,5 @@ it('hides system pages from staff without the super admin role', function (strin
     'settings' => '/admin/manage-settings',
     'activity logs' => '/admin/view-activity-logs',
     'artisan' => '/admin/run-artisan-commands',
+    'study insights' => '/admin/study-insights',
 ]);
