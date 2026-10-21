@@ -75,6 +75,22 @@ class ArtisanCommandRunner
                 'command' => 'storage:link',
                 'parameters' => [],
             ],
+            'daily:challenge' => [
+                'command' => 'daily:challenge',
+                'parameters' => [],
+            ],
+            'daily:challenge --force' => [
+                'command' => 'daily:challenge',
+                'parameters' => ['--force' => true],
+            ],
+            'daily:challenge-remind' => [
+                'command' => 'daily:challenge-remind',
+                'parameters' => [],
+            ],
+            'broadcasts:process-pending' => [
+                'command' => 'broadcasts:process-pending',
+                'parameters' => [],
+            ],
         ];
     }
 

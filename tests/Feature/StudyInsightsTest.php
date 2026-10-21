@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\UserRole;
-use App\Filament\Pages\StudyInsights;
 use App\Filament\Widgets\MostActiveStudentsTable;
 use App\Filament\Widgets\OpensByStreamChart;
 use App\Filament\Widgets\OpensByTypeChart;
@@ -77,7 +76,7 @@ it('aggregates opens per course and per student', function () {
 
     Livewire::test(TopStudiedCoursesTable::class)
         ->assertCanSeeTableRecords([$course])
-        ->assertTableColumnValueSet('downloads_count', 1, $course);
+        ->assertTableColumnStateSet('downloads_count', 1, $course);
 
     Livewire::test(MostActiveStudentsTable::class)
         ->assertCanSeeTableRecords([$student]);
