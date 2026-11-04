@@ -53,16 +53,13 @@ it('handles text reply inline callbacks like typed menu text', function () {
 
         $data = $request->data();
         $text = (string) ($data['text'] ?? '');
-        $payButton = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
-        $keyboard = data_get($data, 'reply_markup.inline_keyboard', []);
+        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains($text, 'Walk into the GAT ready.')
+        return str_contains($text, 'Included with Premium')
             && ! str_contains($text, 'Referrals:')
-            && ($payButton['url'] ?? null) === 'https://t.me/noviquni_pay_bot?start=u'.$user->id
-            && ($payButton['text'] ?? null) === 'Become Premium'
-            && ! array_key_exists('web_app', $payButton)
-            && count($keyboard) === 1
-            && ! str_contains(json_encode($data['reply_markup'] ?? []), 'tg.premium');
+            && $buttons->contains(fn (array $button) => ($button['url'] ?? null) === 'https://t.me/noviquni_pay_bot?start=u'.$user->id
+                && ($button['text'] ?? null) === 'Become Premium')
+            && $buttons->contains(fn (array $button) => str_contains((string) ($button['web_app']['url'] ?? ''), '/tg/premium'));
     });
 
     Http::assertNotSent(function ($request) {

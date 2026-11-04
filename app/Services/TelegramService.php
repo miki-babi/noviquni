@@ -3,12 +3,9 @@
 namespace App\Services;
 
 use App\Enums\OnboardingStep;
-use App\Enums\ResourceType;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserEventName;
 use App\Enums\UserRole;
-use App\Models\Course;
-use App\Models\LearningResource;
 use App\Models\User;
 use App\Support\TelegramCopy;
 use Illuminate\Support\Facades\Context;
@@ -229,47 +226,6 @@ class TelegramService
     }
 
     /**
-     * Subject hub reply keyboard after tapping maths, reading/writing, or Analytical reasoning.
-     *
-     * @return array{keyboard: array<int, array<int, array<string, mixed>>>, resize_keyboard: true}
-     */
-    public function gatSubjectKeyboard(?User $user = null): array
-    {
-        $copy = $user !== null ? TelegramCopy::for($user) : new TelegramCopy;
-
-        return [
-            'keyboard' => [
-                [
-                    [
-                        'text' => $copy->get('keyboard.subject.practice_exams'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.subject.quiz'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.subject.reference_books'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                    [
-                        'text' => $copy->get('keyboard.subject.past_exams'),
-                        'style' => TelegramButtonStyle::Success->value,
-                    ],
-                ],
-                [
-                    [
-                        'text' => $copy->get('keyboard.subject.back'),
-                    ],
-                ],
-            ],
-            'resize_keyboard' => true,
-        ];
-    }
-
-    /**
      * Daily Challenge stays on top until completed today; then it is removed.
      * Continue studying only appears when the student has opened a study resource.
      *
@@ -319,178 +275,6 @@ class TelegramService
     }
 
     /**
-     * @return list<string>
-     */
-    public function gatSubjectHubKeys(): array
-    {
-        return ['practice_exams', 'quiz', 'reference_books', 'past_exams'];
-    }
-
-    public function gatSubjectHubForKeyboardLabel(User $user, string $label): ?string
-    {
-        $copy = TelegramCopy::for($user);
-
-        foreach ($this->gatSubjectHubKeys() as $key) {
-            if ($copy->get('keyboard.subject.'.$key) === $label) {
-                return $key;
-            }
-        }
-
-        // Legacy English subject hub labels (including capital Quiz from the reply keyboard).
-        return match ($label) {
-            'Quiz', 'quiz' => 'quiz',
-            'reference books' => 'reference_books',
-            'past exams' => 'past_exams',
-            'Practice exams', 'practice exams' => 'practice_exams',
-            default => null,
-        };
-    }
-
-    /**
-     * @return list<ResourceType>
-     */
-    public function resourceTypesForGatSubjectHub(string $hub): array
-    {
-        return match ($hub) {
-            'practice_exams' => [ResourceType::PracticeExams],
-            'quiz' => [ResourceType::Quiz],
-            'reference_books' => [ResourceType::ReferenceBooks],
-            'past_exams' => [ResourceType::PastExams],
-            default => [],
-        };
-    }
-
-    /**
-     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
-     */
-    public function courseKeyboard(User $user, ?ResourceType $resourceType = null): array
-    {
-        $courses = $user->courses()
-            ->active()
-            ->when(
-                $resourceType !== null,
-                fn ($query) => $query->whereHas(
-                    'learningResources',
-                    fn ($resourceQuery) => $resourceQuery->published()->where('type', $resourceType->value),
-                ),
-            )
-            ->orderBy('courses.name')
-            ->get();
-
-        $rows = $courses
-            ->map(fn (Course $course): array => [
-                'text' => $this->courseKeyboardLabel($course),
-                'style' => TelegramButtonStyle::Primary->value,
-            ])
-            ->chunk(2)
-            ->map(fn ($row): array => $row->values()->all())
-            ->all();
-
-        $rows[] = [[
-            'text' => $this->courseKeyboardBackLabel(),
-        ]];
-
-        return [
-            'keyboard' => $rows,
-            'resize_keyboard' => true,
-        ];
-    }
-
-    public function courseKeyboardLabel(Course $course): string
-    {
-        return '📗 '.$course->name;
-    }
-
-    public function courseKeyboardBackLabel(): string
-    {
-        return '← Back';
-    }
-
-    /**
-     * @return array{keyboard: array<int, array<int, array<string, string>>>, resize_keyboard: true}
-     */
-    public function resourceTypeKeyboard(User $user): array
-    {
-        $rows = collect(ResourceType::creatableCases())
-            ->filter(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type))
-            ->values()
-            ->map(function (ResourceType $type, int $index): array {
-                $style = match (true) {
-                    $type === ResourceType::ReferenceBooks => TelegramButtonStyle::Danger,
-                    $index % 2 === 0 => TelegramButtonStyle::Success,
-                    default => TelegramButtonStyle::Primary,
-                };
-
-                return [
-                    'text' => $this->resourceTypeKeyboardLabel($type),
-                    'style' => $style->value,
-                ];
-            })
-            ->chunk(2)
-            ->map(fn ($row): array => $row->values()->all())
-            ->all();
-
-        $rows[] = [[
-            'text' => $this->courseKeyboardBackLabel(),
-        ]];
-
-        return [
-            'keyboard' => $rows,
-            'resize_keyboard' => true,
-        ];
-    }
-
-    public function resourceTypeForKeyboardLabel(User $user, string $label): ?ResourceType
-    {
-        return collect(ResourceType::creatableCases())
-            ->first(fn (ResourceType $type): bool => $this->userHasResourcesForType($user, $type)
-                && $this->resourceTypeKeyboardLabel($type) === $label);
-    }
-
-    public function resourceTypeKeyboardLabel(ResourceType $type): string
-    {
-        return '📚 '.$type->label();
-    }
-
-    public function savedTabForKeyboardLabel(User $user, string $label): ?string
-    {
-        $copy = TelegramCopy::for($user);
-
-        return collect($this->savedTabKeys())
-            ->first(fn (string $tab): bool => $this->savedTabKeyboardLabel($copy, $tab) === $label);
-    }
-
-    public function savedTabKeyboardLabel(TelegramCopy $copy, string $tab): string
-    {
-        return match ($tab) {
-            'resources' => $copy->get('saved.tab_resources'),
-            'scholarships' => $copy->get('saved.tab_scholarships'),
-            'internships' => $copy->get('saved.tab_internships'),
-            'jobs' => $copy->get('saved.tab_jobs'),
-            'mentorship' => $copy->get('saved.tab_mentorship'),
-            default => $copy->get('saved.tab_resources'),
-        };
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function savedTabKeys(): array
-    {
-        return ['resources', 'scholarships', 'internships', 'jobs', 'mentorship'];
-    }
-
-    protected function userHasResourcesForType(User $user, ResourceType $type): bool
-    {
-        return LearningResource::query()
-            ->published()
-            ->whereIn('course_id', $user->courses()->active()->select('courses.id'))
-            ->where('type', $type->value)
-            ->orderBy('sort_order')
-            ->exists();
-    }
-
-    /**
      * Optional web_app menu button (left next to the attachment icon).
      */
     public function setChatMenuButtonWebApp(string $text, string $url): ?array
@@ -500,18 +284,6 @@ class TelegramService
                 'type' => 'web_app',
                 'text' => $text,
                 'web_app' => ['url' => $url],
-            ],
-        ]);
-    }
-
-    /**
-     * Reset the bot menu button to Telegram's default commands menu (no Courses web app).
-     */
-    public function syncDefaultMiniAppMenuButton(?User $user = null): void
-    {
-        $this->call('setChatMenuButton', [
-            'menu_button' => [
-                'type' => 'commands',
             ],
         ]);
     }

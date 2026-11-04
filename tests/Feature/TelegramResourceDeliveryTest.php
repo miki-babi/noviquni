@@ -94,19 +94,15 @@ it('lists generated quiz resources as direct mini app buttons', function () {
     ])->assertOk();
 
     Http::assertSent(function ($request) use ($resource) {
-        if (! str_contains($request->url(), '/editMessageText')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $button = data_get($data, 'reply_markup.inline_keyboard.0.0', []);
 
-        return ($button['text'] ?? null) === 'Anthropology Quiz'
-            && ($button['style'] ?? null) === 'success'
-            && ($button['web_app']['url'] ?? null) === route('tg.play.quiz', $resource)
-            && ! array_key_exists('callback_data', $button)
-            && str_contains((string) ($data['text'] ?? ''), (string) $resource->course?->name)
-            && str_contains((string) ($data['text'] ?? ''), 'Quiz');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Resources in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url')
+                === route('tg.courses.hub', ['course' => $resource->course, 'hub' => 'quiz']);
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));

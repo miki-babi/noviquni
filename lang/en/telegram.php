@@ -39,7 +39,6 @@ return [
         'premium_legacy' => '⭐ Premium',
     ],
     'mini_app' => [
-        'use_bot' => 'Use the Telegram menu to continue. Opening study content only opens the player.',
         'open_prompt' => [
             'courses' => 'Open Courses in the study app:',
             'resources' => 'Open Resources in the study app:',
@@ -51,6 +50,7 @@ return [
             'maths' => 'Open Maths in the study app:',
             'reading_writing' => 'Open Reading/Writing in the study app:',
             'analytical_reasoning' => 'Open Analytical reasoning in the study app:',
+            'opportunity' => 'Open this opportunity in the study app:',
         ],
         'open_button' => [
             'courses' => '📚 Open Courses',
@@ -63,6 +63,7 @@ return [
             'maths' => '🧮 Open Maths',
             'reading_writing' => '📖 Open Reading/Writing',
             'analytical_reasoning' => '🧠 Open Analytical reasoning',
+            'opportunity' => '🌍 Open opportunity',
         ],
     ],
     'start' => [

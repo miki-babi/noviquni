@@ -73,24 +73,6 @@ it('hides the unlock premium row for premium students', function () {
         ->and(data_get($keyboard, 'keyboard.4.1.text'))->toBe('Refer');
 });
 
-it('builds the GAT subject reply keyboard', function () {
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-    ]);
-
-    $keyboard = app(TelegramService::class)->gatSubjectKeyboard($user);
-
-    expect(data_get($keyboard, 'keyboard.0.0.text'))->toBe('Practice exams')
-        ->and(data_get($keyboard, 'keyboard.0.1.text'))->toBe('Quiz')
-        ->and(data_get($keyboard, 'keyboard.1.0.text'))->toBe('Reference books')
-        ->and(data_get($keyboard, 'keyboard.1.1.text'))->toBe('Past exams')
-        ->and(data_get($keyboard, 'keyboard.2.0.text'))->toBe('← Back')
-        ->and(collect(data_get($keyboard, 'keyboard'))->flatten(1)->pluck('text'))
-        ->not->toContain('Daily challenge')
-        ->not->toContain('Continue studying')
-        ->and(data_get($keyboard, 'resize_keyboard'))->toBeTrue();
-});
-
 it('shows the bootstrap page for guests on mini app routes', function () {
     $this->get(route('tg.browse'))
         ->assertOk()
@@ -128,11 +110,9 @@ it('shows browse courses for an authenticated student', function () {
     $this->actingAs($user)
         ->get(route('tg.browse'))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue')
-        ->assertDontSee('data-tg-tabbar', false)
-        ->assertDontSee('data-tg-menu-button', false)
-        ->assertDontSee('Physics')
-        ->assertDontSee('My courses');
+        ->assertSee('Physics')
+        ->assertSee(route('tg.courses.show', $course), false)
+        ->assertDontSee('Use the Telegram menu to continue');
 });
 
 it('defaults the mini app to light mode', function () {
@@ -169,7 +149,7 @@ it('persists theme preference and renders light class on profile edit', function
         ->assertDontSee('data-tg-tabbar', false);
 });
 
-it('sends hub routes to the bot-only mini app page', function () {
+it('renders the mini app hub pages for students', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -178,20 +158,18 @@ it('sends hub routes to the bot-only mini app page', function () {
     $this->actingAs($user)
         ->get(route('tg.library'))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue');
+        ->assertSee('Resources');
 
     $this->actingAs($user)
         ->get(route('tg.home'))
-        ->assertOk()
-        ->assertSee('Use the Telegram menu to continue');
+        ->assertRedirect(route('tg.browse'));
 
     $this->actingAs($user)
         ->get(route('tg.profile'))
-        ->assertOk()
-        ->assertSee('Use the Telegram menu to continue');
+        ->assertOk();
 });
 
-it('routes the profile hub page to the bot-only screen', function () {
+it('shows the student profile page in the mini app', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
@@ -202,8 +180,8 @@ it('routes the profile hub page to the bot-only screen', function () {
     $this->actingAs($user)
         ->get(route('tg.profile'))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue')
-        ->assertDontSee('ABEBE KEBEDE');
+        ->assertSee('ABEBE KEBEDE')
+        ->assertSee('@abebe');
 });
 
 it('shows the premium landing page with gat marketing copy', function () {
@@ -385,7 +363,7 @@ it('hides department and course pickers for GAT students on the study profile', 
         ->assertSee('Save changes');
 });
 
-it('clears the Courses mini app menu button when the reply keyboard is sent', function () {
+it('sets the Courses mini app menu button when the reply keyboard is sent', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
@@ -406,15 +384,14 @@ it('clears the Courses mini app menu button when the reply keyboard is sent', fu
 
         $button = data_get($request->data(), 'menu_button');
 
-        return data_get($button, 'type') === 'commands'
-            && data_get($button, 'text') !== 'Courses'
-            && data_get($button, 'web_app') === null;
+        return data_get($button, 'type') === 'web_app'
+            && data_get($button, 'text') === 'Courses'
+            && filled(data_get($button, 'web_app.url'));
     });
 
     Http::assertNotSent(function ($request) {
         return str_contains($request->url(), '/setChatMenuButton')
-            && data_get($request->data(), 'menu_button.type') === 'web_app'
-            && data_get($request->data(), 'menu_button.text') === 'Courses';
+            && data_get($request->data(), 'menu_button.type') === 'commands';
     });
 });
 
@@ -454,7 +431,7 @@ it('lets non-freshman students update department without attaching courses', fun
         ->and($user->courses()->count())->toBe(0);
 });
 
-it('sends course hub mini app routes back to the bot menu', function () {
+it('renders course pages inside the mini app', function () {
     $stream = Stream::factory()->create();
     $course = Course::factory()->create([
         'stream_id' => $stream->id,
@@ -471,12 +448,12 @@ it('sends course hub mini app routes back to the bot menu', function () {
     $this->actingAs($user)
         ->get(route('tg.courses.show', $course))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue', false);
+        ->assertSee('Chemistry');
 
     $this->actingAs($user)
         ->get(route('tg.courses.hub', ['course' => $course, 'hub' => 'reference_books']))
         ->assertOk()
-        ->assertSee('Use the Telegram menu to continue', false);
+        ->assertSee('Reference books');
 });
 
 it('authenticates a telegram user from initData and redirects', function () {

@@ -38,7 +38,6 @@ return [
         'premium_legacy' => '⭐ ፕሪሚየም',
     ],
     'mini_app' => [
-        'use_bot' => 'ለመቀጠል የቴሌግራም ምናሌውን ይጠቀሙ። የጥናት ይዘት ሲከፈት ማጫወቻው ብቻ ይታያል።',
         'open_prompt' => [
             'courses' => 'ኮርሶችን በጥናት መተግበሪያ ይክፈቱ፦',
             'resources' => 'መርጃዎችን በጥናት መተግበሪያ ይክፈቱ፦',
@@ -50,6 +49,7 @@ return [
             'maths' => 'ሂሳብን በጥናት መተግበሪያ ይክፈቱ፦',
             'reading_writing' => 'ንባብ/ጽሁፍን በጥናት መተግበሪያ ይክፈቱ፦',
             'analytical_reasoning' => 'አመክንዮአዊ ትንተናን በጥናት መተግበሪያ ይክፈቱ፦',
+            'opportunity' => 'ይህንን እድል በጥናት መተግበሪያ ይክፈቱ፦',
         ],
         'open_button' => [
             'courses' => '📚 ኮርሶች ክፈት',
@@ -62,6 +62,7 @@ return [
             'maths' => '🧮 ሂሳብ ክፈት',
             'reading_writing' => '📖 ንባብ/ጽሁፍ ክፈት',
             'analytical_reasoning' => '🧠 አመክንዮአዊ ትንተና ክፈት',
+            'opportunity' => '🌍 እድሉን ክፈት',
         ],
     ],
     'start' => [

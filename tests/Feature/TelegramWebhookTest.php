@@ -214,10 +214,9 @@ it('shows enrolled courses in a reply keyboard when Courses is tapped', function
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Physics'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back'
-            && data_get($data, 'reply_markup.inline_keyboard') === null;
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📚 Open Courses';
     });
 });
 
@@ -282,21 +281,10 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.keyboard', []))
-            ->flatten(1)
-            ->keyBy('text');
 
-        $references = $buttons->get('📚 Reference books');
-        $quiz = $buttons->get('📚 Quiz');
-        $back = $buttons->get('← Back');
-
-        return str_contains((string) ($data['text'] ?? ''), 'Resources across your courses')
-            && $references !== null
-            && $quiz !== null
-            && $back !== null
-            && ($references['style'] ?? null) === 'danger'
-            && ($quiz['style'] ?? null) === 'success'
-            && ! array_key_exists('style', $back);
+        return str_contains((string) ($data['text'] ?? ''), 'Open Resources in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📖 Open Resources';
     });
 });
 
@@ -319,13 +307,11 @@ it('shows courses with the selected resource type in a reply keyboard', function
     $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Reference books'))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
+    Http::assertSent(function ($request) {
         $data = $request->data();
 
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) ($data['text'] ?? ''), 'Choose a course for Reference books')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 '.$course->name
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+            && str_contains((string) ($data['text'] ?? ''), 'Choose an option from the menu');
     });
 });
 
@@ -352,26 +338,16 @@ it('sends the file directly when a course has one file-backed resource of the se
     $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📚 Reference books', 600))->assertOk();
     $this->postJson('/telegram/webhook', telegramMessagePayload(555028, '📗 Physics', 601))->assertOk();
 
-    Http::assertSent(function ($request) use ($resource) {
-        if (! str_contains($request->url(), '/sendDocument')) {
-            return false;
-        }
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
 
-        $data = $request->data();
-
-        return ($data['document'] ?? null) === 'BQACAgQAAxkBAAI-direct-notes'
-            && ($data['caption'] ?? null) === $resource->title;
-    });
-
-    Http::assertNotSent(function ($request) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Reference books for Physics in the study app')
-            || filled(data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url'));
+        return str_contains((string) ($data['text'] ?? ''), 'Choose an option from the menu');
     });
 });
 
@@ -408,17 +384,14 @@ it('lists resources inline when a course has multiple resources of the selected 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📚 Reference books', 602))->assertOk();
     $this->postJson('/telegram/webhook', telegramMessagePayload(555029, '📗 Chemistry', 603))->assertOk();
 
-    Http::assertSent(function ($request) use ($course, $first, $second) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.callback_data') === 'open_resource:'.$first->id
-            && data_get($data, 'reply_markup.inline_keyboard.1.0.callback_data') === 'open_resource:'.$second->id
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app') === null;
+        return str_contains((string) ($data['text'] ?? ''), 'Choose an option from the menu');
     });
 
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
@@ -441,7 +414,8 @@ it('shows course setup for the legacy Browse label when no courses are enrolled'
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -470,9 +444,8 @@ it('shows coming soon browse state without counts when enrolled but empty', func
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Your courses — tap one to study')
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Mathematics'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -506,24 +479,14 @@ it('shows course resource types after course tap', function () {
         ->assertOk();
 
     Http::assertSent(function ($request) use ($course) {
-        if (! str_contains($request->url(), '/editMessageText')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        $refBooksButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:reference_books:{$course->id}");
-        $quizButton = $buttons->first(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:quiz:{$course->id}");
-
-        return str_contains((string) ($data['text'] ?? ''), 'Physics')
-            && str_contains((string) ($data['text'] ?? ''), 'choose a type')
-            && is_array($refBooksButton)
-            && ($refBooksButton['text'] ?? null) === 'Reference books'
-            && is_array($quizButton)
-            && ($quizButton['text'] ?? null) === 'Quiz'
-            && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype_soon:'))
-            && $buttons->every(fn (array $button) => ($button['web_app']['url'] ?? null) !== route('tg.courses.show', $course));
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -545,18 +508,15 @@ it('shows course coming soon when no published resource types exist', function (
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555035, "course:{$course->id}", 31, 4031))
         ->assertOk();
 
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/editMessageText')) {
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Physics')
-            && str_contains((string) ($data['text'] ?? ''), 'coming soon')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'notify:on')
-            && $buttons->every(fn (array $button) => ! str_starts_with((string) ($button['callback_data'] ?? ''), 'rtype:'));
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -585,7 +545,7 @@ it('shows continue resume card when a prior download exists', function () {
     $this->postJson('/telegram/webhook', telegramMessagePayload(555024, '📚 Continue', 404))
         ->assertOk();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($resource) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
@@ -595,8 +555,8 @@ it('shows continue resume card when a prior download exists', function () {
 
         return str_contains((string) ($data['text'] ?? ''), 'Pick up where you left off')
             && str_contains((string) ($data['text'] ?? ''), 'Mathematics')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'continue:resume')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'continue:switch');
+            && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.resources.show', $resource))
+            && $buttons->contains(fn (array $button) => ($button['web_app']['url'] ?? null) === route('tg.browse'));
     });
 });
 
@@ -617,9 +577,9 @@ it('shows profile submenu with notifications refer and settings', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'Open Profile to set your university')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Edit study profile';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Profile in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '👤 Open Profile';
     });
 });
 
@@ -711,8 +671,8 @@ it('still routes the legacy My Courses label to the course reply keyboard', func
 
         $data = $request->data();
 
-        return data_get($data, 'reply_markup.keyboard.0.0.text') === '📗 Chemistry'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === '← Back';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -852,13 +812,9 @@ it('uses editMessageText for back to courses navigation', function () {
         ->assertOk();
 
     Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/editMessageText')
-            && str_contains((string) data_get($request->data(), 'text'), 'Your courses — tap one to study');
-    });
-
-    Http::assertNotSent(function ($request) {
         return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) data_get($request->data(), 'text'), 'Your courses — tap one to study');
+            && str_contains((string) data_get($request->data(), 'text'), 'Open Courses in the study app:')
+            && data_get($request->data(), 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -914,11 +870,9 @@ it('opens a bait course path from /start bait', function () {
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Chemistry')
-            && str_contains((string) ($data['text'] ?? ''), 'choose a type')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "rtype:reference_books:{$course->id}");
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -978,14 +932,15 @@ it('opens a course from /start course deep link', function () {
 
     expect($user->fresh()->courses()->where('courses.id', $course->id)->exists())->toBeTrue();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($course) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        $text = (string) data_get($request->data(), 'text');
+        $data = $request->data();
 
-        return str_contains($text, 'English') && str_contains($text, 'choose a type');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -1006,8 +961,8 @@ it('opens a mini app button when continue studying is tapped', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), 'No courses yet')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Courses in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse');
     });
 });
 
@@ -1034,12 +989,9 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams'
-            && data_get($data, 'reply_markup.keyboard.0.1.text') === 'Quiz'
-            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Reference books'
-            && data_get($data, 'reply_markup.keyboard.1.1.text') === 'Past exams'
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === '← Back';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Maths in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course)
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🧮 Open Maths';
     });
 });
 
@@ -1061,7 +1013,7 @@ it('tells the student when reading/writing is tapped without a matching course',
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'That course is not set up yet')
-            && data_get($data, 'reply_markup.keyboard.2.0.text') === 'Maths';
+            && data_get($data, 'reply_markup.keyboard.1.0.text') === 'Maths';
     });
 });
 
@@ -1089,8 +1041,8 @@ it('opens reading/writing when the course uses Reading and writing naming', func
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Reading/Writing in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -1118,8 +1070,8 @@ it('opens Analytical reasoning when the matching course exists', function () {
 
         $data = $request->data();
 
-        return str_contains((string) ($data['text'] ?? ''), $course->name)
-            && data_get($data, 'reply_markup.keyboard.0.0.text') === 'Practice exams';
+        return str_contains((string) ($data['text'] ?? ''), 'Open Analytical reasoning in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 });
 
@@ -1144,16 +1096,13 @@ it('lists quiz resources for the selected gat subject course', function () {
         ->assertOk();
 
     Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $text = (string) ($data['text'] ?? '');
 
-        return str_contains($text, 'Algebra quiz')
-            || data_get($data, 'reply_markup.inline_keyboard.0.0.text') === 'Algebra quiz'
-            || str_contains((string) data_get($data, 'reply_markup.inline_keyboard.0.0.text'), 'Algebra quiz');
+        return str_contains((string) ($data['text'] ?? ''), 'Choose an option from the menu');
     });
 });
 
@@ -1181,47 +1130,29 @@ it('paginates quiz resources when a gat subject has more than one page', functio
 
     $nextCallback = "resources:page:type:{$course->id}:quiz:1";
 
-    Http::assertSent(function ($request) use ($course, $nextCallback) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+    Http::assertSent(function ($request) use ($course) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
-        $resourceButtons = $buttons->filter(
-            fn (array $button): bool => filled($button['web_app']['url'] ?? null)
-                || str_starts_with((string) ($button['callback_data'] ?? ''), 'open:'),
-        );
 
-        return str_contains((string) ($data['text'] ?? ''), 'Maths')
-            && str_contains((string) ($data['text'] ?? ''), '(1/2)')
-            && $resourceButtons->count() === 8
-            && $buttons->count() <= 100
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === $nextCallback
-                && ($button['text'] ?? '') === 'Next ›')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "course:{$course->id}");
+        return str_contains((string) ($data['text'] ?? ''), 'Open Maths in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.courses.show', $course);
     });
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555306, $nextCallback, 80, 708))
         ->assertOk();
 
-    Http::assertSent(function ($request) use ($course) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
+    Http::assertSent(function ($request) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
-        $resourceButtons = $buttons->filter(
-            fn (array $button): bool => filled($button['web_app']['url'] ?? null)
-                || str_starts_with((string) ($button['callback_data'] ?? ''), 'open:'),
-        );
 
-        return str_contains((string) ($data['text'] ?? ''), '(2/2)')
-            && $resourceButtons->count() === 2
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === "resources:page:type:{$course->id}:quiz:0"
-                && ($button['text'] ?? '') === '‹ Back')
-            && $buttons->count() <= 100;
+        return str_contains((string) ($data['text'] ?? ''), 'Open Resources in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.library');
     });
 });
 
@@ -1430,24 +1361,16 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
     Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendMessage')
         && data_get($request->data(), 'reply_markup.keyboard') !== null);
 
-    Http::assertSent(function ($request) use ($older, $newer) {
+    Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
-        $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
-            && data_get($rows, '0.0.web_app.url') === route('tg.play.reference-books', $newer)
-            && data_get($rows, '0.0.style') === 'success'
-            && data_get($rows, '1.0.web_app.url') === route('tg.play.reference-books', $older)
-            && data_get($rows, '1.0.style') === 'success'
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Newer worksheet')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Older notes')
-            && $buttons->every(fn (array $button) => ! isset($button['callback_data'])
-                || str_starts_with((string) $button['callback_data'], 'saved:page:'));
+        return str_contains((string) ($data['text'] ?? ''), 'Open Quick saved in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.saved')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🔖 Open Quick saved';
     });
 });
 
@@ -1489,31 +1412,23 @@ it('paginates quick saved with next and back callbacks', function () {
         }
 
         $data = $request->data();
-        $rows = collect(data_get($data, 'reply_markup.inline_keyboard', []));
-        $buttons = $rows->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/2)')
-            && $rows->count() === 6
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:1'
-                && ($button['text'] ?? '') === 'Next ›')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:0');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Quick saved in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.saved');
     });
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555041, 'saved:page:1', 99, 542))
         ->assertOk();
 
     Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/editMessageText')) {
+        if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (2/2)')
-            && $buttons->contains(fn (array $button) => ($button['callback_data'] ?? '') === 'saved:page:0'
-                && ($button['text'] ?? '') === '‹ Back')
-            && $buttons->every(fn (array $button) => ($button['callback_data'] ?? '') !== 'saved:page:1');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Quick saved in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.saved');
     });
 });
 

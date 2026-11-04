@@ -180,12 +180,9 @@ it('isolates quick saved tabs by bookmarkable type', function () {
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Notes Only')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Scholarship Only')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Job Only');
+        return str_contains((string) ($data['text'] ?? ''), 'Open Quick saved in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.saved');
     });
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555202, 'Scholarships', 205))
@@ -196,13 +193,7 @@ it('isolates quick saved tabs by bookmarkable type', function () {
             return false;
         }
 
-        $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
-
-        return str_contains((string) ($data['text'] ?? ''), 'Quick saved (1/1)')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Notes Only')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Scholarship Only')
-            && $buttons->contains(fn (array $button) => ($button['text'] ?? '') === 'Saved Job Only');
+        return str_contains((string) data_get($request->data(), 'text'), 'Choose an option from the menu');
     });
 });
 
@@ -796,21 +787,20 @@ it('attributes a referral and opens opportunity detail for a new user via share 
     $newUser = User::query()->where('telegram_id', '555401')->first();
 
     expect($newUser)->not->toBeNull()
-        ->and($newUser->onboarding_step)->not->toBe(OnboardingStep::Complete)
+        ->and($newUser->onboarding_step)->toBe(OnboardingStep::Complete)
         ->and($newUser->referred_by_user_id)->toBe($referrer->id);
 
     expect(Referral::query()->where('referrer_id', $referrer->id)->where('referred_id', $newUser->id)->exists())->toBeTrue();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($opportunity) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
         $data = $request->data();
-        $buttons = collect(data_get($data, 'reply_markup.inline_keyboard', []))->flatten(1);
 
-        return str_contains((string) ($data['text'] ?? ''), 'Shared Internship Detail')
-            && $buttons->contains(fn (array $button) => str_starts_with((string) ($button['callback_data'] ?? ''), 'save:opp:'));
+        return str_contains((string) ($data['text'] ?? ''), 'Open this opportunity in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.opportunities.show', $opportunity);
     });
 });
 
@@ -882,12 +872,15 @@ it('does not attribute a referral when an existing user opens an opportunity sha
     expect($existing->fresh()->referred_by_user_id)->toBeNull();
     expect(Referral::query()->where('referred_id', $existing->id)->exists())->toBeFalse();
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($opportunity) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        return str_contains((string) data_get($request->data(), 'text'), 'Existing User Shared Scholarship');
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Open this opportunity in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.opportunities.show', $opportunity);
     });
 });
 
@@ -926,12 +919,15 @@ it('opens a shared opportunity for a complete user without overwriting an existi
 
     expect($user->fresh()->referred_by_user_id)->toBe($originalReferrer->id);
 
-    Http::assertSent(function ($request) {
+    Http::assertSent(function ($request) use ($opportunity) {
         if (! str_contains($request->url(), '/sendMessage')) {
             return false;
         }
 
-        return str_contains((string) data_get($request->data(), 'text'), 'Complete User Shared Mentorship');
+        $data = $request->data();
+
+        return str_contains((string) ($data['text'] ?? ''), 'Open this opportunity in the study app:')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.opportunities.show', $opportunity);
     });
 });
 
