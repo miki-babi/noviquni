@@ -36,28 +36,32 @@ class DatabaseSeeder extends Seeder
         );
 
         foreach (['Semester 1', 'Semester 2'] as $index => $name) {
-            Semester::query()->create([
-                'name' => $name,
-                'sort_order' => $index + 1,
-            ]);
+            Semester::query()->updateOrCreate(
+                ['name' => $name],
+                ['sort_order' => $index + 1],
+            );
         }
 
         foreach (['Mathematics', 'Physics', 'Chemistry', 'English'] as $name) {
-            Course::query()->create([
-                'stream_id' => $natural->id,
-                'name' => $name,
-                'slug' => Str::slug($name),
-                'is_active' => true,
-            ]);
+            Course::query()->updateOrCreate(
+                ['slug' => Str::slug($name)],
+                [
+                    'stream_id' => $natural->id,
+                    'name' => $name,
+                    'is_active' => true,
+                ],
+            );
         }
 
         foreach (['History', 'Geography', 'Civics', 'English'] as $name) {
-            Course::query()->create([
-                'stream_id' => $social->id,
-                'name' => $name,
-                'slug' => Str::slug($name).($name === 'English' ? '-social' : ''),
-                'is_active' => true,
-            ]);
+            Course::query()->updateOrCreate(
+                ['slug' => Str::slug($name).($name === 'English' ? '-social' : '')],
+                [
+                    'stream_id' => $social->id,
+                    'name' => $name,
+                    'is_active' => true,
+                ],
+            );
         }
     }
 }
