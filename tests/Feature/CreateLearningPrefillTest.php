@@ -2,7 +2,6 @@
 
 use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Models\Course;
-use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Support\LearningResourceFiles;
@@ -15,8 +14,7 @@ uses(RefreshDatabase::class);
 
 it('prefills course from course_id query', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $this->actingAs($admin);
 
@@ -58,8 +56,7 @@ it('prefills course library files from existing_files query', function () {
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/week-1-notes.pdf';
 
     Storage::disk($disk)->put($path, 'notes');
@@ -88,8 +85,7 @@ it('keeps prefilled study files when course is re-hydrated to the same value', f
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/slides.pdf';
 
     Storage::disk($disk)->put($path, 'slides');
@@ -114,9 +110,8 @@ it('clears library study files when the course changes', function () {
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
-    $otherCourse = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
+    $otherCourse = Course::factory()->create([]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/slides.pdf';
 
     Storage::disk($disk)->put($path, 'slides');

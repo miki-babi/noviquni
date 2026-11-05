@@ -14,7 +14,7 @@ class CourseController extends PublicController
     {
         $courses = Course::query()
             ->active()
-            ->with('stream')
+            ->with('course')
             ->withCount([
                 'learningResources as published_resources_count' => fn ($query) => $query->published(),
             ])
@@ -48,12 +48,10 @@ class CourseController extends PublicController
     {
         abort_unless($course->is_active, 404);
 
-        $course->load('stream');
-
         $resources = LearningResource::query()
             ->published()
             ->whereBelongsTo($course)
-            ->with(['university', 'stream'])
+            ->with(['course'])
             ->orderByDesc('id')
             ->get();
 

@@ -4,9 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Filament\Concerns\RequiresSuperAdmin;
 use App\Filament\Widgets\MostActiveStudentsTable;
-use App\Filament\Widgets\OpensByStreamChart;
 use App\Filament\Widgets\OpensByTypeChart;
-use App\Filament\Widgets\OpensByUniversityChart;
 use App\Filament\Widgets\OpensTrendChart;
 use App\Filament\Widgets\StudyInsightsStats;
 use App\Filament\Widgets\TopStudiedCoursesTable;
@@ -56,8 +54,6 @@ class StudyInsights extends Page
         return [
             OpensTrendChart::class,
             OpensByTypeChart::class,
-            OpensByStreamChart::class,
-            OpensByUniversityChart::class,
             TopStudiedResourcesTable::class,
             TopStudiedCoursesTable::class,
             MostActiveStudentsTable::class,

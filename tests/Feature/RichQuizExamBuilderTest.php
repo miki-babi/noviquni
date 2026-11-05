@@ -7,7 +7,6 @@ use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\College\TelegramResourceFormatter;
 use App\Services\SettingsService;
@@ -30,7 +29,7 @@ beforeEach(function () {
 it('persists rich quiz questions and generation kind from the learning create form', function () {
     $admin = User::factory()->admin()->create();
     $course = Course::factory()->create([
-        'stream_id' => null,
+
     ]);
 
     $this->actingAs($admin);
@@ -126,7 +125,7 @@ it('persists tip tap images on exam questions choices and explanations and rende
     Storage::fake('public');
 
     $admin = User::factory()->admin()->create();
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
 
     $questionPath = StudyRichText::attachmentsDirectory($course->id).'/question.png';
     $choicePath = StudyRichText::attachmentsDirectory($course->id).'/choice.png';
@@ -198,12 +197,11 @@ it('persists tip tap images on exam questions choices and explanations and rende
 
 it('updates practice exam content from the rich questions builder', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $resource = LearningResource::factory()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Editable rich exam',
     ]);
 
@@ -245,18 +243,17 @@ it('updates practice exam content from the rich questions builder', function () 
 });
 
 it('renders rich html in the quiz player and keeps legacy plain text playable', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $richQuiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Rich HTML quiz',
         'content' => [
             'kind' => CollegeResourceKind::Quiz->value,
@@ -278,7 +275,7 @@ it('renders rich html in the quiz player and keeps legacy plain text playable', 
 
     $legacyQuiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Legacy plain quiz',
     ]);
 
@@ -340,7 +337,7 @@ it('allows editing a quiz that already has tip tap images without tampered path 
     Storage::fake('public');
 
     $admin = User::factory()->admin()->create();
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
 
     $questionPath = StudyRichText::attachmentsDirectory($course->id).'/question.png';
     $choicePath = StudyRichText::attachmentsDirectory($course->id).'/choice.png';
@@ -350,7 +347,7 @@ it('allows editing a quiz that already has tip tap images without tampered path 
 
     $resource = LearningResource::factory()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => null,
+
         'title' => 'Quiz with diagrams',
         'slug' => 'quiz-with-diagrams',
         'content' => [

@@ -25,9 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'description',
     'topics',
     'type',
-    'stream_id',
     'course_id',
-    'university_id',
     'semester_id',
     'module_id',
     'sort_order',
@@ -58,19 +56,9 @@ class LearningResource extends Model
         'sort_order' => 0,
     ];
 
-    public function stream(): BelongsTo
-    {
-        return $this->belongsTo(Stream::class);
-    }
-
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
-    }
-
-    public function university(): BelongsTo
-    {
-        return $this->belongsTo(University::class);
     }
 
     public function semester(): BelongsTo

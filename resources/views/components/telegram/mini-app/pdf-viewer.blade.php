@@ -62,12 +62,6 @@
                 tg.expand();
             } catch (e) {}
 
-            if (typeof tg.requestFullscreen === 'function') {
-                try {
-                    tg.requestFullscreen();
-                } catch (e) {}
-            }
-
             // Allow portrait <-> landscape while reading PDFs.
             if (typeof tg.unlockOrientation === 'function') {
                 try {

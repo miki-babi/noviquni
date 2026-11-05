@@ -8,8 +8,6 @@ use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
 use App\Models\Semester;
-use App\Models\Stream;
-use App\Models\University;
 use App\Models\User;
 use App\Services\OnboardingService;
 use App\Services\ReferralService;
@@ -30,7 +28,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
-        $user->load(['stream', 'university', 'semester', 'courses', 'years']);
+        $user->load(['semester', 'courses', 'years']);
 
         $bookmarks = $user->bookmarks()
             ->with(['bookmarkable' => function (MorphTo $morphTo) {
@@ -70,12 +68,9 @@ class ProfileController extends Controller
         $copy = TelegramCopy::for($user);
         $user->load(['courses', 'years']);
 
-        $streams = Stream::query()->active()->orderBy('name')->get();
-        $universities = University::query()->active()->orderBy('sort_order')->orderBy('name')->get();
         $semesters = Semester::query()->orderBy('sort_order')->orderBy('name')->get();
         $courses = Course::query()
             ->active()
-            ->whereIn('stream_id', $streams->pluck('id'))
             ->orderBy('name')
             ->get();
 
@@ -88,8 +83,6 @@ class ProfileController extends Controller
         return view('telegram.mini-app.profile-edit', [
             'copy' => $copy,
             'user' => $user,
-            'streams' => $streams,
-            'universities' => $universities,
             'semesters' => $semesters,
             'courses' => $courses,
             'selectedCourseIds' => $selectedCourseIds,
@@ -108,11 +101,6 @@ class ProfileController extends Controller
 
         if ($user->is_gat) {
             $validated = $request->validate([
-                'university_id' => [
-                    'nullable',
-                    'integer',
-                    Rule::exists('universities', 'id')->where(fn ($query) => $query->where('is_active', true)),
-                ],
                 'semester_id' => [
                     'nullable',
                     'integer',
@@ -121,7 +109,6 @@ class ProfileController extends Controller
             ]);
 
             $user->update([
-                'university_id' => isset($validated['university_id']) ? (int) $validated['university_id'] : null,
                 'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
             ]);
 
@@ -135,11 +122,6 @@ class ProfileController extends Controller
         if (! $user->isFreshman()) {
             $validated = $request->validate([
                 'department_name' => ['required', 'string', 'max:255'],
-                'university_id' => [
-                    'nullable',
-                    'integer',
-                    Rule::exists('universities', 'id')->where(fn ($query) => $query->where('is_active', true)),
-                ],
                 'semester_id' => [
                     'nullable',
                     'integer',
@@ -149,7 +131,6 @@ class ProfileController extends Controller
 
             $user->update([
                 'department_name' => trim($validated['department_name']),
-                'university_id' => isset($validated['university_id']) ? (int) $validated['university_id'] : null,
                 'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
             ]);
 
@@ -161,16 +142,6 @@ class ProfileController extends Controller
         }
 
         $validated = $request->validate([
-            'stream_id' => [
-                'required',
-                'integer',
-                Rule::exists('streams', 'id')->where(fn ($query) => $query->where('is_active', true)),
-            ],
-            'university_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('universities', 'id')->where(fn ($query) => $query->where('is_active', true)),
-            ],
             'semester_id' => [
                 'nullable',
                 'integer',
@@ -184,8 +155,6 @@ class ProfileController extends Controller
         ]);
 
         $user->update([
-            'stream_id' => (int) $validated['stream_id'],
-            'university_id' => isset($validated['university_id']) ? (int) $validated['university_id'] : null,
             'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
         ]);
 

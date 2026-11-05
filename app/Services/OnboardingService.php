@@ -17,19 +17,14 @@ class OnboardingService
     /**
      * @return Collection<int, Course>
      */
-    public function recommendCourses(?int $universityId = null): Collection
+    public function recommendCourses(): Collection
     {
-        $query = Course::query()
+        return Course::query()
             ->active()
-            ->withCount(['users' => function ($builder) use ($universityId): void {
-                if ($universityId !== null) {
-                    $builder->where('university_id', $universityId);
-                }
-            }])
+            ->withCount('users')
             ->orderByDesc('users_count')
-            ->orderBy('name');
-
-        return $query->get();
+            ->orderBy('name')
+            ->get();
     }
 
     /**
@@ -113,13 +108,8 @@ class OnboardingService
         }
 
         $user->update(['onboarding_step' => OnboardingStep::Complete]);
-        $user->loadMissing(['stream', 'university']);
 
         $this->userEvents->log($user, UserEventName::OnboardingDone, array_filter([
-            'stream' => $user->stream?->name,
-            'stream_id' => $user->stream_id,
-            'campus' => $user->university?->name,
-            'university_id' => $user->university_id,
             'department' => $user->department_name,
         ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }

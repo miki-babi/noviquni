@@ -5,7 +5,6 @@ use App\Models\AssessmentAttempt;
 use App\Models\AssessmentAttemptAnswer;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use App\Services\StudyProgressReport;
@@ -23,17 +22,16 @@ beforeEach(function () {
 });
 
 it('builds strengths weaknesses and improvement insights for a student', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Kinship Quiz',
         'topics' => ['Kinship'],
     ]);

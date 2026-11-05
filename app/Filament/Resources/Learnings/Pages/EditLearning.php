@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Learnings\Pages;
 use App\Filament\Resources\Learnings\LearningResource;
 use App\Filament\Resources\Learnings\Schemas\LearningForm;
 use App\Filament\Resources\TelegramFileAssets\TelegramFileAssetResource;
-use App\Models\Course;
 use App\Support\LearningResourceFiles;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -54,7 +53,6 @@ class EditLearning extends EditRecord
         $courseId = $data['course_id'] ?? null;
 
         if (filled($courseId)) {
-            $data['stream_id'] = Course::query()->whereKey($courseId)->value('stream_id');
         }
 
         return LearningForm::dehydrateInteractiveFields($data);

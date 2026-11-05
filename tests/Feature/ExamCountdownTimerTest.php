@@ -6,7 +6,6 @@ use App\Enums\ResourceType;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use App\Support\StudyRichText;
@@ -26,12 +25,11 @@ beforeEach(function () {
 
 it('persists exam time limit minutes from the learning edit form', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $resource = LearningResource::factory()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Timed exam',
     ]);
 
@@ -71,12 +69,11 @@ it('persists exam time limit minutes from the learning edit form', function () {
 
 it('persists quiz time limit minutes from the learning edit form', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $resource = LearningResource::factory()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Timed quiz',
     ]);
 
@@ -108,18 +105,17 @@ it('persists quiz time limit minutes from the learning edit form', function () {
 });
 
 it('asks timed or untimed before starting an exam and wires the configured countdown', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::PracticeExams,
         'content' => [
             'kind' => CollegeResourceKind::Exam->value,
@@ -159,18 +155,17 @@ it('asks timed or untimed before starting an exam and wires the configured count
 });
 
 it('still offers a timed start when the exam has no configured time limit', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     expect($resource->playerPayload()['timeLimitMinutes'])->toBeNull();
@@ -186,18 +181,17 @@ it('still offers a timed start when the exam has no configured time limit', func
 });
 
 it('asks timed or untimed before starting a quiz and wires the timer', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'content' => [
             'kind' => CollegeResourceKind::Quiz->value,
             'payload' => [

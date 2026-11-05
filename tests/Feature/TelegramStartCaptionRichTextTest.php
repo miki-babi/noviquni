@@ -2,7 +2,6 @@
 
 use App\Enums\OnboardingStep;
 use App\Models\Course;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,13 +35,12 @@ it('sends start captions with telegram-safe rich text formatting', function () {
         '<p>Welcome back, <strong>{{first_name}}</strong>!</p><p>Keep going.</p>',
     );
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'name' => 'Abebe Kebede',
         'telegram_id' => '555910',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);

@@ -87,12 +87,6 @@
                 if (tg) {
                     tg.ready();
                     tg.expand();
-
-                    if (typeof tg.requestFullscreen === 'function') {
-                        try {
-                            tg.requestFullscreen();
-                        } catch (e) {}
-                    }
                 }
 
                 const initData = tg?.initData || '';

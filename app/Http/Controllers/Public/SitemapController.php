@@ -6,8 +6,6 @@ use App\Enums\ResourceHub;
 use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
-use App\Models\University;
 use Illuminate\Http\Response;
 
 class SitemapController extends Controller
@@ -16,7 +14,6 @@ class SitemapController extends Controller
     {
         $urls = collect([
             ['loc' => route('home'), 'changefreq' => 'daily', 'priority' => '1.0'],
-            ['loc' => route('universities.index'), 'changefreq' => 'weekly', 'priority' => '0.8'],
             ['loc' => route('courses.index'), 'changefreq' => 'weekly', 'priority' => '0.8'],
             ['loc' => route('resources.index'), 'changefreq' => 'daily', 'priority' => '0.8'],
         ]);
@@ -28,32 +25,6 @@ class SitemapController extends Controller
                 'priority' => '0.7',
             ]);
         }
-
-        University::query()
-            ->active()
-            ->indexable()
-            ->orderBy('id')
-            ->each(function (University $university) use ($urls): void {
-                $urls->push([
-                    'loc' => route('universities.show', $university),
-                    'lastmod' => optional($university->updated_at)?->toAtomString(),
-                    'changefreq' => 'weekly',
-                    'priority' => '0.7',
-                ]);
-            });
-
-        Stream::query()
-            ->active()
-            ->indexable()
-            ->orderBy('id')
-            ->each(function (Stream $stream) use ($urls): void {
-                $urls->push([
-                    'loc' => route('streams.show', $stream),
-                    'lastmod' => optional($stream->updated_at)?->toAtomString(),
-                    'changefreq' => 'weekly',
-                    'priority' => '0.6',
-                ]);
-            });
 
         Course::query()
             ->active()

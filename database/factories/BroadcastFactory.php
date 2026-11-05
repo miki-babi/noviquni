@@ -19,7 +19,7 @@ class BroadcastFactory extends Factory
     {
         return [
             'title' => fake()->sentence(3),
-            'body' => 'Hi {{first_name}}, new resources are available for {{stream}} students.',
+            'body' => 'Hi {{first_name}}, new resources are available for {{course}} students.',
             'targeting' => ['audience' => 'everyone'],
             'status' => BroadcastStatus::Draft,
             'created_by' => User::factory()->admin(),

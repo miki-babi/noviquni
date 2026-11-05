@@ -5,7 +5,6 @@ use App\Enums\ResourceType;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Support\LearningResourceFiles;
 use App\Support\StudyRichText;
@@ -17,12 +16,11 @@ uses(RefreshDatabase::class);
 
 it('saves edited quiz questions from the learning edit builder', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $resource = LearningResource::factory()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Editable Exam',
     ]);
 
@@ -62,12 +60,11 @@ it('saves edited quiz questions from the learning edit builder', function () {
 
 it('rejects invalid content json on the learning edit page for non-interactive types', function () {
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $resource = LearningResource::factory()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'generation_kind' => CollegeResourceKind::Notes,
         'content' => [
@@ -93,15 +90,14 @@ it('shows stored disk file paths with public and local exists status on edit', f
     Storage::fake('local');
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $path = LearningResourceFiles::directoryForCourse($course->id).'/gat-samples-rw.pdf';
     Storage::disk('local')->put($path, '%PDF-1.4 on-local-only');
 
     $resource = LearningResource::factory()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
     ]);
 

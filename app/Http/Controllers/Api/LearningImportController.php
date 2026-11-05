@@ -123,7 +123,6 @@ class LearningImportController extends Controller
                 'description' => $validated['description'] ?? null,
                 'type' => $type,
                 'course_id' => $course->id,
-                'stream_id' => $course->stream_id,
                 'sort_order' => (int) ($validated['sort_order'] ?? 0),
                 'is_published' => (bool) ($validated['is_published'] ?? false),
                 'is_premium' => (bool) ($validated['is_premium'] ?? false),

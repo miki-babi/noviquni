@@ -8,7 +8,6 @@ use App\Models\AssessmentAttempt;
 use App\Models\AssessmentAttemptAnswer;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Models\UserEvent;
 use App\Services\SettingsService;
@@ -26,17 +25,16 @@ beforeEach(function () {
 });
 
 it('records per-question quiz answers and server-side score', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Anthropology']);
+    $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'topics' => ['Kinship', 'Culture'],
     ]);
 
@@ -69,17 +67,16 @@ it('records per-question quiz answers and server-side score', function () {
 });
 
 it('records exam attempts including timed out partial answers', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course);
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::PracticeExams,
     ]);
 

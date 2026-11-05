@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Models\Course;
 use App\Models\Semester;
-use App\Models\Stream;
 use App\Services\SettingsService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -20,20 +19,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             AdminUserSeeder::class,
-            UniversitySeeder::class,
             YearSeeder::class,
             OpportunitySeeder::class,
         ]);
-
-        $natural = Stream::query()->firstOrCreate(
-            ['slug' => 'natural'],
-            ['name' => 'Natural', 'is_active' => true],
-        );
-
-        $social = Stream::query()->firstOrCreate(
-            ['slug' => 'social'],
-            ['name' => 'Social', 'is_active' => true],
-        );
 
         foreach (['Semester 1', 'Semester 2'] as $index => $name) {
             Semester::query()->updateOrCreate(
@@ -42,22 +30,10 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        foreach (['Mathematics', 'Physics', 'Chemistry', 'English'] as $name) {
+        foreach (['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Geography', 'Civics'] as $name) {
             Course::query()->updateOrCreate(
                 ['slug' => Str::slug($name)],
                 [
-                    'stream_id' => $natural->id,
-                    'name' => $name,
-                    'is_active' => true,
-                ],
-            );
-        }
-
-        foreach (['History', 'Geography', 'Civics', 'English'] as $name) {
-            Course::query()->updateOrCreate(
-                ['slug' => Str::slug($name).($name === 'English' ? '-social' : '')],
-                [
-                    'stream_id' => $social->id,
                     'name' => $name,
                     'is_active' => true,
                 ],

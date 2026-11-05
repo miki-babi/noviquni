@@ -44,8 +44,6 @@ use Spatie\Permission\Traits\HasRoles;
     'premium_until',
     'is_premium',
     'is_gat',
-    'university_id',
-    'stream_id',
     'semester_id',
     'department_name',
 ])]
@@ -102,16 +100,6 @@ class User extends Authenticatable implements FilamentUser
     public function hasActivePremium(): bool
     {
         return (bool) $this->is_premium;
-    }
-
-    public function university(): BelongsTo
-    {
-        return $this->belongsTo(University::class);
-    }
-
-    public function stream(): BelongsTo
-    {
-        return $this->belongsTo(Stream::class);
     }
 
     public function semester(): BelongsTo

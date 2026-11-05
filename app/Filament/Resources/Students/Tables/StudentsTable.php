@@ -10,7 +10,6 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 
@@ -30,16 +29,12 @@ class StudentsTable
                     ->label('Points')
                     ->sortable()
                     ->toggleable(),
-                TextColumn::make('stream.name')->toggleable(),
-                TextColumn::make('university.name')->toggleable(),
                 IconColumn::make('is_premium')->label('Premium')->boolean()->sortable(),
                 IconColumn::make('is_gat')->label('GAT')->boolean()->sortable()->toggleable(),
                 IconColumn::make('is_active')->boolean(),
                 TextColumn::make('created_at')->dateTime()->sortable(),
             ])
             ->filters([
-                SelectFilter::make('stream')->relationship('stream', 'name'),
-                SelectFilter::make('university')->relationship('university', 'name'),
                 TernaryFilter::make('is_premium')->label('Premium'),
                 TernaryFilter::make('is_gat')->label('GAT'),
                 TernaryFilter::make('is_active'),

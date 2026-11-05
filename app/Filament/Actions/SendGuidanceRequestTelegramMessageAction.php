@@ -28,7 +28,7 @@ class SendGuidanceRequestTelegramMessageAction
                     ->label('Message')
                     ->required()
                     ->rows(10)
-                    ->helperText('Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}, {{referral_count}}, {{referral_points}}'),
+                    ->helperText('Variables: {{first_name}}, {{course}}, {{referral_count}}, {{referral_points}}'),
                 BroadcastInlineButtonRepeater::make(allowChoice: false)
                     ->label('Inline keyboard buttons'),
             ])

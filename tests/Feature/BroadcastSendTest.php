@@ -4,7 +4,6 @@ use App\Enums\BroadcastStatus;
 use App\Jobs\SendTelegramMessageJob;
 use App\Models\Broadcast;
 use App\Models\NotificationDelivery;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\BroadcastService;
 use App\Services\SettingsService;
@@ -25,18 +24,16 @@ beforeEach(function () {
 it('sends broadcasts synchronously without pending deliveries', function () {
     Queue::fake();
 
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-
     $user = User::factory()->student()->create([
         'name' => 'Abebe Kebede',
         'telegram_id' => '900001',
-        'stream_id' => $stream->id,
+
         'notifications_enabled' => true,
         'is_active' => true,
     ]);
 
     $broadcast = Broadcast::factory()->create([
-        'body' => 'Hi {{first_name}} — {{stream}} updates are ready.',
+        'body' => 'Hi {{first_name}} — updates are ready.',
         'status' => BroadcastStatus::Draft,
         'targeting' => ['audience' => 'everyone'],
     ]);
@@ -53,7 +50,7 @@ it('sends broadcasts synchronously without pending deliveries', function () {
     expect($delivery)->not->toBeNull()
         ->and($delivery->user_id)->toBe($user->id)
         ->and($delivery->status)->toBe('sent')
-        ->and($delivery->body)->toBe('Hi Abebe — Natural updates are ready.')
+        ->and($delivery->body)->toBe('Hi Abebe — updates are ready.')
         ->and($delivery->sent_at)->not->toBeNull()
         ->and($delivery->telegram_message_id)->toBe(1)
         ->and(NotificationDelivery::query()->where('status', 'pending')->count())->toBe(0);

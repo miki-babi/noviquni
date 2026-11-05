@@ -33,9 +33,6 @@ class TopStudiedCoursesTable extends TableWidget
                 TextColumn::make('name')
                     ->label('Course')
                     ->searchable(),
-                TextColumn::make('stream.name')
-                    ->label('Stream')
-                    ->placeholder('—'),
                 TextColumn::make('opens_7d')
                     ->label('Opens 7d')
                     ->sortable(),

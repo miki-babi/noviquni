@@ -3,19 +3,12 @@
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\University;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
 it('includes published indexable urls and excludes unpublished resources', function () {
     config(['services.telegram.bot_username' => 'noviquni_bot']);
-
-    $university = University::factory()->create([
-        'slug' => 'jimma-university',
-        'is_active' => true,
-        'is_indexable' => true,
-    ]);
 
     $course = Course::factory()->create([
         'slug' => 'physics',
@@ -25,7 +18,6 @@ it('includes published indexable urls and excludes unpublished resources', funct
 
     $published = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $course->stream_id,
         'slug' => 'physics-module-1',
         'type' => ResourceType::ReferenceBooks,
         'is_indexable' => true,
@@ -33,7 +25,6 @@ it('includes published indexable urls and excludes unpublished resources', funct
 
     $unpublished = LearningResource::factory()->create([
         'course_id' => $course->id,
-        'stream_id' => $course->stream_id,
         'slug' => 'physics-draft',
         'is_published' => false,
         'is_indexable' => true,
@@ -41,7 +32,6 @@ it('includes published indexable urls and excludes unpublished resources', funct
 
     $noindex = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $course->stream_id,
         'slug' => 'physics-private',
         'is_indexable' => false,
     ]);
@@ -51,7 +41,6 @@ it('includes published indexable urls and excludes unpublished resources', funct
     $response->assertOk();
     $response->assertHeader('Content-Type', 'application/xml');
     $response->assertSee(route('home'), false);
-    $response->assertSee(route('universities.show', $university), false);
     $response->assertSee(route('courses.show', $course), false);
     $response->assertSee(route('resources.show', $published), false);
     $response->assertSee(route('hubs.course', ['notes', $course]), false);

@@ -11,7 +11,7 @@ class ResourceController extends PublicController
     {
         $resources = LearningResource::query()
             ->published()
-            ->with(['course', 'stream', 'university'])
+            ->with(['course'])
             ->orderByDesc('id')
             ->paginate(24);
 
@@ -42,7 +42,7 @@ class ResourceController extends PublicController
     {
         abort_unless($resource->is_published, 404);
 
-        $resource->load(['course.stream', 'stream', 'university', 'semester']);
+        $resource->load(['course', 'semester']);
 
         $related = LearningResource::query()
             ->published()

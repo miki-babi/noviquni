@@ -159,7 +159,6 @@ class ManageCourseFiles extends Page implements HasTable
 
                         return CreateLearning::getCreateUrl([
                             'course_id' => $courseId,
-                            'stream_id' => $course?->stream_id,
                             'existing_files' => [$path],
                             'title' => filled($title) ? $title : null,
                         ]);
@@ -223,7 +222,6 @@ class ManageCourseFiles extends Page implements HasTable
 
                             return Redirect::to(CreateLearning::getCreateUrl([
                                 'course_id' => $courseId,
-                                'stream_id' => $course?->stream_id,
                                 'existing_files' => $paths,
                             ]));
                         })

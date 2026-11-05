@@ -6,7 +6,6 @@ use App\Enums\UserEventName;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\ResourceDownload;
-use App\Models\Stream;
 use App\Models\User;
 use App\Models\UserEvent;
 use App\Services\SettingsService;
@@ -70,11 +69,10 @@ it('does not store navigation start payloads as start_source', function () {
 });
 
 it('logs resource_open with study details when a mini app resource is opened', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Anthropology']);
+    $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course);
 
@@ -82,7 +80,7 @@ it('logs resource_open with study details when a mini app resource is opened', f
         'title' => 'Chapter 3 — Kinship',
         'type' => ResourceType::ReferenceBooks,
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'is_published' => true,
         'is_premium' => false,
     ]);
@@ -107,18 +105,17 @@ it('logs resource_open with study details when a mini app resource is opened', f
 });
 
 it('logs quiz_done when a quiz result is posted', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Anthropology']);
+    $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'title' => 'Kinship Quiz',
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'is_premium' => false,
     ]);
 

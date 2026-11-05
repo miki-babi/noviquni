@@ -1,7 +1,6 @@
 <?php
 
 use App\Jobs\SendTelegramMessageJob;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -41,7 +40,6 @@ function newStudentStartPayload(int $telegramId, int $updateId = 1): array
 }
 
 it('notifies the file admin when a new student is created', function () {
-    Stream::factory()->create(['name' => 'Natural']);
 
     User::factory()->admin()->create([
         'telegram_id' => '900001',
@@ -78,7 +76,6 @@ it('notifies the file admin when a new student is created', function () {
 });
 
 it('does not notify the file admin when an existing student messages again', function () {
-    Stream::factory()->create(['name' => 'Natural']);
 
     User::factory()->admin()->create([
         'telegram_id' => '900002',
@@ -121,7 +118,6 @@ it('does not notify the file admin when an existing student messages again', fun
 });
 
 it('skips admin alerts when the configured file admin username has no matching user', function () {
-    Stream::factory()->create(['name' => 'Natural']);
 
     config(['services.telegram.file_admin_username' => 'unknown_admin']);
 

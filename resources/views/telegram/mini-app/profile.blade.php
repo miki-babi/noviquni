@@ -63,20 +63,12 @@
 
         <div class="study-card study-continue">
             @if ($user->isFreshman())
-                <div class="study-profile-row">
-                    <span class="study-profile-label">{{ $copy->get('profile.stream') }}</span>
-                    <span class="study-profile-value">{{ $user->stream?->name ?? $copy->get('profile.none') }}</span>
-                </div>
             @else
                 <div class="study-profile-row">
                     <span class="study-profile-label">{{ $copy->get('profile.department') }}</span>
                     <span class="study-profile-value">{{ $user->department_name ?: $copy->get('profile.none') }}</span>
                 </div>
             @endif
-            <div class="study-profile-row">
-                <span class="study-profile-label">{{ $copy->get('profile.university') }}</span>
-                <span class="study-profile-value">{{ $user->university?->name ?? $copy->get('profile.none') }}</span>
-            </div>
             <div class="study-profile-row">
                 <span class="study-profile-label">{{ $copy->get('profile.semester') }}</span>
                 <span class="study-profile-value">{{ $user->semester?->name ?? $copy->get('profile.none') }}</span>

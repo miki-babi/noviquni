@@ -9,13 +9,11 @@ use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 #[Fillable([
-    'stream_id',
     'name',
     'slug',
     'is_active',
@@ -39,11 +37,6 @@ class Course extends Model
         'is_active' => true,
         'is_indexable' => true,
     ];
-
-    public function stream(): BelongsTo
-    {
-        return $this->belongsTo(Stream::class);
-    }
 
     public function users(): BelongsToMany
     {

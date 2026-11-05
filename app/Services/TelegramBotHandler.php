@@ -15,7 +15,6 @@ use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
 use App\Models\ResourceDownload;
-use App\Models\Stream;
 use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
@@ -2410,7 +2409,6 @@ class TelegramBotHandler
                 'title' => $resourceTitle,
                 'slug' => $this->uniqueLearningSlug($resourceTitle),
                 'type' => $type,
-                'stream_id' => $course->stream_id,
                 'course_id' => $course->id,
                 'is_premium' => $isPremium,
                 'is_published' => true,
@@ -2955,21 +2953,18 @@ class TelegramBotHandler
     protected function showProfile(User $user, int|string $chatId): void
     {
         $copy = TelegramCopy::for($user);
-        $user->load(['stream', 'university', 'semester', 'courses']);
+        $user->load(['semester', 'courses']);
 
         if ($user->isFreshman()) {
             $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
             $body = $copy->get('profile.body', [
                 'name' => $user->name,
-                'stream' => $user->stream?->name ?? '-',
-                'university' => $user->university?->name ?? '-',
                 'semester' => $user->semester?->name ?? '-',
                 'courses' => $courses,
             ]);
         } else {
             $body = $copy->get('profile.body_department', [
                 'department' => $user->department_name ?: $copy->get('profile.none'),
-                'university' => $user->university?->name ?? '-',
                 'semester' => $user->semester?->name ?? '-',
             ]);
         }
@@ -3031,7 +3026,6 @@ class TelegramBotHandler
         if (in_array($user->onboarding_step, [
             OnboardingStep::Start,
             OnboardingStep::Year,
-            OnboardingStep::Stream,
             OnboardingStep::Department,
         ], true)) {
             return false;
@@ -3113,30 +3107,6 @@ class TelegramBotHandler
         $this->sendOnboardingPrompt($user, $chatId, $copy->get('onboarding.year_prompt'), $rows, $messageId);
     }
 
-    protected function askStream(User $user, int|string $chatId, ?int $messageId = null): void
-    {
-        $copy = TelegramCopy::for($user);
-        $streams = Stream::query()->active()->orderBy('name')->get();
-
-        if ($streams->isEmpty()) {
-            $result = $this->telegram->replyOrEdit($chatId, '📭 No streams are available yet. Please try again later.', messageId: $messageId);
-            $this->telegram->rememberInlineMessage($user->id, $result, $messageId);
-
-            return;
-        }
-
-        $rows = $streams->map(fn (Stream $stream) => [[
-            'text' => $stream->name,
-            'callback_data' => "ob:stream:{$stream->id}",
-            'style' => match (Str::lower($stream->name)) {
-                'natural' => TelegramButtonStyle::Success->value,
-                default => TelegramButtonStyle::Primary->value,
-            },
-        ]])->values()->all();
-
-        $this->sendOnboardingPrompt($user, $chatId, $copy->get('onboarding.stream_prompt'), $rows, $messageId);
-    }
-
     protected function askDepartment(User $user, int|string $chatId, ?int $messageId = null): void
     {
         $copy = TelegramCopy::for($user);
@@ -3179,10 +3149,6 @@ class TelegramBotHandler
             return $this->selectYear($user, $chatId, (int) Str::after($data, 'ob:year:'), $messageId);
         }
 
-        if (str_starts_with($data, 'ob:stream:')) {
-            return $this->selectStream($user, $chatId, (int) Str::after($data, 'ob:stream:'), $messageId);
-        }
-
         return $copy->get('menu.stale_callback');
     }
 
@@ -3207,8 +3173,6 @@ class TelegramBotHandler
 
         if ($year->slug === YearSlug::Freshman->value || $user->is_gat) {
             $user->update([
-                'stream_id' => null,
-                'university_id' => null,
                 'semester_id' => null,
                 'department_name' => null,
             ]);
@@ -3220,8 +3184,6 @@ class TelegramBotHandler
 
         $user->update([
             'onboarding_step' => OnboardingStep::Department,
-            'stream_id' => null,
-            'university_id' => null,
             'semester_id' => null,
             'department_name' => null,
         ]);
@@ -3230,39 +3192,6 @@ class TelegramBotHandler
         $this->askDepartment($user->fresh() ?? $user, $chatId, $messageId);
 
         return null;
-    }
-
-    protected function selectStream(User $user, int|string $chatId, int $streamId, ?int $messageId): ?string
-    {
-        $copy = TelegramCopy::for($user);
-
-        if ($user->onboarding_step !== OnboardingStep::Stream && $user->onboarding_step !== OnboardingStep::Start) {
-            return $copy->get('menu.stale_callback');
-        }
-
-        $stream = Stream::query()->active()->find($streamId);
-
-        if ($stream === null) {
-            $this->askStream($user, $chatId, $messageId);
-
-            return 'That stream is unavailable.';
-        }
-
-        $user->update([
-            'stream_id' => $stream->id,
-            'university_id' => null,
-            'semester_id' => null,
-        ]);
-        cache()->forget("onboarding.courses.{$user->id}");
-
-        $this->finishOnboarding($user->fresh() ?? $user, $chatId, $messageId);
-
-        return null;
-    }
-
-    protected function finishOnboardingAfterStream(User $user, int|string $chatId, ?int $messageId = null): void
-    {
-        $this->finishOnboarding($user, $chatId, $messageId);
     }
 
     protected function finishOnboarding(User $user, int|string $chatId, ?int $messageId = null): void

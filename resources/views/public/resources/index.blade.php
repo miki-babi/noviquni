@@ -16,7 +16,7 @@
                             <p class="mt-1 text-sm text-text-secondary">
                                 {{ $resource->type->label() }}
                                 @if ($resource->course) · {{ $resource->course->name }} @endif
-                                @if ($resource->university) · {{ $resource->university->name }} @endif
+                                @if ($resource->university) @endif
                             </p>
                         </x-ui.card>
                     </a>

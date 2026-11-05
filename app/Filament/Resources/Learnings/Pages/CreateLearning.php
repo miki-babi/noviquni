@@ -171,30 +171,12 @@ class CreateLearning extends CreateRecord
         }
 
         $data = LearningResourceFiles::normalizeFormFiles($data);
-        $data = $this->syncStreamFromCourse($data);
         $data = LearningForm::dehydrateInteractiveFields($data);
 
         if (! LearningForm::isInteractiveMcqType($data['type'] ?? null)) {
             $data['generation_kind'] = null;
             $data['content'] = null;
         }
-
-        return $data;
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    protected function syncStreamFromCourse(array $data): array
-    {
-        $courseId = $data['course_id'] ?? null;
-
-        if (! filled($courseId)) {
-            return $data;
-        }
-
-        $data['stream_id'] = Course::query()->whereKey($courseId)->value('stream_id');
 
         return $data;
     }

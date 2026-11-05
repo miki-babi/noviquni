@@ -26,38 +26,37 @@ beforeEach(function () {
  */
 function libraryContext(): array
 {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
-    return [$user, $course, $stream];
+    return [$user, $course];
 }
 
 it('lists resource hubs across enrolled courses only', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     $enrolled = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Enrolled notes',
     ]);
 
     $otherCourse = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Chemistry',
     ]);
     LearningResource::factory()->published()->notes()->create([
         'course_id' => $otherCourse->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Other course notes',
     ]);
 
@@ -84,11 +83,11 @@ it('lists resource hubs across enrolled courses only', function () {
 });
 
 it('locks premium resources in the library hub for free users', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Premium notes',
         'is_premium' => true,
     ]);
@@ -101,11 +100,11 @@ it('locks premium resources in the library hub for free users', function () {
 });
 
 it('shows empty quick saved state and toggles bookmarks', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Savable notes',
     ]);
 
@@ -138,11 +137,11 @@ it('shows empty quick saved state and toggles bookmarks', function () {
 });
 
 it('shows save control on the notes player', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Player notes',
     ]);
 
@@ -154,17 +153,17 @@ it('shows save control on the notes player', function () {
 });
 
 it('lists reference books and quiz as separate hubs', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     $refBook = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Chapter notes',
     ]);
 
     LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Chapter quiz',
     ]);
 
@@ -185,11 +184,11 @@ it('lists reference books and quiz as separate hubs', function () {
 });
 
 it('keeps legacy notes hub alias working for reference books resources', function () {
-    [$user, $course, $stream] = libraryContext();
+    [$user, $course] = libraryContext();
 
     LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Legacy reference pack',
     ]);
 

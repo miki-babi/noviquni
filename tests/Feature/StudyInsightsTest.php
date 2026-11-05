@@ -2,9 +2,7 @@
 
 use App\Enums\UserRole;
 use App\Filament\Widgets\MostActiveStudentsTable;
-use App\Filament\Widgets\OpensByStreamChart;
 use App\Filament\Widgets\OpensByTypeChart;
-use App\Filament\Widgets\OpensByUniversityChart;
 use App\Filament\Widgets\OpensTrendChart;
 use App\Filament\Widgets\StudyInsightsStats;
 use App\Filament\Widgets\TopStudiedCoursesTable;
@@ -88,8 +86,6 @@ it('keeps insight widgets off the main dashboard', function (string $widget) {
     StudyInsightsStats::class,
     OpensTrendChart::class,
     OpensByTypeChart::class,
-    OpensByStreamChart::class,
-    OpensByUniversityChart::class,
     TopStudiedResourcesTable::class,
     TopStudiedCoursesTable::class,
     MostActiveStudentsTable::class,

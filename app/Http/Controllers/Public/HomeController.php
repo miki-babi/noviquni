@@ -6,26 +6,15 @@ use App\Enums\ResourceHub;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
-use App\Models\University;
 use Illuminate\Contracts\View\View;
 
 class HomeController extends PublicController
 {
     public function __invoke(): View
     {
-        $universities = University::query()
-            ->active()
-            ->indexable()
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->limit(8)
-            ->get();
-
         $courses = Course::query()
             ->active()
             ->indexable()
-            ->with('stream')
             ->orderBy('name')
             ->limit(8)
             ->get();
@@ -33,20 +22,12 @@ class HomeController extends PublicController
         $resources = LearningResource::query()
             ->published()
             ->indexable()
-            ->with(['course', 'stream'])
+            ->with(['course'])
             ->latest('id')
             ->limit(8)
             ->get();
 
-        $streams = Stream::query()
-            ->active()
-            ->indexable()
-            ->withCount(['courses' => fn ($query) => $query->active()])
-            ->orderBy('name')
-            ->get();
-
         $stats = [
-            'universities' => University::query()->active()->count(),
             'courses' => Course::query()->active()->count(),
             'resources' => LearningResource::query()->published()->count(),
             'modules' => 0,
@@ -74,10 +55,8 @@ class HomeController extends PublicController
             ],
             $this->jsonLd->forPage('home', $title, $description, $url),
             [
-                'universities' => $universities,
                 'courses' => $courses,
                 'resources' => $resources,
-                'streams' => $streams,
                 'hubs' => ResourceHub::cases(),
                 'stats' => $stats,
             ],

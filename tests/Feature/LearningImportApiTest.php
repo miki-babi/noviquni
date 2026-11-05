@@ -56,7 +56,7 @@ it('rejects import api calls without a valid token', function () {
 });
 
 it('creates a quiz learning resource from plain-text content', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $response = $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course))
@@ -78,7 +78,7 @@ it('creates a quiz learning resource from plain-text content', function () {
 });
 
 it('returns 422 when a question has more than six options', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course, [
@@ -99,7 +99,7 @@ it('returns 422 when a question has more than six options', function () {
 });
 
 it('returns 422 when answerIndex is out of range', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course, [
@@ -120,7 +120,7 @@ it('returns 422 when answerIndex is out of range', function () {
 });
 
 it('returns the existing resource for a repeated external_id', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $first = $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course, [
@@ -143,7 +143,7 @@ it('returns the existing resource for a repeated external_id', function () {
 });
 
 it('rejects a duplicate title within the same course', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course))
@@ -160,7 +160,7 @@ it('rejects a duplicate title within the same course', function () {
 it('uploads an image and attaches it to a question', function () {
     Storage::fake('public');
 
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $upload = $this->withHeaders(importHeaders())
         ->post('/api/uploads', [
@@ -197,7 +197,7 @@ it('uploads an image and attaches it to a question', function () {
 });
 
 it('lists learnings and patches metadata', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $created = $this->withHeaders(importHeaders())
         ->postJson('/api/learnings', sampleQuizPayload($course))

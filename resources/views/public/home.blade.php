@@ -50,14 +50,10 @@
         <div class="mx-auto flex max-w-[1280px] flex-col gap-6 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8 lg:px-16">
             <p class="text-sm font-medium text-text-secondary">Used by students across Ethiopia</p>
             <div class="flex flex-wrap items-center gap-6 text-sm font-semibold text-text-muted">
-                @forelse ($universities->take(3) as $university)
-                    <span>{{ $university->name }}</span>
-                @empty
-                    <span>Addis Ababa University</span>
-                    <span>Jimma University</span>
-                    <span>Bahir Dar University</span>
-                @endforelse
-            </div>
+                    <span>Mathematics</span>
+                    <span>English</span>
+                    <span>Physics</span>
+                </div>
         </div>
     </section>
 
@@ -87,8 +83,8 @@
                     @endforeach
                 </div>
                 <div>
-                    <p class="text-[30px] font-extrabold text-text-primary">{{ number_format($stats['universities']) }}+</p>
-                    <p class="mt-1 font-semibold text-text-primary">Universities listed</p>
+                    <p class="text-[30px] font-extrabold text-text-primary">{{ number_format($stats['courses']) }}+</p>
+                    <p class="mt-1 font-semibold text-text-primary">Courses listed</p>
                     <p class="mt-2 text-sm text-text-secondary">Profiles with freshman resources and course links.</p>
                 </div>
             </div>
@@ -98,7 +94,7 @@
                 <div>
                     <p class="text-[30px] font-extrabold">{{ number_format($stats['courses']) }}+</p>
                     <p class="mt-1 font-semibold">Courses covered</p>
-                    <p class="mt-2 text-sm text-white/80">Natural and social stream courses students actually search for.</p>
+                    <p class="mt-2 text-sm text-white/80">Courses students actually search for.</p>
                 </div>
             </div>
 
@@ -155,9 +151,9 @@
     <section
         class="mx-auto max-w-[1280px] px-4 py-20 sm:px-8 lg:px-16"
         x-data="{ step: 0, steps: [
-            { title: 'Discover on the web', body: 'Browse universities, courses, and public resource pages without creating an account.', panel: 'Browse SEO pages for modules, notes, and exams.' },
+            { title: 'Discover on the web', body: 'Browse courses and public resource pages without creating an account.', panel: 'Browse SEO pages for modules, notes, and exams.' },
             { title: 'Open Telegram', body: 'Tap Open Telegram to start the bot and continue where the public page left off.', panel: 'Deep-link into your personalized library.' },
-            { title: 'Complete onboarding', body: 'Pick your stream, university, semester, and courses so resources match what you study.', panel: 'Stream → University → Courses.' },
+            { title: 'Complete onboarding', body: 'Pick your courses and semester so resources match what you study.', panel: 'Stream → University → Courses.' },
             { title: 'Study and invite', body: 'Download resources, stay updated, and unlock more by inviting classmates.', panel: 'Referrals unlock premium access.' }
         ]}"
     >
@@ -230,9 +226,6 @@
                             @foreach ($courses->take(4) as $course)
                                 <a href="{{ route('courses.show', $course) }}" class="rounded-card border border-border-light bg-surface-white p-5 shadow-soft transition hover:-translate-y-0.5">
                                     <p class="font-semibold text-text-primary">{{ $course->name }}</p>
-                                    @if ($course->stream)
-                                        <p class="mt-1 text-sm text-text-secondary">{{ $course->stream->name }}</p>
-                                    @endif
                                 </a>
                             @endforeach
                         </div>

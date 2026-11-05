@@ -5,7 +5,6 @@ use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\College\TelegramResourceFormatter;
 use App\Services\SettingsService;
@@ -72,18 +71,17 @@ it('normalizes nested college api exam payloads into a single mcq questions list
 });
 
 it('renders the exam player from nested college api exam content', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Unit 1 Exam',
         'type' => ResourceType::PracticeExams,
         'content' => [

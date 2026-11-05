@@ -5,7 +5,6 @@ use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\ResourceDownload;
-use App\Models\Stream;
 use App\Models\TelegramCommand;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
@@ -26,13 +25,12 @@ beforeEach(function () {
 
 function customCommandUser(int $telegramId = 600100): User
 {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => (string) $telegramId,
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
@@ -108,7 +106,7 @@ it('delivers a free learning resource and records a download', function () {
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Command Notes',
-        'stream_id' => $user->stream_id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
@@ -148,7 +146,7 @@ it('locks a premium learning resource without sending its file', function () {
 
     $resource = LearningResource::factory()->published()->premium()->create([
         'title' => 'Premium Pack',
-        'stream_id' => $user->stream_id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'files' => null,
@@ -233,7 +231,7 @@ it('does not run custom commands during onboarding', function () {
 
     User::factory()->student()->create([
         'telegram_id' => '600106',
-        'onboarding_step' => OnboardingStep::Stream,
+        'onboarding_step' => OnboardingStep::Department,
     ]);
 
     TelegramCommand::factory()->messageOnly('Onboarding should block this')->create([

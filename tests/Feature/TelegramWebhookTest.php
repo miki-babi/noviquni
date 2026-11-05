@@ -8,8 +8,6 @@ use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
-use App\Models\Stream;
-use App\Models\University;
 use App\Models\User;
 use App\Models\Year;
 use App\Services\SettingsService;
@@ -46,7 +44,6 @@ it('accepts a start update and creates a completed GAT student without onboardin
 
     expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
         ->and($user->is_gat)->toBeTrue()
-        ->and($user->stream_id)->toBeNull()
         ->and($user->courses()->pluck('courses.id')->sort()->values()->all())
         ->toBe(collect([$maths->id, $reading->id, $analytical->id])->sort()->values()->all());
 
@@ -125,7 +122,7 @@ it('auto-enrolls GAT courses for existing students with an empty course list', f
 it('treats legacy university and course onboarding callbacks as stale', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555013',
-        'onboarding_step' => OnboardingStep::Stream,
+        'onboarding_step' => OnboardingStep::Department,
         'is_active' => true,
     ]);
 
@@ -135,8 +132,7 @@ it('treats legacy university and course onboarding callbacks as stale', function
 
     $user->refresh();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Stream)
-        ->and($user->stream_id)->toBeNull();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Department);
 });
 
 it('shows setup CTA on start when enrolled user has no courses', function () {
@@ -163,14 +159,13 @@ it('shows setup CTA on start when enrolled user has no courses', function () {
 });
 
 it('shows continue studying CTA on start when user has courses', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+    $course = Course::factory()->create(['name' => 'Physics']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555021',
         'name' => 'Mikiyas',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -190,16 +185,15 @@ it('shows continue studying CTA on start when user has courses', function () {
 });
 
 it('shows enrolled courses in a reply keyboard when Courses is tapped', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555004',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -250,25 +244,24 @@ it('restores the main reply keyboard when Back is tapped from courses', function
 });
 
 it('shows available resource types in a reply keyboard when Resources is tapped', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+    $course = Course::factory()->create(['name' => 'Physics']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555025',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Motion notes',
     ]);
 
     LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Motion quiz',
     ]);
 
@@ -289,19 +282,18 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
 });
 
 it('shows courses with the selected resource type in a reply keyboard', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555026',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555026, '📚 Reference books'))
@@ -316,18 +308,17 @@ it('shows courses with the selected resource type in a reply keyboard', function
 });
 
 it('sends the file directly when a course has one file-backed resource of the selected type', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Physics']);
+    $course = Course::factory()->create(['name' => 'Physics']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555028',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
     $resource = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Motion notes',
         'files' => null,
         'telegram_files' => [
@@ -352,19 +343,18 @@ it('sends the file directly when a course has one file-backed resource of the se
 });
 
 it('lists resources inline when a course has multiple resources of the selected type', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Chemistry']);
+    $course = Course::factory()->create(['name' => 'Chemistry']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555029',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $first = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Week 1 notes',
         'files' => null,
         'telegram_files' => [
@@ -373,7 +363,7 @@ it('lists resources inline when a course has multiple resources of the selected 
     ]);
     $second = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Week 2 notes',
         'files' => null,
         'telegram_files' => [
@@ -420,16 +410,15 @@ it('shows course setup for the legacy Browse label when no courses are enrolled'
 });
 
 it('shows coming soon browse state without counts when enrolled but empty', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Mathematics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555022',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -450,28 +439,27 @@ it('shows coming soon browse state without counts when enrolled but empty', func
 });
 
 it('shows course resource types after course tap', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555023',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Week-1 notes',
     ]);
     LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Physics Quiz',
     ]);
 
@@ -491,16 +479,15 @@ it('shows course resource types after course tap', function () {
 });
 
 it('shows course coming soon when no published resource types exist', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555035',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -521,23 +508,22 @@ it('shows course coming soon when no published resource types exist', function (
 });
 
 it('shows continue resume card when a prior download exists', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Mathematics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555024',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Chapter notes',
     ]);
     $user->downloads()->create(['learning_resource_id' => $resource->id]);
@@ -645,20 +631,19 @@ it('lists scholarship opportunities when the keyboard button is tapped', functio
 });
 
 it('still routes the legacy My Courses label to the course reply keyboard', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Chemistry']);
+    $course = Course::factory()->create(['name' => 'Chemistry']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555027',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555027, '📚 My Courses', 407))
@@ -687,8 +672,7 @@ it('completes mid-funnel users when they send free text instead of asking for ye
 
     $user->refresh();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->stream_id)->toBeNull();
+    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendMessage')) {
@@ -700,12 +684,11 @@ it('completes mid-funnel users when they send free text instead of asking for ye
 });
 
 it('completes mid-funnel users with a stream on /start without re-asking stream', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555006',
-        'onboarding_step' => OnboardingStep::University,
-        'stream_id' => $stream->id,
+        'onboarding_step' => OnboardingStep::Courses,
+
         'name' => 'Mikiyas',
         'is_active' => true,
     ]);
@@ -723,12 +706,11 @@ it('completes mid-funnel users with a stream on /start without re-asking stream'
 });
 
 it('does not revive legacy university callbacks for mid-funnel users', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555007',
         'onboarding_step' => OnboardingStep::Courses,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
 
@@ -746,13 +728,12 @@ it('does not revive legacy university callbacks for mid-funnel users', function 
 });
 
 it('does not resend onboarding complete message for stale confirm callbacks', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Math']);
+    Course::factory()->create(['name' => 'Math']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555008',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
 
@@ -766,7 +747,6 @@ it('does not resend onboarding complete message for stale confirm callbacks', fu
 });
 
 it('ignores duplicate update ids', function () {
-    University::factory()->create(['name' => 'AAU']);
 
     $payload = telegramMessagePayload(555009, '/start', 200);
 
@@ -792,20 +772,19 @@ it('ignores duplicate update ids', function () {
 });
 
 it('uses editMessageText for back to courses navigation', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Biology']);
+    $course = Course::factory()->create(['name' => 'Biology']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555010',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555010, 'back:courses', 30, 103))
@@ -821,7 +800,7 @@ it('uses editMessageText for back to courses navigation', function () {
 it('completes mid-funnel users on free text without onboarding reprompts', function () {
     User::factory()->student()->create([
         'telegram_id' => '555011',
-        'onboarding_step' => OnboardingStep::Stream,
+        'onboarding_step' => OnboardingStep::Department,
         'is_active' => true,
     ]);
 
@@ -840,9 +819,8 @@ it('completes mid-funnel users on free text without onboarding reprompts', funct
 });
 
 it('opens a bait course path from /start bait', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Chemistry',
         'slug' => 'chemistry',
     ]);
@@ -850,14 +828,14 @@ it('opens a bait course path from /start bait', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555030',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Bait notes',
     ]);
 
@@ -877,20 +855,19 @@ it('opens a bait course path from /start bait', function () {
 });
 
 it('opens a resource from /start resource deep link', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555031',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Deep link notes',
     ]);
 
@@ -907,9 +884,8 @@ it('opens a resource from /start resource deep link', function () {
 });
 
 it('opens a course from /start course deep link', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'English',
         'slug' => 'english',
     ]);
@@ -917,13 +893,13 @@ it('opens a course from /start course deep link', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555032',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
 
     LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'English bait',
     ]);
 
@@ -1086,7 +1062,7 @@ it('lists quiz resources for the selected gat subject course', function () {
 
     LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $course->stream_id,
+
         'title' => 'Algebra quiz',
     ]);
 
@@ -1118,7 +1094,7 @@ it('paginates quiz resources when a gat subject has more than one page', functio
     foreach (range(1, 10) as $index) {
         LearningResource::factory()->published()->quiz()->create([
             'course_id' => $course->id,
-            'stream_id' => $course->stream_id,
+
             'title' => sprintf('Quiz %02d', $index),
         ]);
     }
@@ -1284,20 +1260,19 @@ it('still opens refer flow from the legacy refer and earn keyboard label', funct
     });
 });
 it('still opens continue from the legacy continue label', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Biology']);
+    $course = Course::factory()->create(['name' => 'Biology']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555034',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Legacy continue notes',
     ]);
     $user->downloads()->create([
@@ -1317,29 +1292,28 @@ it('still opens continue from the legacy continue label', function () {
 });
 
 it('lists quick saved as chat buttons newest first without opening the Mini App', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555040',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $older = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Older notes',
         'type' => ResourceType::ReferenceBooks,
     ]);
     $newer = LearningResource::factory()->published()->worksheet()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Newer worksheet',
         'type' => ResourceType::ReferenceBooks,
     ]);
@@ -1375,16 +1349,15 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
 });
 
 it('paginates quick saved with next and back callbacks', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Chemistry',
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555041',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -1392,7 +1365,7 @@ it('paginates quick saved with next and back callbacks', function () {
     foreach (range(1, 6) as $index) {
         $resource = LearningResource::factory()->published()->notes()->create([
             'course_id' => $course->id,
-            'stream_id' => $stream->id,
+
             'title' => "Saved notes {$index}",
         ]);
 

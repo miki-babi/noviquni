@@ -1,6 +1,4 @@
 @php
-    $selectedStreamId = (int) old('stream_id', $user->stream_id);
-    $selectedUniversityId = old('university_id', $user->university_id);
     $selectedSemesterId = old('semester_id', $user->semester_id);
     $selectedCourses = collect(old('course_ids', $selectedCourseIds))->map(fn ($id) => (int) $id)->all();
     $departmentName = old('department_name', $user->department_name);
@@ -25,29 +23,6 @@
 
             @if (! $isGat)
                 @if ($isFreshman)
-                    <div class="study-card study-continue">
-                        <p class="study-card-title">{{ $copy->get('profile.stream') }}</p>
-                        <div class="mt-3 space-y-2">
-                            @foreach ($streams as $stream)
-                                <label class="study-card study-card-ghost block cursor-pointer">
-                                    <div class="study-card-inner">
-                                        <input
-                                            type="radio"
-                                            name="stream_id"
-                                            value="{{ $stream->id }}"
-                                            class="mt-1"
-                                            @checked((int) $selectedStreamId === $stream->id)
-                                            required
-                                        >
-                                        <span class="study-card-title">{{ $stream->name }}</span>
-                                    </div>
-                                </label>
-                            @endforeach
-                        </div>
-                        @error('stream_id')
-                            <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
-                        @enderror
-                    </div>
                 @else
                     <div class="study-card study-continue">
                         <p class="study-card-title">{{ $copy->get('profile.department') }}</p>
@@ -67,40 +42,6 @@
                 @endif
             @endif
 
-            <div class="study-card study-continue">
-                <p class="study-card-title">{{ $copy->get('profile.university') }}</p>
-                <div class="mt-3 space-y-2">
-                    @foreach ($universities as $university)
-                        <label class="study-card study-card-ghost block cursor-pointer">
-                            <div class="study-card-inner">
-                                <input
-                                    type="radio"
-                                    name="university_id"
-                                    value="{{ $university->id }}"
-                                    class="mt-1"
-                                    @checked((string) $selectedUniversityId === (string) $university->id)
-                                >
-                                <span class="study-card-title">{{ $university->name }}</span>
-                            </div>
-                        </label>
-                    @endforeach
-                    <label class="study-card study-card-ghost block cursor-pointer">
-                        <div class="study-card-inner">
-                            <input
-                                type="radio"
-                                name="university_id"
-                                value=""
-                                class="mt-1"
-                                @checked($selectedUniversityId === null || $selectedUniversityId === '')
-                            >
-                            <span class="study-card-title">{{ $copy->get('profile.other_university') }}</span>
-                        </div>
-                    </label>
-                </div>
-                @error('university_id')
-                    <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
 
             <div class="study-card study-continue">
                 <p class="study-card-title">{{ $copy->get('profile.semester') }}</p>

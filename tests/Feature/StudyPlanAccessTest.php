@@ -3,7 +3,6 @@
 use App\Enums\OnboardingStep;
 use App\Enums\StudyPlanType;
 use App\Models\Course;
-use App\Models\Stream;
 use App\Models\StudyPlan;
 use App\Models\StudyPlanItem;
 use App\Models\User;
@@ -18,11 +17,10 @@ beforeEach(function () {
 });
 
 it('shows free plans to free students and hides premium week plans', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id, 'name' => 'Math']);
+    $course = Course::factory()->create(['name' => 'Math']);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -58,11 +56,10 @@ it('shows free plans to free students and hides premium week plans', function ()
 });
 
 it('shows week and exam-sprint plans to premium students', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->premium()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -92,10 +89,9 @@ it('shows week and exam-sprint plans to premium students', function () {
 });
 
 it('respects the is_premium flag on study plans for free students', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'stream_id' => $stream->id,
+
     ]);
 
     $freeWeek = StudyPlan::factory()->published()->create([

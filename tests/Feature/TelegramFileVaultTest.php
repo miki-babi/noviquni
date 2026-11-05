@@ -4,7 +4,6 @@ use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Services\SettingsService;
@@ -141,9 +140,8 @@ it('publishes a learning resource through the telegram wizard', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create(['name' => 'Natural']);
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
@@ -174,7 +172,6 @@ it('publishes a learning resource through the telegram wizard', function () {
         ->and($resource->is_premium)->toBeFalse()
         ->and($resource->type)->toBe(ResourceType::ReferenceBooks)
         ->and($resource->course_id)->toBe($course->id)
-        ->and($resource->stream_id)->toBe($stream->id)
         ->and($resource->telegram_files)->toBe([
             ['file_id' => 'BQACAgQAAxkBAAI-publish-file', 'file_name' => 'calc-notes.pdf'],
         ]);
@@ -263,9 +260,8 @@ it('bulk publishes multiple vault files through one shared wizard', function () 
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create(['name' => 'Natural']);
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
         'is_active' => true,
     ]);
@@ -369,8 +365,7 @@ it('cancels the publish wizard without creating a resource', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    Course::factory()->create(['stream_id' => $stream->id, 'is_active' => true]);
+    Course::factory()->create(['is_active' => true]);
 
     $telegramId = 777011;
 
@@ -468,19 +463,18 @@ it('opens telegram vault pdfs with a mini app player button', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555880',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Telegram Vault Notes',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,
@@ -544,19 +538,18 @@ it('still sends non-pdf disk files as telegram documents', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555881',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Disk Fallback Notes',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,

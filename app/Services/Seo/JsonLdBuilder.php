@@ -4,7 +4,6 @@ namespace App\Services\Seo;
 
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\University;
 
 class JsonLdBuilder
 {
@@ -20,7 +19,6 @@ class JsonLdBuilder
         array $crumbs = [],
         ?Course $course = null,
         ?LearningResource $resource = null,
-        ?University $university = null,
     ): array {
         $graph = [
             $this->organization(),
@@ -37,10 +35,6 @@ class JsonLdBuilder
 
         if ($resource !== null) {
             $graph[] = $this->learningResource($resource, $url);
-        }
-
-        if ($university !== null) {
-            $graph[] = $this->educationalOrganization($university);
         }
 
         return $graph;
@@ -127,31 +121,5 @@ class JsonLdBuilder
             'learningResourceType' => $resource->type->label(),
             'isAccessibleForFree' => ! $resource->is_premium,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function educationalOrganization(University $university): array
-    {
-        $data = [
-            '@type' => 'EducationalOrganization',
-            'name' => $university->name,
-            'url' => route('universities.show', $university),
-        ];
-
-        if (filled($university->website)) {
-            $data['sameAs'] = $university->website;
-        }
-
-        if (filled($university->location)) {
-            $data['address'] = [
-                '@type' => 'PostalAddress',
-                'addressLocality' => $university->location,
-                'addressCountry' => 'ET',
-            ];
-        }
-
-        return $data;
     }
 }

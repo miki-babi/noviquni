@@ -25,28 +25,27 @@ beforeEach(function () {
  */
 function interactiveExamPdfContext(): array
 {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Maths',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
-    return [$user, $course, $stream];
+    return [$user, $course];
 }
 
 it('hides pdf viewer when an interactive exam also has a telegram pdf attached', function () {
-    [$user, $course, $stream] = interactiveExamPdfContext();
+    [$user, $course] = interactiveExamPdfContext();
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Interactive Exam With Stray Pdf',
         'telegram_files' => [
             [
@@ -71,11 +70,11 @@ it('hides pdf viewer when an interactive exam also has a telegram pdf attached',
 });
 
 it('still shows the pdf viewer for pdf-only practice exams', function () {
-    [$user, $course, $stream] = interactiveExamPdfContext();
+    [$user, $course] = interactiveExamPdfContext();
 
     $resource = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::PracticeExams,
         'title' => 'Sat Practice Test With Answer Key',
         'generation_kind' => null,

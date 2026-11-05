@@ -16,13 +16,13 @@ class ResourceHubController extends PublicController
 
         if ($course !== null) {
             abort_unless($course->is_active, 404);
-            $course->load('stream');
+
         }
 
         $resourcesQuery = LearningResource::query()
             ->published()
             ->whereIn('type', $resourceHub->typeValues())
-            ->with(['course', 'stream', 'university'])
+            ->with(['course'])
             ->orderByDesc('id');
 
         if ($course !== null) {

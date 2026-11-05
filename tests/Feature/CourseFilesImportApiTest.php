@@ -6,7 +6,6 @@ use App\Filament\Pages\ManageCourseFiles;
 use App\Models\Course;
 use App\Models\CourseFile;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\TelegramFileAsset;
 use App\Models\User;
 use App\Support\LearningResourceFiles;
@@ -40,7 +39,7 @@ it('rejects course file api calls without a valid token', function () {
 it('uploads a course file into the learning-resources library path', function () {
     Storage::fake('public');
 
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     $response = $this->withHeaders(courseFilesImportHeaders())
         ->post('/api/course-files', [
@@ -75,7 +74,7 @@ it('uploads a course file into the learning-resources library path', function ()
 it('returns the existing course file when external_id already exists', function () {
     Storage::fake('public');
 
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
     $existing = CourseFile::factory()->create([
         'course_id' => $course->id,
         'title' => 'Existing',
@@ -102,7 +101,7 @@ it('returns the existing course file when external_id already exists', function 
 it('rejects invalid course slugs and unsupported file types', function () {
     Storage::fake('public');
 
-    Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    Course::factory()->create(['slug' => 'maths']);
 
     $this->withHeaders(courseFilesImportHeaders())
         ->post('/api/course-files', [
@@ -126,7 +125,7 @@ it('rejects invalid course slugs and unsupported file types', function () {
 it('accepts zip and plain text course file uploads', function () {
     Storage::fake('public');
 
-    Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    Course::factory()->create(['slug' => 'maths']);
 
     $this->withHeaders(courseFilesImportHeaders())
         ->post('/api/course-files', [
@@ -146,7 +145,7 @@ it('accepts zip and plain text course file uploads', function () {
 });
 
 it('lists course files with pagination meta', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
 
     CourseFile::factory()->count(2)->create(['course_id' => $course->id]);
 
@@ -159,8 +158,8 @@ it('lists course files with pagination meta', function () {
 });
 
 it('patches course file metadata without moving the blob', function () {
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
-    $other = Course::factory()->create(['slug' => 'reading-and-writing', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
+    $other = Course::factory()->create(['slug' => 'reading-and-writing']);
     $file = CourseFile::factory()->create([
         'course_id' => $course->id,
         'title' => 'Old title',
@@ -213,7 +212,7 @@ it('lists telegram files and filters unmigrated ones', function () {
 it('patches telegram file migration links without changing file_id', function () {
     Storage::fake('public');
 
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/migrated.pdf';
     Storage::disk('public')->put($path, 'pdf-bytes');
 
@@ -279,8 +278,7 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/notes.docx';
     Storage::disk('public')->put($path, 'doc-bytes');
 
@@ -293,7 +291,7 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
     $user = User::factory()->student()->create([
         'telegram_id' => '700001',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_premium' => true,
         'is_active' => true,
     ]);
@@ -301,7 +299,7 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
 
     $resource = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Disk notes',
         'type' => ResourceType::ReferenceBooks,
         'files' => null,
@@ -343,7 +341,7 @@ it('shows api-uploaded course files on the filament manage page', function () {
     Storage::fake('public');
 
     $admin = User::factory()->admin()->create();
-    $course = Course::factory()->create(['slug' => 'maths', 'stream_id' => null]);
+    $course = Course::factory()->create(['slug' => 'maths']);
     $path = LearningResourceFiles::directoryForCourse($course->id).'/api-file.pdf';
     Storage::disk('public')->put($path, 'pdf');
 

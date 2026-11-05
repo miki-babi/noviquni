@@ -25,28 +25,27 @@ beforeEach(function () {
  */
 function miniAppPlayerContext(): array
 {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Anthropology',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
-    return [$user, $course, $stream];
+    return [$user, $course];
 }
 
 it('renders the reference books player for enrolled students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Anthropology Notes',
     ]);
 
@@ -57,11 +56,11 @@ it('renders the reference books player for enrolled students', function () {
 });
 
 it('renders the quiz player for enrolled students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Anthropology Quiz',
     ]);
 
@@ -73,11 +72,11 @@ it('renders the quiz player for enrolled students', function () {
 });
 
 it('renders the exam player for enrolled students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->published()->exam()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Anthropology Exam',
     ]);
 
@@ -89,12 +88,12 @@ it('renders the exam player for enrolled students', function () {
 });
 
 it('renders the premium quiz player for premium students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
     $user->update(['is_premium' => true]);
 
     $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Anthropology Premium Quiz',
     ]);
 
@@ -106,12 +105,12 @@ it('renders the premium quiz player for premium students', function () {
 });
 
 it('shows a paywall for premium quiz instead of player content for free students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
     app(SettingsService::class)->set(SettingsService::PAYMENT_BOT_USERNAME, 'noviquni_pay_bot');
 
     $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Anthropology Premium Quiz',
         'description' => 'Practice Greek roots and core anthropology definitions.',
     ]);
@@ -128,19 +127,18 @@ it('shows a paywall for premium quiz instead of player content for free students
         ->assertSee('Get Premium', false)
         ->assertDontSee('Seasonal cohort', false)
         ->assertDontSee('Or unlock', false)
-        ->assertSee('data-tg-request-fullscreen="0"', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false)
         ->assertDontSee('What are the Greek roots of anthropology?', false)
         ->assertDontSee(route('tg.premium'), false);
 });
 
 it('renders reader shells for every catalog type without interactive payload', function (ResourceType $type, string $routeName) {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
     $user->update(['is_premium' => true]);
 
     $resource = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => $type,
         'title' => $type->label().' Pack',
         'description' => 'Catalog body for '.$type->value,
@@ -164,17 +162,17 @@ it('renders reader shells for every catalog type without interactive payload', f
 ]);
 
 it('returns 404 when the player type does not match the resource', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
     $user->update(['is_premium' => true]);
 
     $quiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     $referenceBook = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'content' => null,
         'generation_kind' => null,
@@ -190,11 +188,11 @@ it('returns 404 when the player type does not match the resource', function () {
 });
 
 it('shows the locked view for premium resources without entitlement', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->published()->premium()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Premium Anthropology Quiz',
     ]);
 
@@ -206,11 +204,11 @@ it('shows the locked view for premium resources without entitlement', function (
 });
 
 it('returns 404 for unpublished player resources', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $resource = LearningResource::factory()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'is_published' => false,
     ]);
 
@@ -220,18 +218,17 @@ it('returns 404 for unpublished player resources', function () {
 });
 
 it('auto-enrolls students when opening a published player resource', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Enrollment quiz',
     ]);
 
@@ -246,16 +243,16 @@ it('auto-enrolls students when opening a published player resource', function ()
 });
 
 it('redirects the resource dispatcher to the matching catalog player', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $quiz = LearningResource::factory()->published()->quiz()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
     ]);
 
     $referenceBook = LearningResource::factory()->published()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Reference Book Pack',
         'content' => null,
@@ -272,11 +269,11 @@ it('redirects the resource dispatcher to the matching catalog player', function 
 });
 
 it('opens course hubs for free and premium students', function () {
-    [$user, $course, $stream] = miniAppPlayerContext();
+    [$user, $course] = miniAppPlayerContext();
 
     $referenceBook = LearningResource::factory()->published()->referenceBooks()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'sort_order' => 1,
         'title' => 'Chapter notes',
     ]);

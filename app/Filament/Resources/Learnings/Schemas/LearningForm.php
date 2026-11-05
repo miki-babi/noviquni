@@ -331,10 +331,6 @@ class LearningForm
                     ->integer()
                     ->default(0)
                     ->required(),
-                Select::make('university_id')
-                    ->relationship('university', 'name')
-                    ->searchable()
-                    ->preload(),
                 Select::make('semester_id')
                     ->relationship('semester', 'name')
                     ->searchable()
@@ -406,10 +402,6 @@ class LearningForm
                         ->integer()
                         ->default(0)
                         ->required(),
-                    Select::make('university_id')
-                        ->relationship('university', 'name')
-                        ->searchable()
-                        ->preload(),
                     Select::make('semester_id')
                         ->relationship('semester', 'name')
                         ->searchable()
@@ -915,7 +907,7 @@ class LearningForm
                         ->label('Disk file path(s)')
                         ->state(fn (?LearningResource $record): string => LearningResourceFiles::formatDiskPathStatusLines($record?->files))
                         ->placeholder('No disk files stored on this resource.')
-                        ->helperText('Relative keys under the '.LearningResourceFiles::diskName().' disk (local probed as fallback). Mini App streams these via /tg/files/{slug}/{index}.')
+                        ->helperText('Relative keys under the '.LearningResourceFiles::diskName().' disk (local probed as fallback). Mini App serves these via /tg/files/{slug}/{index}.')
                         ->visible(fn (?LearningResource $record): bool => filled($record?->files))
                         ->columnSpanFull(),
                     Select::make('telegram_file_ids')

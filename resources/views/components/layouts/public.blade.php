@@ -18,7 +18,6 @@
     <header class="sticky top-0 z-40 border-b border-border-light/60 bg-surface-white/95 backdrop-blur">
         <div class="mx-auto grid max-w-[1280px] grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-5 sm:px-8 lg:px-16">
             <nav class="hidden items-center gap-5 text-[13px] font-medium text-text-secondary md:flex">
-                <a href="{{ route('universities.index') }}" class="hover:text-text-primary">Universities</a>
                 <a href="{{ route('courses.index') }}" class="hover:text-text-primary">Courses</a>
                 <a href="{{ route('resources.index') }}" class="hover:text-text-primary">Resources</a>
                 <a href="{{ route('hubs.show', 'exams') }}" class="hover:text-text-primary">Exams</a>
@@ -53,7 +52,6 @@
                 </p>
             </div>
             <nav class="flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium text-text-secondary">
-                <a href="{{ route('universities.index') }}" class="hover:text-primary-200">Universities</a>
                 <a href="{{ route('courses.index') }}" class="hover:text-primary-200">Courses</a>
                 <a href="{{ route('resources.index') }}" class="hover:text-primary-200">Resources</a>
                 <a href="{{ route('hubs.show', 'modules') }}" class="hover:text-primary-200">Modules</a>

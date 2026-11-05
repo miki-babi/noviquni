@@ -3,7 +3,6 @@
 namespace Database\Factories;
 
 use App\Models\Course;
-use App\Models\Stream;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -20,7 +19,7 @@ class CourseFactory extends Factory
         $name = fake()->unique()->words(2, true);
 
         return [
-            'stream_id' => Stream::factory(),
+
             'name' => Str::title($name),
             'slug' => Str::slug($name),
             'is_active' => true,

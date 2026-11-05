@@ -11,7 +11,6 @@ use App\Models\LearningResource;
 use App\Models\Opportunity;
 use App\Models\OpportunityGuidanceRequest;
 use App\Models\Referral;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\OpportunityGuidanceService;
 use App\Services\SettingsService;
@@ -137,20 +136,19 @@ it('isolates quick saved tabs by bookmarkable type', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555202',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Saved Notes Only',
     ]);
     $scholarship = Opportunity::factory()->published()->scholarship()->create([
@@ -235,16 +233,15 @@ it('shows mini app quick saved tabs and opportunity detail save toggle', functio
 });
 
 it('keeps existing resource bookmarks after polymorphic migration shape', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Legacy Resource Bookmark',
     ]);
 
@@ -966,7 +963,7 @@ it('blocks mini app guidance when onboarding is incomplete', function () {
     Queue::fake();
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Stream,
+        'onboarding_step' => OnboardingStep::Department,
         'is_active' => true,
     ]);
 

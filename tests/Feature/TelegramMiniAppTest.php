@@ -5,8 +5,6 @@ use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Semester;
-use App\Models\Stream;
-use App\Models\University;
 use App\Models\User;
 use App\Models\Year;
 use App\Services\SettingsService;
@@ -87,15 +85,14 @@ it('uses same-host session endpoints from the mini app bootstrap', function () {
 });
 
 it('shows browse courses for an authenticated student', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
         'name' => 'Abebe Kebede',
     ]);
@@ -103,7 +100,7 @@ it('shows browse courses for an authenticated student', function () {
 
     $resource = LearningResource::factory()->published()->notes()->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'title' => 'Week-1 notes',
     ]);
 
@@ -202,24 +199,20 @@ it('shows the premium landing page with gat marketing copy', function () {
         ->assertDontSee('Seasonal cohort', false)
         ->assertDontSee('unlock free', false)
         ->assertDontSee('Or unlock', false)
-        ->assertSee('data-tg-request-fullscreen="0"', false)
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false);
 });
 
 it('shows the study profile edit form', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
-    $university = University::factory()->create(['name' => 'AAU']);
     $semester = Semester::factory()->create(['name' => 'Year 1']);
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
-        'university_id' => $university->id,
+
         'semester_id' => $semester->id,
         'is_active' => true,
     ]);
@@ -230,30 +223,24 @@ it('shows the study profile edit form', function () {
         ->get(route('tg.profile.edit'))
         ->assertOk()
         ->assertSee('Study profile')
-        ->assertSee('Natural')
-        ->assertSee('AAU')
+
         ->assertSee('Year 1')
         ->assertSee('Mathematics')
         ->assertSee('Save changes');
 });
 
 it('preselects every active course on the study profile when none are enrolled', function () {
-    $natural = Stream::factory()->create(['name' => 'Natural']);
-    $social = Stream::factory()->create(['name' => 'Social']);
     $math = Course::factory()->create([
-        'stream_id' => $natural->id,
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
     $civics = Course::factory()->create([
-        'stream_id' => $social->id,
         'name' => 'Civics',
         'is_active' => true,
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $natural->id,
         'is_active' => true,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
@@ -272,25 +259,19 @@ it('preselects every active course on the study profile when none are enrolled',
 });
 
 it('updates academic profile fields from the mini app', function () {
-    $natural = Stream::factory()->create(['name' => 'Natural']);
-    $social = Stream::factory()->create(['name' => 'Social']);
-    $university = University::factory()->create(['name' => 'AAU']);
     $semester = Semester::factory()->create(['name' => 'Year 1']);
     $math = Course::factory()->create([
-        'stream_id' => $natural->id,
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
     $civics = Course::factory()->create([
-        'stream_id' => $social->id,
         'name' => 'Civics',
         'is_active' => true,
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $natural->id,
-        'university_id' => $university->id,
+
         'semester_id' => $semester->id,
         'is_active' => true,
     ]);
@@ -299,8 +280,6 @@ it('updates academic profile fields from the mini app', function () {
 
     $this->actingAs($user)
         ->post(route('tg.profile.academic'), [
-            'stream_id' => $social->id,
-            'university_id' => '',
             'semester_id' => '',
             'course_ids' => [$civics->id],
         ])
@@ -308,29 +287,22 @@ it('updates academic profile fields from the mini app', function () {
 
     $user->refresh();
 
-    expect($user->stream_id)->toBe($social->id)
-        ->and($user->university_id)->toBeNull()
-        ->and($user->semester_id)->toBeNull()
+    expect($user->semester_id)->toBeNull()
         ->and($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
 });
 
-it('allows courses from another stream on the study profile', function () {
-    $natural = Stream::factory()->create(['name' => 'Natural']);
-    $social = Stream::factory()->create(['name' => 'Social']);
+it('allows courses from another course on the study profile', function () {
     $math = Course::factory()->create([
-        'stream_id' => $natural->id,
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
     $civics = Course::factory()->create([
-        'stream_id' => $social->id,
         'name' => 'Civics',
         'is_active' => true,
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $natural->id,
         'is_active' => true,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
@@ -338,7 +310,6 @@ it('allows courses from another stream on the study profile', function () {
 
     $this->actingAs($user)
         ->post(route('tg.profile.academic'), [
-            'stream_id' => $natural->id,
             'course_ids' => [$civics->id],
         ])
         ->assertRedirect(route('tg.profile'));
@@ -358,7 +329,6 @@ it('hides department and course pickers for GAT students on the study profile', 
         ->get(route('tg.profile.edit'))
         ->assertOk()
         ->assertDontSee('name="department_name"', false)
-        ->assertDontSee('name="stream_id"', false)
         ->assertDontSee('name="course_ids[]"', false)
         ->assertSee('Save changes');
 });
@@ -396,9 +366,8 @@ it('sets the Courses mini app menu button when the reply keyboard is sent', func
 });
 
 it('lets non-freshman students update department without attaching courses', function () {
-    $stream = Stream::factory()->create(['name' => 'Natural']);
     Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Mathematics',
         'is_active' => true,
     ]);
@@ -420,7 +389,6 @@ it('lets non-freshman students update department without attaching courses', fun
     $this->actingAs($user)
         ->post(route('tg.profile.academic'), [
             'department_name' => 'Electrical Engineering',
-            'university_id' => '',
             'semester_id' => '',
         ])
         ->assertRedirect(route('tg.profile'));
@@ -432,15 +400,14 @@ it('lets non-freshman students update department without attaching courses', fun
 });
 
 it('renders course pages inside the mini app', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Chemistry',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);

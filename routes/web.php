@@ -7,8 +7,6 @@ use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\ResourceController;
 use App\Http\Controllers\Public\ResourceHubController;
 use App\Http\Controllers\Public\SitemapController;
-use App\Http\Controllers\Public\StreamController;
-use App\Http\Controllers\Public\UniversityController;
 use App\Http\Controllers\Telegram\MiniApp\BrowseController;
 use App\Http\Controllers\Telegram\MiniApp\HomeScreenController;
 use App\Http\Controllers\Telegram\MiniApp\LibraryController;
@@ -33,11 +31,6 @@ use App\Http\Controllers\TelegramWebhookController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
-
-Route::get('/universities', [UniversityController::class, 'index'])->name('universities.index');
-Route::get('/universities/{university:slug}', [UniversityController::class, 'show'])->name('universities.show');
-
-Route::get('/streams/{stream:slug}', [StreamController::class, 'show'])->name('streams.show');
 
 Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/{course:slug}', [CourseController::class, 'show'])->name('courses.show');

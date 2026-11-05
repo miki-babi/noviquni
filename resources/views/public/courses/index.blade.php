@@ -13,9 +13,6 @@
                     <a href="{{ route('courses.show', $course) }}" class="block">
                         <x-ui.card class="h-full transition hover:-translate-y-0.5 hover:shadow-float">
                             <h2 class="text-lg font-semibold text-text-primary">{{ $course->name }}</h2>
-                            @if ($course->stream)
-                                <p class="mt-2 text-sm text-text-secondary">{{ $course->stream->name }}</p>
-                            @endif
                             <p class="mt-3 text-sm font-medium text-primary-200">{{ $course->published_resources_count }} resources</p>
                         </x-ui.card>
                     </a>

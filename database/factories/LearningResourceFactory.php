@@ -28,7 +28,6 @@ class LearningResourceFactory extends Factory
             'topics' => fake()->words(4),
             'type' => fake()->randomElement(ResourceType::creatableCases()),
             'course_id' => Course::factory(),
-            'stream_id' => fn (array $attributes) => Course::query()->find($attributes['course_id'])?->stream_id,
             'module_id' => null,
             'sort_order' => 0,
             'is_premium' => false,

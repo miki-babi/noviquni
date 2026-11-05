@@ -30,24 +30,23 @@ beforeEach(function () {
  */
 function pdfViewerContext(): array
 {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
 
-    return [$user, $course, $stream];
+    return [$user, $course];
 }
 
 it('streams a disk PDF for an enrolled student', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -57,7 +56,7 @@ it('streams a disk PDF for an enrolled student', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Week 1 PDF notes',
     ]);
@@ -73,7 +72,7 @@ it('streams a disk PDF for an enrolled student', function () {
 });
 
 it('proxies a telegram vault PDF through the stream route', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     Http::fake([
         'api.telegram.org/bot*/getFile' => Http::response([
@@ -90,7 +89,7 @@ it('proxies a telegram vault PDF through the stream route', function () {
         ['file_id' => 'file-pdf-1', 'file_name' => 'week-1.pdf'],
     ])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Vault PDF notes',
     ]);
@@ -103,7 +102,7 @@ it('proxies a telegram vault PDF through the stream route', function () {
 });
 
 it('shows the bootstrap page for guests on the PDF stream', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -113,7 +112,7 @@ it('shows the bootstrap page for guests on the PDF stream', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
     ]);
 
@@ -134,7 +133,7 @@ it('shows the bootstrap page for guests on the PDF stream', function () {
 });
 
 it('logs missing disk files when the PDF stream 404s', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     Storage::fake('public');
     Storage::fake('local');
@@ -142,7 +141,7 @@ it('logs missing disk files when the PDF stream 404s', function () {
     $path = LearningResourceFiles::directoryForCourse($course->id).'/missing.pdf';
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
     ]);
 
@@ -184,7 +183,7 @@ it('logs missing disk files when the PDF stream 404s', function () {
 });
 
 it('streams a PDF from the local disk when public is missing', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     Storage::fake('public');
     Storage::fake('local');
@@ -194,7 +193,7 @@ it('streams a PDF from the local disk when public is missing', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Legacy local PDF',
     ]);
@@ -224,7 +223,7 @@ it('streams a PDF from the local disk when public is missing', function () {
 });
 
 it('shows the locked view when streaming a premium PDF without entitlement', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -234,7 +233,7 @@ it('shows the locked view when streaming a premium PDF without entitlement', fun
 
     $resource = LearningResource::factory()->published()->premium()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Premium PDF',
     ]);
@@ -246,7 +245,7 @@ it('shows the locked view when streaming a premium PDF without entitlement', fun
 });
 
 it('returns 404 for a non-PDF attachment index', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -256,7 +255,7 @@ it('returns 404 for a non-PDF attachment index', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$docx])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
     ]);
 
@@ -268,7 +267,7 @@ it('returns 404 for a non-PDF attachment index', function () {
 });
 
 it('links PDF resources from the hub to the Mini App player', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -278,7 +277,7 @@ it('links PDF resources from the hub to the Mini App player', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Hub PDF notes',
     ]);
@@ -296,7 +295,7 @@ it('links PDF resources from the hub to the Mini App player', function () {
 });
 
 it('keeps non-PDF file resources on the bot deep link', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -306,7 +305,7 @@ it('keeps non-PDF file resources on the bot deep link', function () {
 
     $resource = LearningResource::factory()->published()->withFiles([$docx])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Word notes',
     ]);
@@ -323,7 +322,7 @@ it('keeps non-PDF file resources on the bot deep link', function () {
 });
 
 it('renders the PDF viewer markup on the notes player with a relative stream URL', function () {
-    [$user, $course, $stream] = pdfViewerContext();
+    [$user, $course] = pdfViewerContext();
 
     $disk = LearningResourceFiles::diskName();
     Storage::fake($disk);
@@ -333,7 +332,7 @@ it('renders the PDF viewer markup on the notes player with a relative stream URL
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Player PDF notes',
     ]);
@@ -354,15 +353,14 @@ it('renders the PDF viewer markup on the notes player with a relative stream URL
 });
 
 it('opens the PDF notes player for an unenrolled student and enrolls them', function () {
-    $stream = Stream::factory()->create();
     $course = Course::factory()->create([
-        'stream_id' => $stream->id,
+
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
 
@@ -374,7 +372,7 @@ it('opens the PDF notes player for an unenrolled student and enrolls them', func
 
     $resource = LearningResource::factory()->published()->withFiles([$path])->create([
         'course_id' => $course->id,
-        'stream_id' => $stream->id,
+
         'type' => ResourceType::ReferenceBooks,
         'title' => 'Unenrolled PDF notes',
     ]);

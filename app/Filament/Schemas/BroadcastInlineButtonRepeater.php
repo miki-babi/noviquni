@@ -79,7 +79,7 @@ class BroadcastInlineButtonRepeater
                     ->rows(3)
                     ->required(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value)
                     ->visible(fn (Get $get): bool => $get('type') === BroadcastButtonType::Choice->value)
-                    ->helperText('Sent to the student when they tap this choice. Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}, {{referral_count}}, {{referral_points}}')
+                    ->helperText('Sent to the student when they tap this choice. Variables: {{first_name}}, {{course}}, {{referral_count}}, {{referral_points}}')
                     ->columnSpanFull(),
             ])
             ->defaultItems(0)

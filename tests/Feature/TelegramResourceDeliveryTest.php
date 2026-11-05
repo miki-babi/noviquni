@@ -6,7 +6,6 @@ use App\Enums\ResourceType;
 use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Services\SettingsService;
 use App\Support\LearningResourceFiles;
@@ -32,19 +31,18 @@ it('lists generated quiz resources as direct mini app buttons', function () {
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555777',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Anthropology Quiz',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::Quiz,
         'generation_kind' => CollegeResourceKind::Quiz,
@@ -115,19 +113,18 @@ it('opens a non-file resource deep link with a mini app title button', function 
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555779',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->quiz()->create([
         'title' => 'Deep Link Quiz',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'is_premium' => false,
         'files' => null,
@@ -174,20 +171,19 @@ it('opens premium mini app resources for free students so they can see the paywa
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555780',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_premium' => false,
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->quiz()->premium()->create([
         'title' => 'Premium Deep Link Quiz',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'files' => null,
     ]);
@@ -237,19 +233,18 @@ it('opens pdf resources with a mini app player button instead of sending the doc
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555778',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Week 1 Lecture Notes',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'generation_kind' => null,
@@ -305,20 +300,19 @@ it('shows a green Saved button when a pdf resource is already bookmarked', funct
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555789',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Already Saved Notes',
         'description' => 'Lecture summary for week 2',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
@@ -382,19 +376,18 @@ it('toggles a bookmark from the quick save callback and updates the button marku
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555790',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
     ]);
     $user->courses()->attach($course->id);
 
     $resource = LearningResource::factory()->published()->create([
         'title' => 'Saveable Notes',
-        'stream_id' => $stream->id,
+
         'course_id' => $course->id,
         'type' => ResourceType::ReferenceBooks,
         'is_premium' => false,
@@ -476,7 +469,7 @@ it('blocks quick save when onboarding is incomplete', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555792',
-        'onboarding_step' => OnboardingStep::Stream,
+        'onboarding_step' => OnboardingStep::Department,
     ]);
 
     $resource = LearningResource::factory()->published()->create([

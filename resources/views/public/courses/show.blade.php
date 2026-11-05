@@ -2,12 +2,6 @@
     <article class="mx-auto max-w-[1280px] space-y-10 px-4 py-10 sm:px-8 lg:px-16">
         <header class="space-y-4">
             <h1 class="text-3xl font-extrabold tracking-tight text-text-primary sm:text-4xl">Freshman {{ $course->name }} resources</h1>
-            @if ($course->stream)
-                <p class="text-text-secondary">
-                    Stream:
-                    <a href="{{ route('streams.show', $course->stream) }}" class="font-medium text-primary-200 hover:underline">{{ $course->stream->name }}</a>
-                </p>
-            @endif
             <x-cta.telegram :label="'Open '.$course->name.' in Telegram'" :payload="'course_'.$course->slug" />
         </header>
 
@@ -40,32 +34,6 @@
                     <h3 class="font-semibold text-text-primary">What is freshman {{ $course->name }}?</h3>
                     <p class="mt-2 text-text-secondary">
                         Freshman {{ $course->name }} is a core course for Ethiopian university students
-                        @if ($course->stream) in the {{ $course->stream->name }} stream @endif.
-                        {{ config('app.name') }} collects modules, notes, past exams, and practice materials for it.
-                    </p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-text-primary">Where can I find {{ $course->name }} modules?</h3>
-                    <p class="mt-2 text-text-secondary">
-                        There {{ $counts['modules'] === 1 ? 'is' : 'are' }} {{ $counts['modules'] }} published
-                        <a href="{{ route('hubs.course', ['modules', $course]) }}" class="font-medium text-primary-200 hover:underline">{{ strtolower(\App\Enums\ResourceHub::Modules->label()) }}</a>
-                        for this course.
-                    </p>
-                </div>
-                <div>
-                    <h3 class="font-semibold text-text-primary">Where can I find past exams?</h3>
-                    <p class="mt-2 text-text-secondary">
-                        Browse
-                        <a href="{{ route('hubs.course', ['exams', $course]) }}" class="font-medium text-primary-200 hover:underline">{{ $course->name }} past exams</a>
-                        or open the full library in Telegram.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        @if (filled($course->seo_content))
-            <section class="max-w-3xl text-text-secondary">{!! nl2br(e($course->seo_content)) !!}</section>
-        @endif
 
         <section class="space-y-4">
             <h2 class="text-2xl font-bold text-text-primary">Browse by type</h2>

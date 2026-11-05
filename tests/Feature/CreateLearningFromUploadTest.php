@@ -5,7 +5,6 @@ use App\Filament\Pages\ManageCourseFiles;
 use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Stream;
 use App\Models\User;
 use App\Support\LearningResourceFiles;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -20,8 +19,7 @@ it('creates a learning resource from a single uploaded file', function () {
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $file = UploadedFile::fake()->create('week-1-notes.pdf', 120, 'application/pdf');
 
@@ -57,7 +55,6 @@ it('creates a learning resource from a single uploaded file', function () {
         ->and($resource->generation_kind)->toBeNull()
         ->and($resource->content)->toBeNull()
         ->and($resource->course_id)->toBe($course->id)
-        ->and($resource->stream_id)->toBe($stream->id)
         ->and($resource->is_premium)->toBeFalse()
         ->and($resource->files)->toBeArray()
         ->and($resource->files)->toHaveCount(1)
@@ -72,8 +69,7 @@ it('creates a learning resource from multiple uploaded files', function () {
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $files = [
         UploadedFile::fake()->create('midterm.pdf', 80, 'application/pdf'),
@@ -126,8 +122,7 @@ it('creates a learning resource from an existing course library file', function 
     Storage::fake($disk);
 
     $admin = User::factory()->admin()->create();
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
 
     $path = LearningResourceFiles::directoryForCourse($course->id).'/shared-notes.pdf';
     Storage::disk($disk)->put($path, 'pdf-bytes');

@@ -79,7 +79,7 @@ function documentHasImageId(mixed $document, string $needle): bool
 }
 
 it('imports questions with tip tap image nodes from a zip', function () {
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
     $png = tinyPng();
     $zipPath = makeExamImportZip([
         'title' => 'Imported exam',
@@ -198,7 +198,7 @@ it('reports fewer than two options and a bad answer index', function () {
 });
 
 it('builds a downloadable sample zip that the importer accepts', function () {
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
     $bytes = app(ExamQuestionZipImporter::class)->sampleZipContents();
     $zipPath = storage_path('app/tmp/sample-'.Str::uuid()->toString().'.zip');
     file_put_contents($zipPath, $bytes);
@@ -213,7 +213,7 @@ it('builds a downloadable sample zip that the importer accepts', function () {
 
 it('fills quiz_questions on create learning via the import zip action', function () {
     $admin = User::factory()->admin()->create();
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
     $png = tinyPng();
     $zipPath = makeExamImportZip([
         'title' => 'Livewire exam',
@@ -284,7 +284,7 @@ it('fills quiz_questions on create learning via the import zip action', function
 
 it('appends imported questions on edit learning', function () {
     $admin = User::factory()->admin()->create();
-    $course = Course::factory()->create(['stream_id' => null]);
+    $course = Course::factory()->create([]);
     $resource = LearningResource::factory()->quiz()->create([
         'course_id' => $course->id,
         'content' => [

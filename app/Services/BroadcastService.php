@@ -59,14 +59,6 @@ class BroadcastService
             $query->where('is_premium', false);
         }
 
-        if (! empty($targeting['university_id'])) {
-            $query->where('university_id', $targeting['university_id']);
-        }
-
-        if (! empty($targeting['stream_id'])) {
-            $query->where('stream_id', $targeting['stream_id']);
-        }
-
         if (! empty($targeting['course_id'])) {
             $query->whereHas('courses', fn (Builder $builder) => $builder->where('courses.id', $targeting['course_id']));
         }
@@ -93,7 +85,7 @@ class BroadcastService
 
     public function personalize(string $body, User $user): string
     {
-        $user->loadMissing(['university', 'stream', 'courses']);
+        $user->loadMissing(['courses']);
 
         $firstName = explode(' ', trim($user->name))[0] ?: $user->name;
         $referralCount = Referral::query()
@@ -102,11 +94,9 @@ class BroadcastService
             ->count();
 
         return str_replace(
-            ['{{first_name}}', '{{university}}', '{{stream}}', '{{course}}', '{{referral_count}}', '{{referral_points}}'],
+            ['{{first_name}}', '{{course}}', '{{referral_count}}', '{{referral_points}}'],
             [
                 $firstName,
-                $user->university?->name ?? '',
-                $user->stream?->name ?? '',
                 $user->courses->first()?->name ?? '',
                 (string) $referralCount,
                 (string) $user->referral_points,

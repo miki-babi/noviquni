@@ -40,12 +40,6 @@ class MostActiveStudentsTable extends TableWidget
                     ->label('Telegram')
                     ->prefix('@')
                     ->placeholder('—'),
-                TextColumn::make('university.name')
-                    ->label('University')
-                    ->placeholder('—'),
-                TextColumn::make('stream.name')
-                    ->label('Stream')
-                    ->placeholder('—'),
                 TextColumn::make('opens_7d')
                     ->label('Opens 7d')
                     ->sortable(),

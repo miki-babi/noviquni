@@ -5,7 +5,6 @@ use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\YearSlug;
 use App\Models\Course;
-use App\Models\Stream;
 use App\Models\User;
 use App\Models\Year;
 use App\Services\SettingsService;
@@ -128,12 +127,11 @@ it('sends the admin start photo caption and inline buttons on /start', function 
         ],
     ], JSON_THROW_ON_ERROR));
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555900',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -172,12 +170,11 @@ it('sends the admin start photo caption and inline buttons on /start', function 
 });
 
 it('falls back to default welcome when no custom start message is configured', function () {
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555901',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -210,12 +207,11 @@ it('logs the outbound telegram payloads sent after /start', function () {
         }
     );
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555902',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -256,12 +252,11 @@ it('logs the start photo caption when a custom start image is sent', function ()
     $settings->set(SettingsService::TELEGRAM_START_IMAGE, 'telegram/start/welcome.jpg');
     $settings->set(SettingsService::TELEGRAM_START_CAPTION, 'Welcome back, {{first_name}}!');
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555903',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -289,12 +284,11 @@ it('includes the Start now referral link only when {{referral_cta}} is in the ca
     $settings->set(SettingsService::TELEGRAM_START_IMAGE, 'telegram/start/welcome.jpg');
     $settings->set(SettingsService::TELEGRAM_START_CAPTION, 'Welcome, {{first_name}}! {{referral_cta}}');
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555904',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -327,12 +321,11 @@ it('does not log start payloads for other telegram commands', function () {
         }
     );
 
-    $stream = Stream::factory()->create();
-    $course = Course::factory()->create(['stream_id' => $stream->id]);
+    $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555904',
         'onboarding_step' => OnboardingStep::Complete,
-        'stream_id' => $stream->id,
+
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);

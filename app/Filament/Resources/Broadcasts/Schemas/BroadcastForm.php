@@ -4,8 +4,6 @@ namespace App\Filament\Resources\Broadcasts\Schemas;
 
 use App\Filament\Schemas\BroadcastInlineButtonRepeater;
 use App\Models\Course;
-use App\Models\Stream;
-use App\Models\University;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -23,7 +21,7 @@ class BroadcastForm
                 Textarea::make('body')
                     ->required()
                     ->rows(6)
-                    ->helperText('Variables: {{first_name}}, {{university}}, {{stream}}, {{course}}, {{referral_count}}, {{referral_points}}')
+                    ->helperText('Variables: {{first_name}}, {{course}}, {{referral_count}}, {{referral_points}}')
                     ->columnSpanFull(),
                 Section::make('Audience')
                     ->schema([
@@ -35,14 +33,6 @@ class BroadcastForm
                             ])
                             ->default('everyone')
                             ->required(),
-                        Select::make('targeting.university_id')
-                            ->label('University')
-                            ->options(fn () => University::query()->orderBy('name')->pluck('name', 'id'))
-                            ->searchable(),
-                        Select::make('targeting.stream_id')
-                            ->label('Stream')
-                            ->options(fn () => Stream::query()->orderBy('name')->pluck('name', 'id'))
-                            ->searchable(),
                         Select::make('targeting.course_id')
                             ->label('Course')
                             ->options(fn () => Course::query()->orderBy('name')->pluck('name', 'id'))

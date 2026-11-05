@@ -28,6 +28,5 @@ it('creates a course without a stream from the admin form', function () {
     $course = Course::query()->where('slug', 'maths')->first();
 
     expect($course)->not->toBeNull()
-        ->and($course->name)->toBe('Maths')
-        ->and($course->stream_id)->toBeNull();
+        ->and($course->name)->toBe('Maths');
 });
