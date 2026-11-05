@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\CollegeResourceKind;
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Bookmark;
 use App\Models\Course;
@@ -35,7 +34,6 @@ it('lists generated quiz resources as direct mini app buttons', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555777',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -117,7 +115,6 @@ it('opens a non-file resource deep link with a mini app title button', function 
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555779',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -175,7 +172,6 @@ it('opens premium mini app resources for free students so they can see the paywa
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555780',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_premium' => false,
     ]);
@@ -237,7 +233,6 @@ it('opens pdf resources with a mini app player button instead of sending the doc
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555778',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -304,7 +299,6 @@ it('shows a green Saved button when a pdf resource is already bookmarked', funct
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555789',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -380,7 +374,6 @@ it('toggles a bookmark from the quick save callback and updates the button marku
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555790',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -460,7 +453,7 @@ it('toggles a bookmark from the quick save callback and updates the button marku
     });
 });
 
-it('blocks quick save when onboarding is incomplete', function () {
+it('quick saves a resource when the save callback is tapped', function () {
     Http::preventStrayRequests();
     Http::fake([
         'api.telegram.org/bot*/answerCallbackQuery' => Http::response(['ok' => true, 'result' => true], 200),
@@ -469,7 +462,6 @@ it('blocks quick save when onboarding is incomplete', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555792',
-        'onboarding_step' => OnboardingStep::Department,
     ]);
 
     $resource = LearningResource::factory()->published()->create([
@@ -496,15 +488,7 @@ it('blocks quick save when onboarding is incomplete', function () {
         ],
     ])->assertOk();
 
-    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeFalse();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/answerCallbackQuery')) {
-            return false;
-        }
-
-        return filled($request->data()['text'] ?? null);
-    });
+    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeTrue();
 });
 
 it('reports not found for missing resources on save', function () {
@@ -516,7 +500,6 @@ it('reports not found for missing resources on save', function () {
 
     User::factory()->student()->create([
         'telegram_id' => '555793',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $this->postJson('/telegram/webhook', [

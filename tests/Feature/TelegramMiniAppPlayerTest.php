@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -31,7 +30,6 @@ function miniAppPlayerContext(): array
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -221,7 +219,6 @@ it('auto-enrolls students when opening a published player resource', function ()
     $course = Course::factory()->create([]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

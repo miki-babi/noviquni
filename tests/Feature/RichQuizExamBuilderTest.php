@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\CollegeResourceKind;
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Filament\Resources\Learnings\Pages\CreateLearning;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
@@ -181,7 +180,6 @@ it('persists tip tap images on exam questions choices and explanations and rende
         ->and(StudyRichText::toHtml($savedQuestion['explanation']))->toContain('explanation.png');
 
     $student = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
     $student->courses()->sync([$course->id]);
@@ -245,7 +243,6 @@ it('updates practice exam content from the rich questions builder', function () 
 it('renders rich html in the quiz player and keeps legacy plain text playable', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

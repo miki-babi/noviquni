@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -36,7 +35,6 @@ function pdfViewerContext(): array
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -359,7 +357,6 @@ it('opens the PDF notes player for an unenrolled student and enrolls them', func
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

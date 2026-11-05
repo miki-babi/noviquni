@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -29,7 +28,6 @@ function customCommandUser(int $telegramId = 600100): User
 
     $user = User::factory()->student()->create([
         'telegram_id' => (string) $telegramId,
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -220,37 +218,6 @@ it('falls through for unknown slash commands', function () {
 
         return str_contains((string) ($request->data()['text'] ?? ''), 'Choose');
     });
-});
-
-it('does not run custom commands during onboarding', function () {
-    Http::preventStrayRequests();
-    Http::fake([
-        'api.telegram.org/bot*/sendMessage' => Http::response(['ok' => true, 'result' => ['message_id' => 7]], 200),
-        'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
-    ]);
-
-    User::factory()->student()->create([
-        'telegram_id' => '600106',
-        'onboarding_step' => OnboardingStep::Department,
-    ]);
-
-    TelegramCommand::factory()->messageOnly('Onboarding should block this')->create([
-        'command' => 'blocked',
-    ]);
-
-    postCustomCommand(600106, '/blocked', 9206);
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        $text = (string) ($request->data()['text'] ?? '');
-
-        return ! str_contains($text, 'Onboarding should block this');
-    });
-
-    Http::assertNotSent(fn ($request) => str_contains($request->url(), '/sendDocument'));
 });
 
 it('keeps /start on the existing welcome path', function () {

@@ -153,7 +153,7 @@
         x-data="{ step: 0, steps: [
             { title: 'Discover on the web', body: 'Browse courses and public resource pages without creating an account.', panel: 'Browse SEO pages for modules, notes, and exams.' },
             { title: 'Open Telegram', body: 'Tap Open Telegram to start the bot and continue where the public page left off.', panel: 'Deep-link into your personalized library.' },
-            { title: 'Complete onboarding', body: 'Pick your courses so resources match what you study.', panel: 'Year → Department → Courses.' },
+            { title: 'Complete onboarding', body: 'Pick your courses so resources match what you study.', panel: 'Everything is ready the moment you join.' },
             { title: 'Study and invite', body: 'Download resources, stay updated, and unlock more by inviting classmates.', panel: 'Referrals unlock premium access.' }
         ]}"
     >

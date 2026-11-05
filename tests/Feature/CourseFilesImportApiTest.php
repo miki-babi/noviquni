@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Filament\Pages\ManageCourseFiles;
 use App\Models\Course;
@@ -290,7 +289,6 @@ it('sends migrated telegram resources from disk instead of telegram file_id', fu
 
     $user = User::factory()->student()->create([
         'telegram_id' => '700001',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_premium' => true,
         'is_active' => true,

@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -32,7 +31,6 @@ function libraryContext(): array
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

@@ -23,7 +23,7 @@ class ProgressController extends Controller
             'report' => $report->forUser($user),
             'activeNav' => 'profile',
             'title' => 'Study progress',
-            'backUrl' => route('tg.profile.edit'),
+            'backUrl' => route('tg.profile'),
         ]);
     }
 }

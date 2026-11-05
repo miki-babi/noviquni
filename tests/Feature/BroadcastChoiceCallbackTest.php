@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\BroadcastButtonType;
-use App\Enums\OnboardingStep;
 use App\Models\Broadcast;
 use App\Models\User;
 use App\Services\SettingsService;
@@ -27,7 +26,6 @@ it('edits the broadcast message to the answer with a back button when a choice i
     $user = User::factory()->student()->create([
         'name' => 'Ada Lovelace',
         'telegram_id' => '555902',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -90,7 +88,6 @@ it('restores the original broadcast message when back is tapped', function () {
     $user = User::factory()->student()->create([
         'name' => 'Ada Lovelace',
         'telegram_id' => '555903',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -154,7 +151,6 @@ it('edits the same message to the other answer when a new choice is tapped', fun
     $user = User::factory()->student()->create([
         'name' => 'Ada Lovelace',
         'telegram_id' => '555904',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -212,7 +208,6 @@ it('edits the same message to the other answer when a new choice is tapped', fun
 it('alerts on invalid choice callbacks', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555905',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 

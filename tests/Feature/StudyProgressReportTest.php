@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Models\AssessmentAttempt;
 use App\Models\AssessmentAttemptAnswer;
 use App\Models\Course;
@@ -24,7 +23,6 @@ beforeEach(function () {
 it('builds strengths weaknesses and improvement insights for a student', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course);

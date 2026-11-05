@@ -2,7 +2,7 @@
     :copy="$copy"
     :active-nav="$activeNav"
     :title="$copy->get('menu.premium')"
-    :back-url="route('tg.profile.edit')"
+    :back-url="route('tg.profile')"
 >
     <div class="study-page">
         <x-telegram.mini-app.premium-landing

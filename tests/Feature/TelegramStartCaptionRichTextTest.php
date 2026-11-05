@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Models\Course;
 use App\Models\User;
 use App\Services\SettingsService;
@@ -39,7 +38,6 @@ it('sends start captions with telegram-safe rich text formatting', function () {
     $user = User::factory()->student()->create([
         'name' => 'Abebe Kebede',
         'telegram_id' => '555910',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

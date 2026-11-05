@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Models\User;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +24,6 @@ beforeEach(function () {
 it('handles text reply inline callbacks like typed menu text', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555901',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 

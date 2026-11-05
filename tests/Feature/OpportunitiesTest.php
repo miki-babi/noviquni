@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\GuidanceRequestStatus;
-use App\Enums\OnboardingStep;
 use App\Enums\OpportunityType;
 use App\Filament\Resources\Opportunities\Pages\CreateOpportunity;
 use App\Jobs\SendTelegramMessageJob;
@@ -15,6 +14,7 @@ use App\Models\User;
 use App\Services\OpportunityGuidanceService;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
+use App\Services\TelegramService;
 use Database\Seeders\OpportunitySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -67,7 +67,6 @@ it('lists published opportunities of the tapped career type in the bot', functio
 
     User::factory()->student()->create([
         'telegram_id' => '555200',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -108,7 +107,6 @@ it('saves and unsaves an opportunity from the bot detail keyboard', function () 
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555201',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -140,7 +138,6 @@ it('isolates quick saved tabs by bookmarkable type', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555202',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -197,7 +194,6 @@ it('isolates quick saved tabs by bookmarkable type', function () {
 
 it('shows mini app quick saved tabs and opportunity detail save toggle', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -235,7 +231,6 @@ it('shows mini app quick saved tabs and opportunity detail save toggle', functio
 it('keeps existing resource bookmarks after polymorphic migration shape', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
 
@@ -272,7 +267,6 @@ it('shows verified partner badge and request guidance when guidance is available
 
     User::factory()->student()->create([
         'telegram_id' => '555300',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -308,7 +302,6 @@ it('shows request guidance without a verified partner when guidance is available
 
     User::factory()->student()->create([
         'telegram_id' => '555301',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -344,7 +337,6 @@ it('hides request guidance when guidance is not available even for verified part
 
     User::factory()->student()->create([
         'telegram_id' => '555302',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -381,7 +373,6 @@ it('creates a pending guidance request and notifies admins without a student DM 
         'telegram_id' => '888001',
         'telegram_username' => 'student_one',
         'name' => 'Student One',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => true,
     ]);
@@ -439,7 +430,6 @@ it('notifies the student with an open chat link when a guide is assigned', funct
         'telegram_id' => '888021',
         'telegram_username' => 'student_one',
         'name' => 'Student One',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -495,7 +485,6 @@ it('uses opportunity opening message override when assigning a guide', function 
     $student = User::factory()->student()->create([
         'telegram_id' => '888022',
         'telegram_username' => 'override_student',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -532,7 +521,6 @@ it('uses opportunity opening message override when assigning a guide', function 
 it('rejects assigning a guide without a telegram username', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '888023',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $assignee = User::factory()->student()->create([
@@ -558,7 +546,6 @@ it('dedupes existing guidance requests and admin notifications', function () {
     User::factory()->student()->create([
         'telegram_id' => '888003',
         'telegram_username' => 'student_two',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => true,
     ]);
@@ -592,7 +579,6 @@ it('does not create another guidance request when one is already assigned', func
     $student = User::factory()->student()->create([
         'telegram_id' => '888033',
         'telegram_username' => 'student_assigned',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => true,
     ]);
@@ -627,7 +613,6 @@ it('shows a default guidance requested button when the student already requested
 
     $student = User::factory()->student()->create([
         'telegram_id' => '555303',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -667,7 +652,6 @@ it('accepts mini app guidance requests when guidance is available', function () 
     config(['services.telegram.file_admin_username' => 'noviqsupport']);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => true,
     ]);
@@ -702,7 +686,6 @@ it('rejects mini app guidance requests when guidance is not available', function
     Queue::fake();
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -731,7 +714,6 @@ it('includes a share deep link with the sharer referral code on bot opportunity 
     $user = User::factory()->student()->create([
         'telegram_id' => '555400',
         'referral_code' => 'SHAREABC',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -768,7 +750,6 @@ it('attributes a referral and opens opportunity detail for a new user via share 
 
     $referrer = User::factory()->student()->create([
         'referral_code' => 'REFSHARE1',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -784,7 +765,6 @@ it('attributes a referral and opens opportunity detail for a new user via share 
     $newUser = User::query()->where('telegram_id', '555401')->first();
 
     expect($newUser)->not->toBeNull()
-        ->and($newUser->onboarding_step)->toBe(OnboardingStep::Complete)
         ->and($newUser->referred_by_user_id)->toBe($referrer->id);
 
     expect(Referral::query()->where('referrer_id', $referrer->id)->where('referred_id', $newUser->id)->exists())->toBeTrue();
@@ -801,14 +781,13 @@ it('attributes a referral and opens opportunity detail for a new user via share 
     });
 });
 
-it('prompts onboarding when an incomplete user tries to save a shared opportunity', function () {
+it('saves a shared opportunity when the save callback is tapped', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555402',
-        'onboarding_step' => OnboardingStep::Year,
         'is_active' => true,
     ]);
 
@@ -820,23 +799,7 @@ it('prompts onboarding when an incomplete user tries to save a shared opportunit
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555402, 'save:opp:'.$opportunity->id, 61, 402))
         ->assertOk();
 
-    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeFalse();
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/answerCallbackQuery')) {
-            return false;
-        }
-
-        return str_contains((string) data_get($request->data(), 'text'), 'Finish onboarding first');
-    });
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage') && ! str_contains($request->url(), '/editMessageText')) {
-            return false;
-        }
-
-        return str_contains((string) data_get($request->data(), 'text'), 'year');
-    });
+    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeTrue();
 });
 
 it('does not attribute a referral when an existing user opens an opportunity share link', function () {
@@ -846,14 +809,12 @@ it('does not attribute a referral when an existing user opens an opportunity sha
 
     $referrer = User::factory()->student()->create([
         'referral_code' => 'EXISTREF1',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
     $existing = User::factory()->student()->create([
         'telegram_id' => '555404',
         'referred_by_user_id' => null,
-        'onboarding_step' => OnboardingStep::Year,
         'is_active' => true,
     ]);
 
@@ -888,20 +849,17 @@ it('opens a shared opportunity for a complete user without overwriting an existi
 
     $originalReferrer = User::factory()->student()->create([
         'referral_code' => 'ORIGREF01',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
     $otherReferrer = User::factory()->student()->create([
         'referral_code' => 'OTHERREF1',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555403',
         'referred_by_user_id' => $originalReferrer->id,
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -928,10 +886,9 @@ it('opens a shared opportunity for a complete user without overwriting an existi
     });
 });
 
-it('shows a share link on the mini app opportunity page and blocks save when onboarding is incomplete', function () {
+it('shows a share link on the mini app opportunity page and saves from the mini app', function () {
     $user = User::factory()->student()->create([
         'referral_code' => 'MINISH01',
-        'onboarding_step' => OnboardingStep::Year,
         'is_active' => true,
     ]);
 
@@ -953,40 +910,15 @@ it('shows a share link on the mini app opportunity page and blocks save when onb
         ->from(route('tg.opportunities.show', $opportunity))
         ->post(route('tg.saved.opportunities.toggle', $opportunity))
         ->assertRedirect(route('tg.opportunities.show', $opportunity))
-        ->assertSessionHas('status')
-        ->assertSessionHas('show_onboarding_link');
+        ->assertSessionHas('status');
 
-    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeFalse();
-});
-
-it('blocks mini app guidance when onboarding is incomplete', function () {
-    Queue::fake();
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Department,
-        'is_active' => true,
-    ]);
-
-    $opportunity = Opportunity::factory()
-        ->published()
-        ->job()
-        ->guidanceAvailable()
-        ->create([
-            'slug' => 'blocked-guidance-opportunity',
-        ]);
-
-    $this->actingAs($user)
-        ->from(route('tg.opportunities.show', $opportunity))
-        ->post(route('tg.opportunities.guidance', $opportunity))
-        ->assertRedirect(route('tg.opportunities.show', $opportunity))
-        ->assertSessionHas('show_onboarding_link');
-
-    Queue::assertNothingPushed();
+    expect(Bookmark::query()->where('user_id', $user->id)->exists())->toBeTrue();
 });
 
 it('shows request guidance to everyone and only pitches premium after a non-premium tap', function () {
+    $this->mock(TelegramService::class, fn ($mock) => $mock->shouldIgnoreMissing());
+
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => false,
     ]);
@@ -1032,7 +964,6 @@ it('allows premium students to request guidance', function () {
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => true,
     ]);
@@ -1064,7 +995,6 @@ it('blocks bot guidance requests for non-premium students and unlocks via paymen
 
     $user = User::factory()->student()->create([
         'telegram_id' => '888200',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => false,
     ]);
@@ -1095,7 +1025,6 @@ it('sends a become premium telegram inline button when mini-app guidance is bloc
 
     $user = User::factory()->student()->create([
         'telegram_id' => '888201',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'is_premium' => false,
     ]);

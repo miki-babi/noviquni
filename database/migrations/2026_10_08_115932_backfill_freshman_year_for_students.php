@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\UserRole;
-use App\Enums\YearSlug;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -9,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $freshmanId = DB::table('years')->where('slug', YearSlug::Freshman->value)->value('id');
+        $freshmanId = DB::table('years')->where('slug', 'freshman')->value('id');
 
         if ($freshmanId === null) {
             return;

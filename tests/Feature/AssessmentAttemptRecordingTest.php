@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\AssessmentKind;
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Enums\UserEventName;
 use App\Models\AssessmentAttempt;
@@ -27,7 +26,6 @@ beforeEach(function () {
 it('records per-question quiz answers and server-side score', function () {
     $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course);
@@ -69,7 +67,6 @@ it('records per-question quiz answers and server-side score', function () {
 it('records exam attempts including timed out partial answers', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course);

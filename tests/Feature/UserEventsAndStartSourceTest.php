@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Enums\UserEventName;
 use App\Models\Course;
@@ -35,9 +34,7 @@ it('creates completed GAT students on start without year or stream onboarding', 
 
     $user = User::query()->where('telegram_id', '700001')->firstOrFail();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->is_gat)->toBeTrue()
-        ->and($user->year())->toBeNull()
+    expect($user->is_gat)->toBeTrue()
         ->and(UserEvent::query()->where('user_id', $user->id)->where('event', UserEventName::Start)->exists())->toBeTrue();
 
     Http::assertNotSent(function ($request) {
@@ -71,7 +68,6 @@ it('does not store navigation start payloads as start_source', function () {
 it('logs resource_open with study details when a mini app resource is opened', function () {
     $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course);
@@ -107,7 +103,6 @@ it('logs resource_open with study details when a mini app resource is opened', f
 it('logs quiz_done when a quiz result is posted', function () {
     $course = Course::factory()->create(['name' => 'Anthropology']);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course);
@@ -141,7 +136,6 @@ it('logs quiz_done when a quiz result is posted', function () {
 it('logs referral_joined when a referral start code attributes a new student', function () {
     $referrer = User::factory()->student()->create([
         'referral_code' => 'REFCODE1',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(700004, '/start REFCODE1'))->assertOk();
@@ -156,7 +150,6 @@ it('logs referral_joined when a referral start code attributes a new student', f
 it('logs blocked when telegram refuses a message because the user blocked the bot', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '700005',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $factory = new Factory;
@@ -175,26 +168,4 @@ it('logs blocked when telegram refuses a message because the user blocked the bo
         ->where('user_id', $user->id)
         ->where('event', UserEventName::Blocked)
         ->exists())->toBeTrue();
-});
-
-it('logs onboarding_done when a mid-funnel student is completed on /start', function () {
-    $user = User::factory()->student()->create([
-        'telegram_id' => '700006',
-        'onboarding_step' => OnboardingStep::Year,
-        'is_active' => true,
-        'is_gat' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(700006, '/start'))->assertOk();
-
-    $user->refresh();
-
-    $event = UserEvent::query()
-        ->where('user_id', $user->id)
-        ->where('event', UserEventName::OnboardingDone)
-        ->first();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->is_gat)->toBeTrue()
-        ->and($event)->not->toBeNull();
 });

@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\CollegeResourceKind;
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Filament\Resources\Learnings\Pages\EditLearning;
 use App\Models\Course;
@@ -107,7 +106,6 @@ it('persists quiz time limit minutes from the learning edit form', function () {
 it('asks timed or untimed before starting an exam and wires the configured countdown', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -157,7 +155,6 @@ it('asks timed or untimed before starting an exam and wires the configured count
 it('still offers a timed start when the exam has no configured time limit', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -183,7 +180,6 @@ it('still offers a timed start when the exam has no configured time limit', func
 it('asks timed or untimed before starting a quiz and wires the timer', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

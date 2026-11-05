@@ -62,37 +62,28 @@
         </div>
 
         <div class="study-card study-continue">
-            @if ($user->isFreshman())
-            @else
-                <div class="study-profile-row">
-                    <span class="study-profile-label">{{ $copy->get('profile.department') }}</span>
-                    <span class="study-profile-value">{{ $user->department_name ?: $copy->get('profile.none') }}</span>
-                </div>
-            @endif
-            @if ($user->isFreshman())
-                <div class="study-profile-row study-profile-row--stack">
-                    <span class="study-profile-label">{{ $copy->get('profile.courses') }}</span>
-                    @if ($courses->isEmpty())
-                        <span class="study-profile-value">{{ $copy->get('profile.none') }}</span>
-                    @else
-                        <div class="study-chip-wrap">
-                            @foreach ($courses as $course)
-                                @php
-                                    $accent = $accentCycle[($loop->index) % count($accentCycle)];
-                                @endphp
-                                <x-telegram.mini-app.bot-link
-                                    :href="$deepLinks->forCourse($course->slug)"
-                                    :confirm-title="$copy->get('bot_confirm.title')"
-                                    :confirm-message="$copy->get('bot_confirm.course', ['title' => $course->name])"
-                                    class="study-chip study-chip--{{ $accent }}"
-                                >
-                                    {{ $course->name }}
-                                </x-telegram.mini-app.bot-link>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            @endif
+            <div class="study-profile-row study-profile-row--stack">
+                <span class="study-profile-label">{{ $copy->get('profile.courses') }}</span>
+                @if ($courses->isEmpty())
+                    <span class="study-profile-value">{{ $copy->get('profile.none') }}</span>
+                @else
+                    <div class="study-chip-wrap">
+                        @foreach ($courses as $course)
+                            @php
+                                $accent = $accentCycle[($loop->index) % count($accentCycle)];
+                            @endphp
+                            <x-telegram.mini-app.bot-link
+                                :href="$deepLinks->forCourse($course->slug)"
+                                :confirm-title="$copy->get('bot_confirm.title')"
+                                :confirm-message="$copy->get('bot_confirm.course', ['title' => $course->name])"
+                                class="study-chip study-chip--{{ $accent }}"
+                            >
+                                {{ $course->name }}
+                            </x-telegram.mini-app.bot-link>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
         </div>
 
         <div class="study-card study-continue">
@@ -147,15 +138,6 @@
                 </div>
             @endif
         </div>
-
-        <a href="{{ route('tg.profile.edit') }}" class="study-card">
-            <div class="study-card-inner">
-                <span class="min-w-0 flex-1">
-                    <span class="study-card-title block">{{ $copy->get('profile.edit_study') }}</span>
-                </span>
-                <span class="tg-cell-chevron" aria-hidden="true">›</span>
-            </div>
-        </a>
 
         <a href="{{ route('tg.premium') }}" class="study-card">
             <div class="study-card-inner">

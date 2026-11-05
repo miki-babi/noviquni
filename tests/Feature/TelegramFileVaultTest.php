@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -467,7 +466,6 @@ it('opens telegram vault pdfs with a mini app player button', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555880',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);
@@ -542,7 +540,6 @@ it('still sends non-pdf disk files as telegram documents', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555881',
-        'onboarding_step' => OnboardingStep::Complete,
 
     ]);
     $user->courses()->attach($course->id);

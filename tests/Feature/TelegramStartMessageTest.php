@@ -1,12 +1,9 @@
 <?php
 
 use App\Enums\BroadcastButtonType;
-use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
-use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\User;
-use App\Models\Year;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
@@ -67,8 +64,7 @@ it('sends the custom start message to new users without onboarding prompts', fun
     $this->postJson('/telegram/webhook', telegramStartPayload(555910, 9010))->assertOk();
 
     $user = User::query()->where('telegram_id', '555910')->firstOrFail();
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->is_gat)->toBeTrue();
+    expect($user->is_gat)->toBeTrue();
 
     Http::assertSent(function ($request) {
         if (! str_contains($request->url(), '/sendPhoto')) {
@@ -130,12 +126,10 @@ it('sends the admin start photo caption and inline buttons on /start', function 
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555900',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555900, 9001))->assertOk();
 
@@ -173,7 +167,6 @@ it('falls back to default welcome when no custom start message is configured', f
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555901',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -210,12 +203,10 @@ it('logs the outbound telegram payloads sent after /start', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555902',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramStartPayload(555902, 9003))->assertOk();
 
@@ -255,7 +246,6 @@ it('logs the start photo caption when a custom start image is sent', function ()
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555903',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -287,7 +277,6 @@ it('includes the Start now referral link only when {{referral_cta}} is in the ca
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555904',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -324,7 +313,6 @@ it('does not log start payloads for other telegram commands', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555904',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

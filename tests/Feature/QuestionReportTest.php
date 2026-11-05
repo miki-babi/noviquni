@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\QuestionReportReason;
 use App\Enums\QuestionReportSource;
 use App\Enums\QuestionReportStatus;
@@ -28,7 +27,6 @@ beforeEach(function () {
 
 it('lets an authenticated student report a quiz question', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'role' => UserRole::Student,
     ]);
     $resource = LearningResource::factory()->published()->quiz()->create();
@@ -57,7 +55,6 @@ it('lets an authenticated student report a quiz question', function () {
 
 it('lets an authenticated student report a daily challenge question', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'role' => UserRole::Student,
     ]);
     $challenge = DailyChallenge::factory()->create();
@@ -77,7 +74,6 @@ it('lets an authenticated student report a daily challenge question', function (
 
 it('requires a description when the reason is other', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     $resource = LearningResource::factory()->published()->quiz()->create();
 
@@ -107,7 +103,6 @@ it('requires a description when the reason is other', function () {
 
 it('rejects a second pending report for the same question', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     $resource = LearningResource::factory()->published()->quiz()->create();
 
@@ -151,7 +146,6 @@ it('lets an admin resolve and dismiss question reports from filament', function 
         'password' => 'password',
     ]);
     $student = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     $resource = LearningResource::factory()->published()->quiz()->create([
         'title' => 'Reported Quiz',
@@ -203,7 +197,6 @@ it('lets an admin edit the reported question from filament and mark it resolved'
         'password' => 'password',
     ]);
     $student = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     $resource = LearningResource::factory()->published()->quiz()->create([
         'title' => 'Editable Quiz',

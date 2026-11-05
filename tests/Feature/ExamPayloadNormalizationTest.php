@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\CollegeResourceKind;
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
 use App\Models\Course;
 use App\Models\LearningResource;
@@ -73,7 +72,6 @@ it('normalizes nested college api exam payloads into a single mcq questions list
 it('renders the exam player from nested college api exam content', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

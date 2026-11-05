@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\StudyPlanType;
 use App\Models\Course;
 use App\Models\StudyPlan;
@@ -19,7 +18,6 @@ beforeEach(function () {
 it('shows free plans to free students and hides premium week plans', function () {
     $course = Course::factory()->create(['name' => 'Math']);
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -58,7 +56,6 @@ it('shows free plans to free students and hides premium week plans', function ()
 it('shows week and exam-sprint plans to premium students', function () {
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->premium()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);

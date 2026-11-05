@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\UserRole;
 use App\Jobs\SendTelegramMessageJob;
 use App\Models\Course;
@@ -109,7 +108,6 @@ it('records an attempt with duration and updates streak and badges', function ()
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $service = app(DailyChallengeService::class);
@@ -193,7 +191,6 @@ it('hides continue studying until the student has opened a resource', function (
 
 it('scores a daily challenge submission through the mini app', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'role' => UserRole::Student,
     ]);
     $challenge = DailyChallenge::factory()->create();
@@ -221,7 +218,6 @@ it('shows the daily challenge leaderboard when enabled', function () {
     config(['daily_challenge.leaderboard_enabled' => true]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'role' => UserRole::Student,
         'name' => 'Leaderboard Student',
     ]);
@@ -250,7 +246,6 @@ it('omits the leaderboard button after completing today when leaderboard is disa
         'name' => 'Done Student',
         'telegram_id' => 555902,
         'telegram_locale' => 'en',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     $challenge = DailyChallenge::factory()->create();
     DailyChallengeAttempt::factory()->create([
@@ -291,7 +286,6 @@ it('dispatches reminders only to students who have not completed today', functio
         'telegram_id' => 111001,
         'notifications_enabled' => true,
         'is_active' => true,
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     UserStreak::factory()->create([
         'user_id' => $pending->id,
@@ -332,7 +326,6 @@ it('opens daily challenge from the reply keyboard', function () {
     $user = User::factory()->student()->create([
         'name' => 'Abebe Kebede',
         'telegram_id' => 555901,
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
     DailyChallenge::factory()->create();
 

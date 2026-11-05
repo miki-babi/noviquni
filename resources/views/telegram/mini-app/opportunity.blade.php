@@ -31,24 +31,14 @@
             <p class="text-sm font-semibold text-primary-300">{{ session('status') }}</p>
         @endif
 
-        @if (session('show_onboarding_link'))
-            <a href="{{ $botOnboardingUrl }}" target="_blank" rel="noopener noreferrer" class="tg-btn">
-                {{ $copy->get('opportunities.open_bot_to_onboard') }}
-            </a>
-        @endif
-
         <div class="flex flex-col gap-3">
-            @if (filled($opportunity->url) && $onboardingComplete)
+            @if (filled($opportunity->url))
                 <a
                     href="{{ $opportunity->url }}"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="tg-btn"
                 >
-                    {{ $copy->get('opportunities.open_url') }}
-                </a>
-            @elseif (filled($opportunity->url))
-                <a href="{{ $botOnboardingUrl }}" target="_blank" rel="noopener noreferrer" class="tg-btn">
                     {{ $copy->get('opportunities.open_url') }}
                 </a>
             @endif

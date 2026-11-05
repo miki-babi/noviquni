@@ -2,31 +2,11 @@
 
 namespace App\Services;
 
-use App\Enums\OnboardingStep;
-use App\Enums\UserEventName;
 use App\Models\Course;
 use App\Models\User;
-use Illuminate\Support\Collection;
 
 class OnboardingService
 {
-    public function __construct(
-        public UserEventService $userEvents,
-    ) {}
-
-    /**
-     * @return Collection<int, Course>
-     */
-    public function recommendCourses(): Collection
-    {
-        return Course::query()
-            ->active()
-            ->withCount('users')
-            ->orderByDesc('users_count')
-            ->orderBy('name')
-            ->get();
-    }
-
     /**
      * @param  array<int>  $courseIds
      */
@@ -99,18 +79,5 @@ class OnboardingService
             ['reading-writing', 'reading-and-writing', 'readingwriting'],
             ['analytical-reasoning', 'analyticalreasoning'],
         ];
-    }
-
-    public function complete(User $user): void
-    {
-        if ($user->onboarding_step === OnboardingStep::Complete) {
-            return;
-        }
-
-        $user->update(['onboarding_step' => OnboardingStep::Complete]);
-
-        $this->userEvents->log($user, UserEventName::OnboardingDone, array_filter([
-            'department' => $user->department_name,
-        ], fn (mixed $value): bool => $value !== null && $value !== ''));
     }
 }

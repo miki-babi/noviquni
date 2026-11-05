@@ -1,15 +1,12 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\ResourceType;
-use App\Enums\YearSlug;
 use App\Jobs\ProcessTelegramUpdateJob;
 use App\Models\Bookmark;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
 use App\Models\User;
-use App\Models\Year;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -42,8 +39,7 @@ it('accepts a start update and creates a completed GAT student without onboardin
 
     $user = User::query()->where('telegram_id', '555001')->firstOrFail();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->is_gat)->toBeTrue()
+    expect($user->is_gat)->toBeTrue()
         ->and($user->courses()->pluck('courses.id')->sort()->values()->all())
         ->toBe(collect([$maths->id, $reading->id, $analytical->id])->sort()->values()->all());
 
@@ -83,8 +79,7 @@ it('marks new students as GAT on /start', function () {
 
     $user = User::query()->where('telegram_id', '555012')->firstOrFail();
 
-    expect($user->is_gat)->toBeTrue()
-        ->and($user->onboarding_step)->toBe(OnboardingStep::Complete);
+    expect($user->is_gat)->toBeTrue();
 });
 
 it('auto-enrolls GAT courses for existing students with an empty course list', function () {
@@ -94,7 +89,6 @@ it('auto-enrolls GAT courses for existing students with an empty course list', f
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555013',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_gat' => true,
         'is_active' => true,
     ]);
@@ -122,7 +116,6 @@ it('auto-enrolls GAT courses for existing students with an empty course list', f
 it('treats legacy university and course onboarding callbacks as stale', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555013',
-        'onboarding_step' => OnboardingStep::Department,
         'is_active' => true,
     ]);
 
@@ -131,15 +124,12 @@ it('treats legacy university and course onboarding callbacks as stale', function
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555013, 'ob:course:confirm', 20, 5))->assertOk();
 
     $user->refresh();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Department);
 });
 
 it('shows setup CTA on start when enrolled user has no courses', function () {
     User::factory()->student()->create([
         'telegram_id' => '555020',
         'name' => 'Mikiyas Kebede',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -153,8 +143,8 @@ it('shows setup CTA on start when enrolled user has no courses', function () {
         $data = $request->data();
 
         return str_contains((string) ($data['text'] ?? ''), 'welcome to Noviq Uni')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.profile.edit')
-            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '🎯 Set up in Profile';
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.web_app.url') === route('tg.browse')
+            && data_get($data, 'reply_markup.inline_keyboard.0.0.text') === '📚 Start studying';
     });
 });
 
@@ -164,7 +154,6 @@ it('shows continue studying CTA on start when user has courses', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555021',
         'name' => 'Mikiyas',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -192,7 +181,6 @@ it('shows enrolled courses in a reply keyboard when Courses is tapped', function
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555004',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -217,10 +205,8 @@ it('shows enrolled courses in a reply keyboard when Courses is tapped', function
 it('restores the main reply keyboard when Back is tapped from courses', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555024',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramMessagePayload(555024, '← Back'))
         ->assertOk();
@@ -247,7 +233,6 @@ it('shows available resource types in a reply keyboard when Resources is tapped'
     $course = Course::factory()->create(['name' => 'Physics']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555025',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -285,7 +270,6 @@ it('shows courses with the selected resource type in a reply keyboard', function
     $course = Course::factory()->create([]);
     $user = User::factory()->student()->create([
         'telegram_id' => '555026',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -311,7 +295,6 @@ it('sends the file directly when a course has one file-backed resource of the se
     $course = Course::factory()->create(['name' => 'Physics']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555028',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -346,7 +329,6 @@ it('lists resources inline when a course has multiple resources of the selected 
     $course = Course::factory()->create(['name' => 'Chemistry']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555029',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -390,7 +372,6 @@ it('lists resources inline when a course has multiple resources of the selected 
 it('shows course setup for the legacy Browse label when no courses are enrolled', function () {
     User::factory()->student()->create([
         'telegram_id' => '555014',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -417,7 +398,6 @@ it('shows coming soon browse state without counts when enrolled but empty', func
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555022',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -446,7 +426,6 @@ it('shows course resource types after course tap', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555023',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -486,7 +465,6 @@ it('shows course coming soon when no published resource types exist', function (
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555035',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -515,7 +493,6 @@ it('shows continue resume card when a prior download exists', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555024',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -549,7 +526,6 @@ it('shows continue resume card when a prior download exists', function () {
 it('shows profile submenu with notifications refer and settings', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555025',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -572,11 +548,9 @@ it('shows profile submenu with notifications refer and settings', function () {
 it('switches language and refreshes keyboard labels', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555026',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'telegram_locale' => 'en',
     ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     $this->postJson('/telegram/webhook', telegramCallbackPayload(555026, 'settings:lang:am', 30, 406))
         ->assertOk();
@@ -605,10 +579,8 @@ it('switches language and refreshes keyboard labels', function () {
 it('lists scholarship opportunities when the keyboard button is tapped', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555226',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
 
     Opportunity::factory()->published()->scholarship()->create([
         'title' => 'Webhook Scholarship Post',
@@ -635,7 +607,6 @@ it('still routes the legacy My Courses label to the course reply keyboard', func
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555027',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -661,78 +632,11 @@ it('still routes the legacy My Courses label to the course reply keyboard', func
     });
 });
 
-it('completes mid-funnel users when they send free text instead of asking for year', function () {
-    $user = User::factory()->student()->create([
-        'telegram_id' => '555005',
-        'onboarding_step' => OnboardingStep::Year,
-        'is_active' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555005, 'Social', 2))->assertOk();
-
-    $user->refresh();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
-
-    Http::assertSent(function ($request) {
-        if (! str_contains($request->url(), '/sendMessage')) {
-            return false;
-        }
-
-        return data_get($request->data(), 'reply_markup.keyboard.0.0.text') === 'Daily challenge';
-    });
-});
-
-it('completes mid-funnel users with a stream on /start without re-asking stream', function () {
-
-    $user = User::factory()->student()->create([
-        'telegram_id' => '555006',
-        'onboarding_step' => OnboardingStep::Courses,
-
-        'name' => 'Mikiyas',
-        'is_active' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555006, '/start', 100))->assertOk();
-
-    $user->refresh();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
-
-    Http::assertSent(function ($request) {
-        return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) data_get($request->data(), 'text'), 'welcome to Noviq Uni');
-    });
-});
-
-it('does not revive legacy university callbacks for mid-funnel users', function () {
-
-    $user = User::factory()->student()->create([
-        'telegram_id' => '555007',
-        'onboarding_step' => OnboardingStep::Courses,
-
-        'is_active' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramCallbackPayload(555007, 'ob:uni:skip', 20, 101))
-        ->assertOk();
-
-    $user->refresh();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Courses);
-
-    Http::assertNotSent(function ($request) {
-        return str_contains($request->url(), '/sendMessage')
-            && str_contains((string) data_get($request->data(), 'text'), 'semester');
-    });
-});
-
 it('does not resend onboarding complete message for stale confirm callbacks', function () {
     Course::factory()->create(['name' => 'Math']);
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555008',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -755,8 +659,7 @@ it('ignores duplicate update ids', function () {
 
     $user = User::query()->where('telegram_id', '555009')->firstOrFail();
 
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete)
-        ->and($user->is_gat)->toBeTrue();
+    expect($user->is_gat)->toBeTrue();
 
     $startMenus = collect(Http::recorded())
         ->filter(function (array $record): bool {
@@ -776,7 +679,6 @@ it('uses editMessageText for back to courses navigation', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555010',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -797,27 +699,6 @@ it('uses editMessageText for back to courses navigation', function () {
     });
 });
 
-it('completes mid-funnel users on free text without onboarding reprompts', function () {
-    User::factory()->student()->create([
-        'telegram_id' => '555011',
-        'onboarding_step' => OnboardingStep::Department,
-        'is_active' => true,
-    ]);
-
-    $this->postJson('/telegram/webhook', telegramMessagePayload(555011, 'hello', 301))->assertOk();
-
-    $user = User::query()->where('telegram_id', '555011')->firstOrFail();
-
-    expect($user->onboarding_step)->toBe(OnboardingStep::Complete);
-
-    Http::assertNotSent(function ($request) {
-        $text = (string) data_get($request->data(), 'text');
-
-        return str_contains($text, 'What year are you in')
-            || str_contains($text, 'Tap your stream');
-    });
-});
-
 it('opens a bait course path from /start bait', function () {
     $course = Course::factory()->create([
 
@@ -827,7 +708,6 @@ it('opens a bait course path from /start bait', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555030',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -859,7 +739,6 @@ it('opens a resource from /start resource deep link', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555031',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -892,7 +771,6 @@ it('opens a course from /start course deep link', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555032',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -923,7 +801,6 @@ it('opens a course from /start course deep link', function () {
 it('opens a mini app button when continue studying is tapped', function () {
     User::factory()->student()->create([
         'telegram_id' => '555301',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -947,7 +824,6 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555302',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -974,7 +850,6 @@ it('opens the maths subject reply keyboard when maths is tapped and the course e
 it('tells the student when reading/writing is tapped without a matching course', function () {
     User::factory()->student()->create([
         'telegram_id' => '555303',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1001,7 +876,6 @@ it('opens reading/writing when the course uses Reading and writing naming', func
 
     $user = User::factory()->student()->create([
         'telegram_id' => '5553031',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1030,7 +904,6 @@ it('opens Analytical reasoning when the matching course exists', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '5553032',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1055,7 +928,6 @@ it('lists quiz resources for the selected gat subject course', function () {
     $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555304',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -1086,7 +958,6 @@ it('paginates quiz resources when a gat subject has more than one page', functio
     $course = Course::factory()->create(['name' => 'Maths', 'slug' => 'maths']);
     $user = User::factory()->student()->create([
         'telegram_id' => '555306',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
     $user->courses()->sync([$course->id]);
@@ -1135,7 +1006,6 @@ it('paginates quiz resources when a gat subject has more than one page', functio
 it('opens the support telegram handle when contact us is tapped', function () {
     User::factory()->student()->create([
         'telegram_id' => '555304',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1158,7 +1028,6 @@ it('opens a forwardable start message from the invite friends reply keyboard lab
     $user = User::factory()->student()->create([
         'telegram_id' => '555033',
         'name' => 'Mikiyas',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1198,7 +1067,6 @@ it('opens refer invite from the Refer reply keyboard label', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555305',
         'name' => 'Mikiyas',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1237,7 +1105,6 @@ it('still opens refer flow from the legacy refer and earn keyboard label', funct
     $user = User::factory()->student()->create([
         'telegram_id' => '555133',
         'name' => 'Mikiyas',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1264,7 +1131,6 @@ it('still opens continue from the legacy continue label', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555034',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -1299,7 +1165,6 @@ it('lists quick saved as chat buttons newest first without opening the Mini App'
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555040',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -1356,7 +1221,6 @@ it('paginates quick saved with next and back callbacks', function () {
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555041',
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -1410,7 +1274,6 @@ it('shows member privileges and premium description when Unlock premium is tappe
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555050',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -1443,7 +1306,6 @@ it('shows member privileges and premium description for premium_pay callbacks', 
 
     $user = User::factory()->student()->create([
         'telegram_id' => '555051',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 

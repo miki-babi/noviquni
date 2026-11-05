@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Http\Controllers\Telegram\MiniApp\HomeScreenController;
 use App\Models\LearningResource;
 use App\Models\User;
@@ -20,7 +19,6 @@ beforeEach(function () {
 
 it('increments the home screen prompt count up to three times', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'home_screen_prompt_count' => 0,
     ]);
@@ -52,7 +50,6 @@ it('increments the home screen prompt count up to three times', function () {
 
 it('marks the home screen as added and skips further prompt increments', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'home_screen_prompt_count' => 1,
     ]);
@@ -81,14 +78,13 @@ it('marks the home screen as added and skips further prompt increments', functio
 
 it('includes the home screen prompt markup for eligible users on profile edit', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'home_screen_prompt_count' => 0,
         'home_screen_added_at' => null,
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
+        ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('data-tg-home-screen-eligible', false)
         ->assertSee('data-tg-home-screen-modal', false)
@@ -98,21 +94,19 @@ it('includes the home screen prompt markup for eligible users on profile edit', 
 
 it('omits the home screen prompt data after three prompts', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'home_screen_prompt_count' => HomeScreenController::MaxPrompts,
         'home_screen_added_at' => null,
     ]);
 
     $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
+        ->get(route('tg.profile'))
         ->assertOk()
         ->assertDontSee('data-tg-home-screen-eligible', false);
 });
 
 it('includes the home screen prompt on quiz players for eligible users', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'home_screen_prompt_count' => 0,
     ]);

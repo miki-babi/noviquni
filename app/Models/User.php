@@ -2,9 +2,7 @@
 
 namespace App\Models;
 
-use App\Enums\OnboardingStep;
 use App\Enums\UserRole;
-use App\Enums\YearSlug;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -39,12 +37,10 @@ use Spatie\Permission\Traits\HasRoles;
     'referral_points',
     'start_source',
     'is_active',
-    'onboarding_step',
     'notifications_enabled',
     'premium_until',
     'is_premium',
     'is_gat',
-    'department_name',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
@@ -114,40 +110,6 @@ class User extends Authenticatable implements FilamentUser
     public function courses(): BelongsToMany
     {
         return $this->belongsToMany(Course::class, 'user_courses')->withTimestamps();
-    }
-
-    /**
-     * @return BelongsToMany<Year, $this>
-     */
-    public function years(): BelongsToMany
-    {
-        return $this->belongsToMany(Year::class, 'user_year')->withTimestamps();
-    }
-
-    public function year(): ?Year
-    {
-        if ($this->relationLoaded('years')) {
-            return $this->years->first();
-        }
-
-        return $this->years()->first();
-    }
-
-    public function isFreshman(): bool
-    {
-        return $this->year()?->slug === YearSlug::Freshman->value;
-    }
-
-    public function hasDepartment(): bool
-    {
-        return filled($this->department_name);
-    }
-
-    public function syncYear(Year|int $year): void
-    {
-        $yearId = $year instanceof Year ? $year->id : $year;
-
-        $this->years()->sync([$yearId]);
     }
 
     public function subscriptions(): HasMany
@@ -262,7 +224,6 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
-            'onboarding_step' => OnboardingStep::class,
             'is_active' => 'boolean',
             'notifications_enabled' => 'boolean',
             'is_premium' => 'boolean',

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Telegram\MiniApp;
 
-use App\Enums\OnboardingStep;
 use App\Http\Controllers\Controller;
 use App\Models\Opportunity;
 use App\Models\User;
@@ -53,8 +52,6 @@ class OpportunityController extends Controller
             'paymentBotUrl' => $settings->paymentBotUrl($user),
             'premiumPrice' => $settings->premiumPrice(),
             'shareUrl' => $shareUrl,
-            'onboardingComplete' => $user->onboarding_step === OnboardingStep::Complete,
-            'botOnboardingUrl' => $deepLinks->url(),
             'activeNav' => 'saved',
         ]);
     }
@@ -66,12 +63,6 @@ class OpportunityController extends Controller
         $copy = TelegramCopy::for($user);
 
         abort_unless($opportunity->is_published, 404);
-
-        if ($user->onboarding_step !== OnboardingStep::Complete) {
-            return back()
-                ->with('status', $copy->get('opportunities.finish_onboarding_to_act'))
-                ->with('show_onboarding_link', true);
-        }
 
         $existing = $user->bookmarks()
             ->whereMorphedTo('bookmarkable', $opportunity)
@@ -102,12 +93,6 @@ class OpportunityController extends Controller
         $copy = TelegramCopy::for($user);
 
         abort_unless($opportunity->is_published && $opportunity->hasGuidanceAvailable(), 404);
-
-        if ($user->onboarding_step !== OnboardingStep::Complete) {
-            return back()
-                ->with('status', $copy->get('opportunities.finish_onboarding_to_act'))
-                ->with('show_onboarding_link', true);
-        }
 
         if (! $premium->canRequestOpportunityGuidance($user)) {
             $guidance->sendPremiumRequiredPitch($user);

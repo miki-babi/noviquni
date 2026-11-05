@@ -4,11 +4,9 @@ namespace App\Http\Controllers\Telegram\MiniApp;
 
 use App\Enums\TelegramLocale;
 use App\Http\Controllers\Controller;
-use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
 use App\Models\User;
-use App\Services\OnboardingService;
 use App\Services\ReferralService;
 use App\Services\SettingsService;
 use App\Services\TelegramDeepLink;
@@ -17,7 +15,6 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -27,7 +24,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
-        $user->load(['courses', 'years']);
+        $user->load('courses');
 
         $bookmarks = $user->bookmarks()
             ->with(['bookmarkable' => function (MorphTo $morphTo) {
@@ -58,81 +55,6 @@ class ProfileController extends Controller
             'referralPoints' => $user->referral_points,
             'activeNav' => 'profile',
         ]);
-    }
-
-    public function edit(): View
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        $copy = TelegramCopy::for($user);
-        $user->load(['courses', 'years']);
-
-        $courses = Course::query()
-            ->active()
-            ->orderBy('name')
-            ->get();
-
-        $selectedCourseIds = $user->courses->pluck('id')->map(fn ($id) => (int) $id)->all();
-
-        if ($user->isFreshman() && $selectedCourseIds === []) {
-            $selectedCourseIds = $courses->pluck('id')->map(fn ($id) => (int) $id)->all();
-        }
-
-        return view('telegram.mini-app.profile-edit', [
-            'copy' => $copy,
-            'user' => $user,
-            'courses' => $courses,
-            'selectedCourseIds' => $selectedCourseIds,
-            'isFreshman' => $user->isFreshman(),
-            'isGat' => (bool) $user->is_gat,
-            'activeNav' => 'profile',
-        ]);
-    }
-
-    public function updateAcademic(Request $request, OnboardingService $onboarding): RedirectResponse
-    {
-        /** @var User $user */
-        $user = Auth::user();
-        $copy = TelegramCopy::for($user);
-        $user->loadMissing('years');
-
-        if ($user->is_gat) {
-            $onboarding->syncGatSubjectCourses($user->fresh() ?? $user);
-
-            return redirect()
-                ->route('tg.profile')
-                ->with('status', $copy->get('settings.academic_saved'));
-        }
-
-        if (! $user->isFreshman()) {
-            $validated = $request->validate([
-                'department_name' => ['required', 'string', 'max:255'],
-            ]);
-
-            $user->update([
-                'department_name' => trim($validated['department_name']),
-            ]);
-
-            $onboarding->syncCourses($user->fresh(), []);
-
-            return redirect()
-                ->route('tg.profile')
-                ->with('status', $copy->get('settings.academic_saved'));
-        }
-
-        $validated = $request->validate([
-            'course_ids' => ['nullable', 'array'],
-            'course_ids.*' => [
-                'integer',
-                Rule::exists('courses', 'id')->where(fn ($query) => $query->where('is_active', true)),
-            ],
-        ]);
-
-        $onboarding->syncCourses($user->fresh(), array_map('intval', $validated['course_ids'] ?? []));
-
-        return redirect()
-            ->route('tg.profile')
-            ->with('status', $copy->get('settings.academic_saved'));
     }
 
     public function toggleNotifications(): RedirectResponse

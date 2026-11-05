@@ -1,17 +1,15 @@
 <?php
 
-use App\Enums\OnboardingStep;
-use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\User;
-use App\Models\Year;
 use App\Services\SettingsService;
 use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Log\Events\MessageLogged;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -26,7 +24,6 @@ beforeEach(function () {
 
 it('builds the GAT main keyboard for all students', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $keyboard = app(TelegramService::class)->mainKeyboard($user);
@@ -53,7 +50,6 @@ it('builds the GAT main keyboard for all students', function () {
 
 it('hides the unlock premium row for premium students', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => true,
     ]);
 
@@ -84,13 +80,14 @@ it('uses same-host session endpoints from the mini app bootstrap', function () {
 });
 
 it('shows browse courses for an authenticated student', function () {
+    Queue::fake();
+
     $course = Course::factory()->create([
 
         'name' => 'Physics',
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
         'name' => 'Abebe Kebede',
@@ -113,21 +110,19 @@ it('shows browse courses for an authenticated student', function () {
 
 it('defaults the mini app to light mode', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
     expect($user->theme)->toBe('light');
 
     $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
+        ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('class="light"', false);
 });
 
-it('persists theme preference and renders light class on profile edit', function () {
+it('persists theme preference and renders light class on profile', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'theme' => 'dark',
     ]);
@@ -139,7 +134,7 @@ it('persists theme preference and renders light class on profile edit', function
     expect($user->fresh()->theme)->toBe('light');
 
     $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
+        ->get(route('tg.profile'))
         ->assertOk()
         ->assertSee('class="light"', false)
         ->assertDontSee('data-tg-tabbar', false);
@@ -147,7 +142,6 @@ it('persists theme preference and renders light class on profile edit', function
 
 it('renders the mini app hub pages for students', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -167,7 +161,6 @@ it('renders the mini app hub pages for students', function () {
 
 it('shows the student profile page in the mini app', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'name' => 'Abebe Kebede',
         'telegram_username' => 'abebe',
@@ -182,7 +175,6 @@ it('shows the student profile page in the mini app', function () {
 
 it('shows the premium landing page with gat marketing copy', function () {
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -201,130 +193,6 @@ it('shows the premium landing page with gat marketing copy', function () {
         ->assertSee('https://t.me/noviquni_pay_bot?start=u'.$user->id, false);
 });
 
-it('shows the study profile edit form', function () {
-    $course = Course::factory()->create([
-
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-
-        'is_active' => true,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
-    $user->courses()->sync([$course->id]);
-
-    $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
-        ->assertOk()
-        ->assertSee('Study profile')
-
-        ->assertSee('Mathematics')
-        ->assertSee('Save changes');
-});
-
-it('preselects every active course on the study profile when none are enrolled', function () {
-    $math = Course::factory()->create([
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-    $civics = Course::factory()->create([
-        'name' => 'Civics',
-        'is_active' => true,
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'is_active' => true,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
-
-    $response = $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
-        ->assertOk()
-        ->assertSee('Mathematics')
-        ->assertSee('Civics');
-
-    expect($response->getContent())
-        ->toContain('value="'.$math->id.'"')
-        ->toContain('value="'.$civics->id.'"')
-        ->toMatch('/name="course_ids\[\]"\s+value="'.$math->id.'"\s+class="[^"]*"\s+checked/')
-        ->toMatch('/name="course_ids\[\]"\s+value="'.$civics->id.'"\s+class="[^"]*"\s+checked/');
-});
-
-it('updates academic profile fields from the mini app', function () {
-    $math = Course::factory()->create([
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-    $civics = Course::factory()->create([
-        'name' => 'Civics',
-        'is_active' => true,
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-
-        'is_active' => true,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
-    $user->courses()->sync([$math->id]);
-
-    $this->actingAs($user)
-        ->post(route('tg.profile.academic'), [
-            'course_ids' => [$civics->id],
-        ])
-        ->assertRedirect(route('tg.profile'));
-
-    $user->refresh();
-
-    expect($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
-});
-
-it('allows courses from another course on the study profile', function () {
-    $math = Course::factory()->create([
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-    $civics = Course::factory()->create([
-        'name' => 'Civics',
-        'is_active' => true,
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'is_active' => true,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
-    $user->courses()->sync([$math->id]);
-
-    $this->actingAs($user)
-        ->post(route('tg.profile.academic'), [
-            'course_ids' => [$civics->id],
-        ])
-        ->assertRedirect(route('tg.profile'));
-
-    expect($user->fresh()->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
-});
-
-it('hides department and course pickers for GAT students on the study profile', function () {
-    Course::factory()->create(['name' => 'Maths', 'slug' => 'maths', 'is_active' => true]);
-
-    $user = User::factory()->student()->gat()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'is_active' => true,
-    ]);
-
-    $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
-        ->assertOk()
-        ->assertDontSee('name="department_name"', false)
-        ->assertDontSee('name="course_ids[]"', false)
-        ->assertSee('Save changes');
-});
-
 it('sets the Courses mini app menu button when the reply keyboard is sent', function () {
     Http::fake([
         'api.telegram.org/*' => Http::response(['ok' => true, 'result' => []], 200),
@@ -332,7 +200,6 @@ it('sets the Courses mini app menu button when the reply keyboard is sent', func
 
     User::factory()->student()->create([
         'telegram_id' => '555040',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -357,39 +224,6 @@ it('sets the Courses mini app menu button when the reply keyboard is sent', func
     });
 });
 
-it('lets non-freshman students update department without attaching courses', function () {
-    Course::factory()->create([
-
-        'name' => 'Mathematics',
-        'is_active' => true,
-    ]);
-
-    $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
-        'department_name' => 'Old Department',
-        'is_active' => true,
-        'is_gat' => false,
-    ]);
-    $user->syncYear(Year::query()->where('slug', YearSlug::Second->value)->firstOrFail());
-
-    $this->actingAs($user)
-        ->get(route('tg.profile.edit'))
-        ->assertOk()
-        ->assertSee('Department', false)
-        ->assertDontSee('name="course_ids[]"', false);
-
-    $this->actingAs($user)
-        ->post(route('tg.profile.academic'), [
-            'department_name' => 'Electrical Engineering',
-        ])
-        ->assertRedirect(route('tg.profile'));
-
-    $user->refresh();
-
-    expect($user->department_name)->toBe('Electrical Engineering')
-        ->and($user->courses()->count())->toBe(0);
-});
-
 it('renders course pages inside the mini app', function () {
     $course = Course::factory()->create([
 
@@ -397,7 +231,6 @@ it('renders course pages inside the mini app', function () {
     ]);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
 
         'is_active' => true,
     ]);
@@ -417,7 +250,6 @@ it('renders course pages inside the mini app', function () {
 it('authenticates a telegram user from initData and redirects', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555888',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
         'name' => 'Old Name',
     ]);
@@ -447,7 +279,6 @@ it('rewrites keyboard mini app hosts when TELEGRAM_MINI_APP_URL is set', functio
     config(['services.telegram.mini_app_url' => 'https://mini.example.test']);
 
     $user = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $url = app(TelegramService::class)->miniAppUrl('tg.browse');
@@ -461,7 +292,6 @@ it('rewrites keyboard mini app hosts when TELEGRAM_MINI_APP_URL is set', functio
 it('accepts mini app redirects whose path is under /tg even on another host', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555889',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -481,7 +311,6 @@ it('accepts mini app redirects whose path is under /tg even on another host', fu
 it('rejects redirects that are not under the /tg path', function () {
     $user = User::factory()->student()->create([
         'telegram_id' => '555890',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 
@@ -545,7 +374,6 @@ it('logs session store failures without exposing initData', function () {
 
     User::factory()->student()->create([
         'telegram_id' => '555891',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_active' => true,
     ]);
 

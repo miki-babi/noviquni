@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\OnboardingStep;
 use App\Enums\TelegramButtonStyle;
 use App\Enums\UserEventName;
 use App\Enums\UserRole;
@@ -15,8 +14,6 @@ use Illuminate\Support\Facades\Log;
 class TelegramService
 {
     public const string InlineMessageCacheKey = 'telegram.onboarding_message.';
-
-    public const string OnboardingPromptRateLimitKey = 'telegram.onboarding_prompt.';
 
     public function __construct(
         public NewStudentAdminNotifier $newStudentAdminNotifier,
@@ -533,7 +530,7 @@ class TelegramService
             $user = $user->refresh();
 
             if (! $user->courses()->exists()) {
-                $this->onboarding->syncGatSubjectCourses($user);
+                $this->onboarding->syncAllActiveCourses($user);
             }
 
             return $user->refresh();
@@ -544,12 +541,11 @@ class TelegramService
             'telegram_id' => (string) $telegramId,
             'telegram_username' => $username,
             'role' => UserRole::Student,
-            'onboarding_step' => OnboardingStep::Complete,
             'is_active' => true,
             'is_gat' => true,
         ]);
 
-        $this->onboarding->syncGatSubjectCourses($user);
+        $this->onboarding->syncAllActiveCourses($user);
         $this->newStudentAdminNotifier->notify($user, $this);
 
         return $user->refresh();

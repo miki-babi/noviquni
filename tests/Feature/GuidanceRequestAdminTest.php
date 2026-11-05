@@ -1,7 +1,6 @@
 <?php
 
 use App\Enums\GuidanceRequestStatus;
-use App\Enums\OnboardingStep;
 use App\Filament\Actions\SendGuidanceRequestTelegramMessageAction;
 use App\Filament\Resources\OpportunityGuidanceRequests\Pages\ListOpportunityGuidanceRequests;
 use App\Filament\Resources\OpportunityGuidanceRequests\Pages\ViewOpportunityGuidanceRequest;
@@ -36,7 +35,6 @@ it('shows guidance request details on the view page', function () {
         'name' => 'Detail Student',
         'telegram_username' => 'detail_student',
         'telegram_id' => '999101',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Detail Partner')->create([
@@ -67,7 +65,6 @@ it('prefills the send message form with guidance request details', function () {
     $student = User::factory()->student()->create([
         'name' => 'Prefill Student',
         'telegram_id' => '999201',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $assignee = User::factory()->student()->create([
@@ -115,7 +112,6 @@ it('sends a telegram message to the student from the guidance request view page'
     $student = User::factory()->student()->create([
         'name' => 'Message Student',
         'telegram_id' => '999202',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $opportunity = Opportunity::factory()->published()->job()->verifiedPartner('Msg Partner')->create([
@@ -157,7 +153,6 @@ it('lets an admin delete a guidance request from the list', function () {
     ]);
 
     $student = User::factory()->student()->create([
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => true,
     ]);
 
@@ -194,7 +189,6 @@ it('assigns a guide from the guidance request list', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '999303',
         'telegram_username' => 'list_student',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $assignee = User::factory()->student()->create([

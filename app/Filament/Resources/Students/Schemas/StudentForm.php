@@ -51,20 +51,6 @@ class StudentForm
 
                         return $record->referrer->name.$username;
                     }),
-                Select::make('years')
-                    ->label('Year')
-                    ->relationship(
-                        name: 'years',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: fn ($query) => $query->orderBy('sort_order')->orderBy('name'),
-                    )
-                    ->multiple()
-                    ->maxItems(1)
-                    ->searchable()
-                    ->preload(),
-                TextInput::make('department_name')
-                    ->label('Department')
-                    ->maxLength(255),
                 Select::make('courses')
                     ->relationship('courses', 'name')
                     ->multiple()

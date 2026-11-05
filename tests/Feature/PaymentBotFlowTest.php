@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\OnboardingStep;
 use App\Enums\PaymentStatus;
 use App\Models\Payment;
 use App\Models\User;
@@ -114,7 +113,6 @@ function paymentBotHasTelebirrCardInlineKeyboard(mixed $replyMarkup): bool
 it('sends welcome with What you get Mini App button and refreshes reply keyboard on start', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700001',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
@@ -212,7 +210,6 @@ it('sends a contact link to @mikiyas_sh when Contact us is tapped', function () 
 it('creates a pending payment and sends the CBE-style briefing when Register now is tapped', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700011',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
@@ -286,14 +283,12 @@ it('forwards a receipt photo to file admins with approve and reject buttons', fu
         'telegram_id' => '700002',
         'name' => 'Student Two',
         'telegram_username' => 'studenttwo',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
     User::factory()->student()->create([
         'telegram_id' => '800001',
         'telegram_username' => 'payadmin',
-        'onboarding_step' => OnboardingStep::Complete,
     ]);
 
     $this->postJson('/telegram/payment-bot/webhook', [
@@ -334,7 +329,6 @@ it('forwards a receipt photo to file admins with approve and reject buttons', fu
 it('grants premium when a file admin approves', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700003',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
@@ -375,7 +369,6 @@ it('grants premium when a file admin approves', function () {
 it('rejects a payment and notifies the student', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700004',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
@@ -430,7 +423,6 @@ it('rejects a payment and notifies the student', function () {
 it('reverts premium when a file admin undoes an approval', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700006',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
@@ -475,7 +467,6 @@ it('reverts premium when a file admin undoes an approval', function () {
 it('ignores approve callbacks from non file admins', function () {
     $student = User::factory()->student()->create([
         'telegram_id' => '700005',
-        'onboarding_step' => OnboardingStep::Complete,
         'is_premium' => false,
     ]);
 
