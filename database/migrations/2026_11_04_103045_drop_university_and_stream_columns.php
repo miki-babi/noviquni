@@ -12,10 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex(['university_id']);
-            $table->dropIndex(['stream_id']);
             $table->dropForeign(['university_id']);
             $table->dropForeign(['stream_id']);
+            $table->dropIndex(['university_id']);
+            $table->dropIndex(['stream_id']);
             $table->dropColumn(['university_id', 'stream_id']);
         });
 

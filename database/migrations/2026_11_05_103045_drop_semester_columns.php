@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropIndex(['semester_id']);
             $table->dropForeign(['semester_id']);
+            $table->dropIndex(['semester_id']);
             $table->dropColumn('semester_id');
         });
 
