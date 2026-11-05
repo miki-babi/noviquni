@@ -35,6 +35,12 @@
         tg.ready();
         tg.expand();
 
+        if (typeof tg.exitFullscreen === 'function' && tg.isFullscreen) {
+            try {
+                tg.exitFullscreen();
+            } catch (e) {}
+        }
+
         const headerBg = isDark ? '#0a0a0a' : '#f4f5f7';
 
         if (typeof tg.setHeaderColor === 'function') {

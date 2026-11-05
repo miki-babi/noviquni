@@ -87,6 +87,12 @@
                 if (tg) {
                     tg.ready();
                     tg.expand();
+
+                    if (typeof tg.exitFullscreen === 'function' && tg.isFullscreen) {
+                        try {
+                            tg.exitFullscreen();
+                        } catch (e) {}
+                    }
                 }
 
                 const initData = tg?.initData || '';
