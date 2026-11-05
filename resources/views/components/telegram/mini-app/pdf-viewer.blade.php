@@ -58,10 +58,6 @@
                 tg.ready();
             } catch (e) {}
 
-            try {
-                tg.expand();
-            } catch (e) {}
-
             // Allow portrait <-> landscape while reading PDFs.
             if (typeof tg.unlockOrientation === 'function') {
                 try {

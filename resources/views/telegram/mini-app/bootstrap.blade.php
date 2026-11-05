@@ -86,7 +86,6 @@
 
                 if (tg) {
                     tg.ready();
-                    tg.expand();
 
                     if (typeof tg.exitFullscreen === 'function' && tg.isFullscreen) {
                         try {
