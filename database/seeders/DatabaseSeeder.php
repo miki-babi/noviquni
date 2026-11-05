@@ -6,7 +6,6 @@ use App\Models\Course;
 use App\Services\SettingsService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,9 +20,13 @@ class DatabaseSeeder extends Seeder
             OpportunitySeeder::class,
         ]);
 
-        foreach (['Mathematics', 'Physics', 'Chemistry', 'English', 'History', 'Geography', 'Civics'] as $name) {
+        foreach ([
+            'maths' => 'Maths',
+            'reading-writing' => 'Reading/writing',
+            'analytical-reasoning' => 'Analytical reasoning',
+        ] as $slug => $name) {
             Course::query()->updateOrCreate(
-                ['slug' => Str::slug($name)],
+                ['slug' => $slug],
                 [
                     'name' => $name,
                     'is_active' => true,
