@@ -46,16 +46,6 @@
                     {{ $copy->get('browse.notify') }}
                 </button>
             </form>
-
-            <a
-                href="https://t.me/{{ config('services.telegram.bot_username') }}?start=setup"
-                class="study-card study-card-ghost"
-                onclick="window.Telegram?.WebApp?.openTelegramLink(this.href); return false;"
-            >
-                <div class="study-card-inner">
-                    <span class="study-card-title">{{ $copy->get('browse.add_course') }}</span>
-                </div>
-            </a>
         @else
             <p class="tg-section-title" style="padding-inline: 0;">{{ $copy->get('browse.my_courses') }}</p>
 
@@ -77,16 +67,6 @@
                     </div>
                 </a>
             @endforeach
-
-            <a
-                href="https://t.me/{{ config('services.telegram.bot_username') }}?start=setup"
-                class="study-card study-card-ghost"
-                onclick="window.Telegram?.WebApp?.openTelegramLink(this.href); return false;"
-            >
-                <div class="study-card-inner">
-                    <span class="study-card-title">{{ $copy->get('browse.add_course') }}</span>
-                </div>
-            </a>
         @endif
     </div>
 </x-telegram.mini-app.layout>

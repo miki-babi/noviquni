@@ -146,7 +146,6 @@ return [
         'greeting' => 'ሰላም :name',
         'welcome_back' => 'እንኳን ደህና መጡ!',
         'my_courses' => 'የእኔ ኮርሶች',
-        'add_course' => '+ ሌላ ኮርስ ጨምር',
         'resources_count' => ':count መርጃዎች',
         'coming_soon_meta' => 'በቅርቡ',
         'empty' => 'እስካሁን ኮርስ የለዎትም።',
