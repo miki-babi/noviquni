@@ -130,7 +130,7 @@
 
             <div class="grid gap-0 md:grid-cols-4 md:divide-x md:divide-border-light">
                 @foreach ([
-                    ['title' => 'Modules', 'desc' => 'Browse published freshman modules by course and stream, then open the full files in Telegram.', 'href' => route('hubs.show', 'modules')],
+                    ['title' => 'Modules', 'desc' => 'Browse published freshman modules by course, then open the full files in Telegram.', 'href' => route('hubs.show', 'modules')],
                     ['title' => 'Notes & summaries', 'desc' => 'Lecture notes and summaries that help you revise faster before mid and final exams.', 'href' => route('hubs.show', 'notes')],
                     ['title' => 'Past exams', 'desc' => 'Past exam packs organized by course so you can practice the questions that matter.', 'href' => route('hubs.show', 'exams')],
                     ['title' => 'Practice sets', 'desc' => 'Practice questions to check understanding and prepare with classmates via Telegram.', 'href' => route('hubs.show', 'practice')],
@@ -153,7 +153,7 @@
         x-data="{ step: 0, steps: [
             { title: 'Discover on the web', body: 'Browse courses and public resource pages without creating an account.', panel: 'Browse SEO pages for modules, notes, and exams.' },
             { title: 'Open Telegram', body: 'Tap Open Telegram to start the bot and continue where the public page left off.', panel: 'Deep-link into your personalized library.' },
-            { title: 'Complete onboarding', body: 'Pick your courses and semester so resources match what you study.', panel: 'Stream → University → Courses.' },
+            { title: 'Complete onboarding', body: 'Pick your courses so resources match what you study.', panel: 'Year → Department → Courses.' },
             { title: 'Study and invite', body: 'Download resources, stay updated, and unlock more by inviting classmates.', panel: 'Referrals unlock premium access.' }
         ]}"
     >

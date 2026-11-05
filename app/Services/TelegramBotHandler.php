@@ -2953,19 +2953,17 @@ class TelegramBotHandler
     protected function showProfile(User $user, int|string $chatId): void
     {
         $copy = TelegramCopy::for($user);
-        $user->load(['semester', 'courses']);
+        $user->load('courses');
 
         if ($user->isFreshman()) {
             $courses = $user->courses->pluck('name')->implode(', ') ?: $copy->get('profile.none');
             $body = $copy->get('profile.body', [
                 'name' => $user->name,
-                'semester' => $user->semester?->name ?? '-',
                 'courses' => $courses,
             ]);
         } else {
             $body = $copy->get('profile.body_department', [
                 'department' => $user->department_name ?: $copy->get('profile.none'),
-                'semester' => $user->semester?->name ?? '-',
             ]);
         }
 
@@ -3173,7 +3171,6 @@ class TelegramBotHandler
 
         if ($year->slug === YearSlug::Freshman->value || $user->is_gat) {
             $user->update([
-                'semester_id' => null,
                 'department_name' => null,
             ]);
             cache()->forget("onboarding.courses.{$user->id}");
@@ -3184,7 +3181,6 @@ class TelegramBotHandler
 
         $user->update([
             'onboarding_step' => OnboardingStep::Department,
-            'semester_id' => null,
             'department_name' => null,
         ]);
         cache()->forget("onboarding.courses.{$user->id}");

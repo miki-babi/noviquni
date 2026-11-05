@@ -1,5 +1,4 @@
 @php
-    $selectedSemesterId = old('semester_id', $user->semester_id);
     $selectedCourses = collect(old('course_ids', $selectedCourseIds))->map(fn ($id) => (int) $id)->all();
     $departmentName = old('department_name', $user->department_name);
 @endphp
@@ -42,41 +41,6 @@
                 @endif
             @endif
 
-
-            <div class="study-card study-continue">
-                <p class="study-card-title">{{ $copy->get('profile.semester') }}</p>
-                <div class="mt-3 space-y-2">
-                    @foreach ($semesters as $semester)
-                        <label class="study-card study-card-ghost block cursor-pointer">
-                            <div class="study-card-inner">
-                                <input
-                                    type="radio"
-                                    name="semester_id"
-                                    value="{{ $semester->id }}"
-                                    class="mt-1"
-                                    @checked((string) $selectedSemesterId === (string) $semester->id)
-                                >
-                                <span class="study-card-title">{{ $semester->name }}</span>
-                            </div>
-                        </label>
-                    @endforeach
-                    <label class="study-card study-card-ghost block cursor-pointer">
-                        <div class="study-card-inner">
-                            <input
-                                type="radio"
-                                name="semester_id"
-                                value=""
-                                class="mt-1"
-                                @checked($selectedSemesterId === null || $selectedSemesterId === '')
-                            >
-                            <span class="study-card-title">{{ $copy->get('profile.skip_semester') }}</span>
-                        </div>
-                    </label>
-                </div>
-                @error('semester_id')
-                    <p class="mt-2 text-xs text-red-500">{{ $message }}</p>
-                @enderror
-            </div>
 
             @if (! $isGat && $isFreshman)
                 <div class="study-card study-continue">

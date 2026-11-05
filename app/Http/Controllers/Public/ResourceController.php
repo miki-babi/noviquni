@@ -42,7 +42,7 @@ class ResourceController extends PublicController
     {
         abort_unless($resource->is_published, 404);
 
-        $resource->load(['course', 'semester']);
+        $resource->load('course');
 
         $related = LearningResource::query()
             ->published()

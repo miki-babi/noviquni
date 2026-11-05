@@ -7,7 +7,6 @@ enum OnboardingStep: string
     case Start = 'start';
     case Year = 'year';
     case Department = 'department';
-    case Semester = 'semester';
     case Courses = 'courses';
     case Complete = 'complete';
 }

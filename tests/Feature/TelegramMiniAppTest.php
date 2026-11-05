@@ -4,7 +4,6 @@ use App\Enums\OnboardingStep;
 use App\Enums\YearSlug;
 use App\Models\Course;
 use App\Models\LearningResource;
-use App\Models\Semester;
 use App\Models\User;
 use App\Models\Year;
 use App\Services\SettingsService;
@@ -203,7 +202,6 @@ it('shows the premium landing page with gat marketing copy', function () {
 });
 
 it('shows the study profile edit form', function () {
-    $semester = Semester::factory()->create(['name' => 'Year 1']);
     $course = Course::factory()->create([
 
         'name' => 'Mathematics',
@@ -213,7 +211,6 @@ it('shows the study profile edit form', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
 
-        'semester_id' => $semester->id,
         'is_active' => true,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
@@ -224,7 +221,6 @@ it('shows the study profile edit form', function () {
         ->assertOk()
         ->assertSee('Study profile')
 
-        ->assertSee('Year 1')
         ->assertSee('Mathematics')
         ->assertSee('Save changes');
 });
@@ -259,7 +255,6 @@ it('preselects every active course on the study profile when none are enrolled',
 });
 
 it('updates academic profile fields from the mini app', function () {
-    $semester = Semester::factory()->create(['name' => 'Year 1']);
     $math = Course::factory()->create([
         'name' => 'Mathematics',
         'is_active' => true,
@@ -272,7 +267,6 @@ it('updates academic profile fields from the mini app', function () {
     $user = User::factory()->student()->create([
         'onboarding_step' => OnboardingStep::Complete,
 
-        'semester_id' => $semester->id,
         'is_active' => true,
     ]);
     $user->syncYear(Year::query()->where('slug', YearSlug::Freshman->value)->firstOrFail());
@@ -280,15 +274,13 @@ it('updates academic profile fields from the mini app', function () {
 
     $this->actingAs($user)
         ->post(route('tg.profile.academic'), [
-            'semester_id' => '',
             'course_ids' => [$civics->id],
         ])
         ->assertRedirect(route('tg.profile'));
 
     $user->refresh();
 
-    expect($user->semester_id)->toBeNull()
-        ->and($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
+    expect($user->courses()->pluck('courses.id')->all())->toBe([$civics->id]);
 });
 
 it('allows courses from another course on the study profile', function () {
@@ -389,7 +381,6 @@ it('lets non-freshman students update department without attaching courses', fun
     $this->actingAs($user)
         ->post(route('tg.profile.academic'), [
             'department_name' => 'Electrical Engineering',
-            'semester_id' => '',
         ])
         ->assertRedirect(route('tg.profile'));
 

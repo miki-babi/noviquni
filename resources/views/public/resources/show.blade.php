@@ -31,28 +31,6 @@
                         </dd>
                     </div>
                 @endif
-                @if ($resource->stream)
-                    <div>
-                        <dt class="text-xs font-medium text-text-muted">Stream</dt>
-                        <dd class="font-semibold">
-                            <a href="{{ route('streams.show', $resource->stream) }}" class="text-primary-200 hover:underline">{{ $resource->stream->name }}</a>
-                        </dd>
-                    </div>
-                @endif
-                @if ($resource->university)
-                    <div>
-                        <dt class="text-xs font-medium text-text-muted">University</dt>
-                        <dd class="font-semibold">
-                            <a href="{{ route('universities.show', $resource->university) }}" class="text-primary-200 hover:underline">{{ $resource->university->name }}</a>
-                        </dd>
-                    </div>
-                @endif
-                @if ($resource->semester)
-                    <div>
-                        <dt class="text-xs font-medium text-text-muted">Semester</dt>
-                        <dd class="font-semibold text-text-primary">{{ $resource->semester->name }}</dd>
-                    </div>
-                @endif
                 <div>
                     <dt class="text-xs font-medium text-text-muted">Access</dt>
                     <dd class="font-semibold text-text-primary">

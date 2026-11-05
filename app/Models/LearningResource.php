@@ -26,7 +26,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'topics',
     'type',
     'course_id',
-    'semester_id',
     'module_id',
     'sort_order',
     'is_premium',
@@ -59,11 +58,6 @@ class LearningResource extends Model
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
-    }
-
-    public function semester(): BelongsTo
-    {
-        return $this->belongsTo(Semester::class);
     }
 
     public function module(): BelongsTo

@@ -44,7 +44,6 @@ use Spatie\Permission\Traits\HasRoles;
     'premium_until',
     'is_premium',
     'is_gat',
-    'semester_id',
     'department_name',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -100,11 +99,6 @@ class User extends Authenticatable implements FilamentUser
     public function hasActivePremium(): bool
     {
         return (bool) $this->is_premium;
-    }
-
-    public function semester(): BelongsTo
-    {
-        return $this->belongsTo(Semester::class);
     }
 
     public function referrer(): BelongsTo

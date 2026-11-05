@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\LearningResource;
 use App\Models\Opportunity;
-use App\Models\Semester;
 use App\Models\User;
 use App\Services\OnboardingService;
 use App\Services\ReferralService;
@@ -28,7 +27,7 @@ class ProfileController extends Controller
         /** @var User $user */
         $user = Auth::user();
         $copy = TelegramCopy::for($user);
-        $user->load(['semester', 'courses', 'years']);
+        $user->load(['courses', 'years']);
 
         $bookmarks = $user->bookmarks()
             ->with(['bookmarkable' => function (MorphTo $morphTo) {
@@ -68,7 +67,6 @@ class ProfileController extends Controller
         $copy = TelegramCopy::for($user);
         $user->load(['courses', 'years']);
 
-        $semesters = Semester::query()->orderBy('sort_order')->orderBy('name')->get();
         $courses = Course::query()
             ->active()
             ->orderBy('name')
@@ -83,7 +81,6 @@ class ProfileController extends Controller
         return view('telegram.mini-app.profile-edit', [
             'copy' => $copy,
             'user' => $user,
-            'semesters' => $semesters,
             'courses' => $courses,
             'selectedCourseIds' => $selectedCourseIds,
             'isFreshman' => $user->isFreshman(),
@@ -100,18 +97,6 @@ class ProfileController extends Controller
         $user->loadMissing('years');
 
         if ($user->is_gat) {
-            $validated = $request->validate([
-                'semester_id' => [
-                    'nullable',
-                    'integer',
-                    Rule::exists('semesters', 'id'),
-                ],
-            ]);
-
-            $user->update([
-                'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
-            ]);
-
             $onboarding->syncGatSubjectCourses($user->fresh() ?? $user);
 
             return redirect()
@@ -122,16 +107,10 @@ class ProfileController extends Controller
         if (! $user->isFreshman()) {
             $validated = $request->validate([
                 'department_name' => ['required', 'string', 'max:255'],
-                'semester_id' => [
-                    'nullable',
-                    'integer',
-                    Rule::exists('semesters', 'id'),
-                ],
             ]);
 
             $user->update([
                 'department_name' => trim($validated['department_name']),
-                'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
             ]);
 
             $onboarding->syncCourses($user->fresh(), []);
@@ -142,20 +121,11 @@ class ProfileController extends Controller
         }
 
         $validated = $request->validate([
-            'semester_id' => [
-                'nullable',
-                'integer',
-                Rule::exists('semesters', 'id'),
-            ],
             'course_ids' => ['nullable', 'array'],
             'course_ids.*' => [
                 'integer',
                 Rule::exists('courses', 'id')->where(fn ($query) => $query->where('is_active', true)),
             ],
-        ]);
-
-        $user->update([
-            'semester_id' => isset($validated['semester_id']) ? (int) $validated['semester_id'] : null,
         ]);
 
         $onboarding->syncCourses($user->fresh(), array_map('intval', $validated['course_ids'] ?? []));

@@ -65,7 +65,6 @@ class StudentForm
                 TextInput::make('department_name')
                     ->label('Department')
                     ->maxLength(255),
-                Select::make('semester_id')->relationship('semester', 'name')->searchable()->preload(),
                 Select::make('courses')
                     ->relationship('courses', 'name')
                     ->multiple()

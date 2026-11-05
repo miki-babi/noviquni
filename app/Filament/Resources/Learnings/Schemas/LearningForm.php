@@ -331,10 +331,6 @@ class LearningForm
                     ->integer()
                     ->default(0)
                     ->required(),
-                Select::make('semester_id')
-                    ->relationship('semester', 'name')
-                    ->searchable()
-                    ->preload(),
                 Toggle::make('is_premium')
                     ->default(false)
                     ->live()
@@ -402,10 +398,6 @@ class LearningForm
                         ->integer()
                         ->default(0)
                         ->required(),
-                    Select::make('semester_id')
-                        ->relationship('semester', 'name')
-                        ->searchable()
-                        ->preload(),
                     Toggle::make('is_premium')
                         ->default(false)
                         ->live()
